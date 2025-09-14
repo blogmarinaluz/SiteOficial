@@ -1,94 +1,116 @@
-// src/app/page.tsx  — COMPLETO
+// src/app/produto/[id]/page.tsx — COMPLETO
+"use client";
 
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import ProductCard from "@/components/ProductCard";
-import CarouselRow from "@/components/CarouselRow";
-import products from "@/data/products.json";
+import { ShoppingCart } from "lucide-react";
 
-type P = {
+import products from "@/data/products.json";
+import { useCart } from "@/hooks/useCart";
+import { br, withCoupon } from "@/lib/format";
+
+type Product = {
   id: string;
   brand: string;
   name: string;
   image: string;
   price: number;
-  freeShipping?: boolean;
-  featured?: boolean; // “Celulares em Oferta”
-  bbb?: boolean;      // carrossel BBB
-  popular?: boolean;  // carrossel “Mais buscados”
+  color?: string;
+  storage?: string | number;
 };
 
-export default function HomePage() {
-  const list = products as unknown as P[];
+export default function ProdutoPage() {
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : String(params?.id || "");
+  const { add } = useCart();
 
-  const featured = list.filter(p => p.featured).slice(0, 12);
-  const bbb = list.filter(p => p.bbb).slice(0, 12);
-  const popular = list.filter(p => p.popular).slice(0, 12);
-  const more = list.slice(0, 12); // grid “Mais modelos…”
+  const p: Product | undefined = useMemo(() => {
+    return (products as Product[]).find((x) => x.id === id);
+  }, [id]);
+
+  function handleAdd() {
+    if (!p) return; // ✅ garante para o TS
+    add(
+      {
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        image: p.image,
+        color: p.color,
+        storage: p.storage,
+      },
+      1
+    );
+    alert("Adicionado ao carrinho!");
+  }
+
+  if (!p) {
+    return (
+      <div className="container py-10">
+        <div className="rounded-2xl border p-6">
+          <h1 className="text-xl font-bold mb-2">Produto não encontrado</h1>
+          <Link href="/" className="btn-primary">Voltar para a Home</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const precoPix = withCoupon(p.price); // 30% OFF aplicado
+  const parcela10 = p.price / 10;
 
   return (
-    <>
-      {/* CELULARES EM OFERTA */}
-      <section className="mb-10">
-        <h2 className="text-xl font-extrabold mb-4">Celulares em Oferta</h2>
-        {featured.length === 0 ? (
-          <div className="text-sm text-zinc-500">Sem destaques no momento.</div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {featured.map(p => (
-              <ProductCard key={p.id} p={p} />
-            ))}
-          </div>
-        )}
-      </section>
+    <div className="container p-6 grid md:grid-cols-[1fr,1fr] gap-8">
+      {/* Imagem */}
+      <div className="rounded-2xl border bg-white p-6 flex items-center justify-center">
+        <img
+          src={p.image}
+          alt={p.name}
+          className="w-full max-w-md h-auto object-contain"
+        />
+      </div>
 
-      {/* BBB */}
-      <section className="mb-10">
-        <h2 className="text-xl font-extrabold mb-4">
-          Ofertas do dia | BBB = Bom, Bonito e Barato
-        </h2>
-        {bbb.length === 0 ? (
-          <div className="text-sm text-zinc-500">Sem ofertas BBB no momento.</div>
-        ) : (
-          <CarouselRow>
-            {bbb.map(p => (
-              <div key={p.id} className="w-[260px]">
-                <ProductCard p={p} />
-              </div>
-            ))}
-          </CarouselRow>
-        )}
-      </section>
-
-      {/* MAIS BUSCADOS */}
-      <section className="mb-10">
-        <h2 className="text-xl font-extrabold mb-4">Mais buscados</h2>
-        {popular.length === 0 ? (
-          <div className="text-sm text-zinc-500">Sem itens populares no momento.</div>
-        ) : (
-          <CarouselRow>
-            {popular.map(p => (
-              <div key={p.id} className="w-[260px]">
-                <ProductCard p={p} />
-              </div>
-            ))}
-          </CarouselRow>
-        )}
-      </section>
-
-      {/* MAIS MODELOS */}
-      <section className="mb-6">
-        <h2 className="text-xl font-extrabold mb-4">Mais modelos…</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {more.map(p => (
-            <ProductCard key={p.id} p={p} />
-          ))}
+      {/* Detalhes */}
+      <div className="space-y-4">
+        <div className="text-xs uppercase tracking-wide text-zinc-500">
+          {p.brand?.toLowerCase() === "apple"
+            ? "Apple"
+            : p.brand?.toLowerCase() === "samsung"
+            ? "Samsung"
+            : p.brand}
         </div>
-        <div className="text-center mt-6">
-          <Link href="/buscar?q=" className="btn-outline inline-block">
-            Ver mais modelos
+        <h1 className="text-2xl font-extrabold leading-tight">{p.name}</h1>
+
+        <div className="space-y-1">
+          <div className="text-2xl font-black text-accent">{br(precoPix)} no PIX</div>
+          <div className="text-sm text-zinc-500 line-through">{br(p.price)} sem desconto</div>
+          <div className="text-sm text-zinc-700">
+            ou 10x de <b>{br(parcela10)}</b>{" "}
+            <span className="text-emerald-600 font-medium">sem juros</span>
+          </div>
+          <div className="text-xs text-zinc-500">
+            Cupom de <b>30% OFF</b> aplicado automaticamente.
+          </div>
+        </div>
+
+        {/* Ações */}
+        <div className="flex gap-3 pt-2">
+          <button className="btn-primary" onClick={handleAdd}>
+            <ShoppingCart className="w-5 h-5 mr-2" />
+            Adicionar ao carrinho
+          </button>
+          <Link href="/carrinho" className="btn-outline">
+            Ver carrinho
           </Link>
         </div>
-      </section>
-    </>
+
+        {/* Informações extras */}
+        <ul className="text-sm text-zinc-700 space-y-1 pt-3">
+          <li>Produto novo, lacrado e com garantia.</li>
+          <li>Emissão de nota fiscal.</li>
+          <li>Envio para todo o Brasil.</li>
+        </ul>
+      </div>
+    </div>
   );
 }
