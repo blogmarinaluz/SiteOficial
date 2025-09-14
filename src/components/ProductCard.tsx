@@ -109,7 +109,7 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
             Ver produto
           </Link>
           <button
-            onClick={() => add({ ...product, qty: 1 })}
+            onClick={() => add(product as any, 1)} // <<< passa qty como 2º argumento (API do seu hook)
             className="inline-flex flex-1 items-center justify-center rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600"
           >
             Adicionar
