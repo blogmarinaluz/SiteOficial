@@ -1,175 +1,265 @@
 "use client";
+
 import { useMemo, useState } from "react";
-import data from "@/data/products.json";
-import Link from "next/link";
+import products from "@/data/products.json";
 import { useCart } from "@/hooks/useCart";
 
+/** Helpers locais para não depender de outros módulos */
 function br(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-function withPix(n: number) {
-  return Math.round(n * 0.85); // 15% OFF no PIX
+function withCoupon(n: number) {
+  // 30% OFF de cupom
+  return Math.round(n * 0.7);
 }
 
-export default function Produto({ params }: { params: { id: string } }) {
+/** Tipos bem soltos para não travar o build se faltar algum campo */
+type AnyRecord = Record<string, any>;
+
+export default function ProdutoPage({ params }: { params: { id: string } }) {
+  // Busca produto por id (string ex.: "apple_iphone-14_128_preto")
+  const product: AnyRecord | undefined = useMemo(
+    () =>
+      (products as AnyRecord[]).find((p) => String(p.id) === String(params.id)),
+    [params.id]
+  );
+
   const { add } = useCart();
 
-  const id = decodeURIComponent(params.id);
-  const item = useMemo(() => (data as any[]).find((p) => p.id === id), [id]);
-  if (!item) return <div className="p-6">Produto não encontrado.</div>;
+  if (!product) {
+    return (
+      <div className="container p-6">
+        <h1 className="text-2xl font-bold mb-2">Produto não encontrado</h1>
+        <p className="text-zinc-600">
+          O item solicitado não foi localizado no catálogo.
+        </p>
+      </div>
+    );
+  }
 
-  const variantes = (data as any[]).filter((p) => p.model_key === item.model_key);
-  const storages = Array.from(new Set(variantes.map((v) => v.storage))).sort(
-    (a: any, b: any) => parseInt(a) - parseInt(b)
+  /** Normaliza listas de cores e GB */
+  const colorList: string[] =
+    product.colors ||
+    product.options?.colors ||
+    product.variants?.colors ||
+    [];
+
+  const storageList: (string | number)[] =
+    product.storages ||
+    product.options?.storages ||
+    product.variants?.storages ||
+    (product.storage ? [product.storage] : []);
+
+  /** Estados selecionados */
+  const [color, setColor] = useState<string>(
+    colorList.length ? String(colorList[0]) : String(product.color ?? "")
   );
-  const cores = Array.from(new Set(variantes.map((v) => v.color)));
+  const [storage, setStorage] = useState<string | number>(
+    storageList.length ? storageList[0] : product.storage ?? ""
+  );
 
-  const [selStorage, setSelStorage] = useState(String(item.storage));
-  const [selColor, setSelColor] = useState(String(item.color));
+  /** Pega imagem pela cor, se existir, senão usa a principal */
+  const image: string =
+    product.imagesByColor?.[color] ||
+    product.images?.[color] ||
+    product.image ||
+    product.thumbnail ||
+    "/placeholder.png";
 
-  const ativo =
-    useMemo(
-      () =>
-        variantes.find(
-          (v) => String(v.storage) === selStorage && String(v.color) === selColor
-        ) ?? item,
-      [selStorage, selColor, item, variantes]
-    );
+  /** Calcula preço por GB, se houver tabela; senão usa price base */
+  const priceFromTable =
+    product.priceByStorage?.[String(storage)] ??
+    product.priceTiers?.find((t: AnyRecord) => String(t.storage) === String(storage))
+      ?.price;
 
-  const preco = ativo.price as number | undefined;
+  const price: number = Number(
+    priceFromTable ?? product.price ?? product.basePrice ?? 0
+  );
 
-  function addToCart() {
-    if (!preco) {
-      alert("Indisponível nesta combinação.");
-      return;
-    }
-    add(
-      {
-        id: ativo.id,
-        name: ativo.name,
-        image: ativo.image,
-        storage: ativo.storage,
-        color: ativo.color,
-        price: ativo.price,
-      },
-      1
-    );
+  const name: string =
+    product.displayName ||
+    product.name ||
+    (product.brand && product.model
+      ? `${product.brand} ${product.model}`
+      : String(product.id));
+
+  const freeShipping: boolean = Boolean(product.freeShipping === true);
+
+  /** Objeto final que representa a seleção ativa */
+  const ativo = {
+    id: `${product.id}__${color || "std"}__${storage || "std"}`,
+    name: `${name}${storage ? ` ${storage}GB` : ""}${color ? ` ${color}` : ""}`,
+    image,
+    color,
+    storage,
+    price,
+    freeShipping,
+  };
+
+  function handleAdd() {
+    add({
+      ...ativo,
+      qty: 1,
+    });
     alert("Adicionado ao carrinho!");
   }
 
   return (
     <div className="grid md:grid-cols-[1fr,1fr] gap-8 p-6">
+      {/* Coluna da imagem */}
       <div>
-        <img src={ativo.image} alt={ativo.name} className="rounded-2xl w-full object-cover" />
-        <div className="flex gap-2 mt-3 overflow-x-auto">
-          {cores.map((c: string) => (
-            <button
-              key={c}
-              onClick={() => setSelColor(c)}
-              className={`h-8 px-3 rounded-full border ${
-                selColor === c ? "border-zinc-900" : "border-zinc-300"
-              }`}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+        <img
+          src={image}
+          alt={name}
+          className="rounded-2xl w-full object-cover border"
+        />
+
+        {/* Se existir mais imagens por cor, mostra miniaturas */}
+        {colorList.length > 1 && (
+          <div className="flex gap-2 mt-4 flex-wrap">
+            {colorList.map((c) => {
+              const thumb =
+                product.imagesByColor?.[c] ||
+                product.images?.[c] ||
+                product.image;
+              return (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`border rounded-xl p-1 ${
+                    c === color ? "border-accent" : "border-zinc-200"
+                  }`}
+                  title={c}
+                >
+                  <img
+                    src={thumb}
+                    alt={c}
+                    className="w-16 h-16 object-cover rounded-lg"
+                  />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <div>
-        <div className="text-sm text-zinc-500">Desbloqueado com 90 dias de garantia</div>
-        <h1 className="text-2xl font-bold">
-          {item.name} {selColor}
-        </h1>
-
-        <div className="mt-4">
-          <div className="text-sm font-medium mb-2">Cor</div>
-          <div className="flex gap-2 flex-wrap">
-            {cores.map((c: string) => (
-              <button
-                key={c}
-                onClick={() => setSelColor(c)}
-                className={`px-3 py-2 rounded-full border ${
-                  selColor === c ? "border-zinc-900 bg-zinc-100" : "border-zinc-300"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div className="text-sm font-medium mb-2">Capacidade</div>
-          <div className="flex gap-2 flex-wrap">
-            {storages.map((s: string) => (
-              <button
-                key={s}
-                onClick={() => setSelStorage(s)}
-                className={`px-3 py-2 rounded-lg border ${
-                  selStorage === s ? "border-zinc-900 bg-zinc-100" : "border-zinc-300"
-                }`}
-              >
-                {s} GB
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          {preco ? (
-            <>
-              <div className="text-sm line-through text-zinc-500">{br(preco)}</div>
-              <div className="text-3xl font-bold text-green-700">
-                {br(withPix(preco))} <span className="text-sm align-top ml-2">15% OFF no PIX</span>
-              </div>
-              <div className="text-sm mt-1">ou {br(preco)} em até 10x sem juros</div>
-            </>
-          ) : (
-            <div className="text-sm text-zinc-500">Indisponível nesta combinação.</div>
+      {/* Coluna de informações */}
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold">{name}</h1>
+          {product.brand && (
+            <div className="text-sm text-zinc-500 mt-1">
+              Marca: {String(product.brand).charAt(0).toUpperCase() + String(product.brand).slice(1)}
+            </div>
           )}
         </div>
 
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={addToCart}
-            disabled={!preco}
-            className={"btn " + (!preco ? "opacity-50 cursor-not-allowed" : "")}
-          >
-            Adicionar ao carrinho
-          </button>
-          <Link
-            href={`/checkout?item=${encodeURIComponent(ativo.id)}`}
-            className={"btn-secondary " + (!preco ? "pointer-events-none opacity-50" : "")}
-          >
-            Comprar
-          </Link>
+        {/* Preços */}
+        <div className="space-y-1">
+          <div className="text-3xl font-extrabold text-accent">{br(price)}</div>
+          <div className="text-sm text-zinc-600">
+            Com cupom <b>30% OFF</b>:{" "}
+            <b className="text-green-600">{br(withCoupon(price))}</b>
+          </div>
+          <div className="text-sm text-zinc-600">
+            ou em até <b>10x</b> de{" "}
+            <b>{br(Math.ceil(price / 10))}</b> <span className="italic">sem juros</span>
+          </div>
+          {freeShipping && (
+            <div className="inline-flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-full px-3 py-1 mt-2">
+              🚚 Frete: <b>Grátis</b>
+            </div>
+          )}
         </div>
 
-        {/* DESCRIÇÃO e CARACTERÍSTICAS */}
-        <div className="mt-10 space-y-6">
-          <section className="border rounded-2xl p-4">
-            <h2 className="text-xl font-semibold mb-2">Descrição do produto</h2>
-            <p className="text-zinc-700">
-              {(require("@/data/specs.json") as any)[ativo.model_key]?.descricao ||
-                "Descrição breve do produto e condições (recondicionado, testado, com garantia)."}
-            </p>
-          </section>
-
-          <section className="border rounded-2xl p-4">
-            <h2 className="text-xl font-semibold mb-2">Características técnicas</h2>
-            <div className="grid sm:grid-cols-2 gap-3 text-sm">
-              {Object.entries(
-                ((require("@/data/specs.json") as any)[ativo.model_key]?.caracteristicas) || {}
-              ).map(([k, v]: any) => (
-                <div key={k} className="flex justify-between gap-4 border-b pb-2">
-                  <span className="text-zinc-500">{k}</span>
-                  <span className="font-medium text-zinc-800">{v as string}</span>
-                </div>
+        {/* Seletor de Cor */}
+        {!!colorList.length && (
+          <div>
+            <div className="font-medium mb-2">Cor</div>
+            <div className="flex flex-wrap gap-2">
+              {colorList.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`px-3 py-2 rounded-2xl border ${
+                    c === color
+                      ? "border-accent bg-accent/10"
+                      : "border-zinc-300 hover:border-accent"
+                  }`}
+                >
+                  {String(c)}
+                </button>
               ))}
             </div>
-          </section>
+          </div>
+        )}
+
+        {/* Seletor de Armazenamento */}
+        {!!storageList.length && (
+          <div>
+            <div className="font-medium mb-2">Armazenamento</div>
+            <div className="flex flex-wrap gap-2">
+              {storageList.map((gb) => (
+                <button
+                  key={String(gb)}
+                  onClick={() => setStorage(gb)}
+                  className={`px-3 py-2 rounded-2xl border ${
+                    String(gb) === String(storage)
+                      ? "border-accent bg-accent/10"
+                      : "border-zinc-300 hover:border-accent"
+                  }`}
+                >
+                  {gb}GB
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Ações */}
+        <div className="flex gap-3">
+          <button className="btn-primary" onClick={handleAdd}>
+            Adicionar ao carrinho
+          </button>
+          <a
+            href="/carrinho"
+            className="btn-outline"
+            onClick={(e) => {
+              // adiciona e já vai pro carrinho
+              e.preventDefault();
+              handleAdd();
+              setTimeout(() => {
+                window.location.href = "/carrinho";
+              }, 100);
+            }}
+          >
+            Comprar agora
+          </a>
         </div>
+
+        {/* Descrição e Características — placeholders se faltarem */}
+        <section className="prose max-w-none">
+          <h2 className="text-xl font-semibold mt-6 mb-2">
+            Descrição do produto
+          </h2>
+          <p className="text-zinc-700">
+            {product.description ||
+              "Smartphone original, lacrado, com garantia e nota fiscal. Alto desempenho, câmeras de qualidade e bateria duradoura — perfeito para o dia a dia."}
+          </p>
+
+          <h3 className="text-lg font-semibold mt-6 mb-2">
+            Características técnicas
+          </h3>
+          <ul className="list-disc pl-5 text-zinc-700 space-y-1">
+            <li>Armazenamento: {storage || product.storage || "—"} GB</li>
+            <li>Cor: {color || product.color || "—"}</li>
+            <li>Garantia: {product.warranty || "12 meses"}</li>
+            <li>Tela: {product.display || "Alta resolução"}</li>
+            <li>Câmera: {product.camera || "Câmeras avançadas"}</li>
+            <li>Bateria: {product.battery || "Longa duração"}</li>
+            <li>Conectividade: {product.connectivity || "5G / Wi-Fi / Bluetooth"}</li>
+          </ul>
+        </section>
       </div>
     </div>
   );
