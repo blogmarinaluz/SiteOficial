@@ -1,51 +1,93 @@
-"use client";
+import Link from "next/link";
+import ProductCard from "@/components/ProductCard";
+import CarouselRow from "@/components/CarouselRow";
+import products from "@/data/products.json";
 
-import { useRef } from "react";
+// Tipagem leve compatível com seu JSON
+type P = {
+  id: string;
+  brand: string;
+  name: string;
+  image: string;
+  price: number;
+  freeShipping?: boolean;
+  featured?: boolean; // "Celulares em Oferta"
+  bbb?: boolean;      // carrossel BBB
+  popular?: boolean;  // carrossel “Mais buscados”
+};
 
-export default function CarouselRow({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
+export default function HomePage() {
+  const list = products as unknown as P[];
 
-  const scroll = (dir: number) => {
-    const el = ref.current;
-    if (!el) return;
-    const delta = el.clientWidth * 0.9 * dir; // rola ~90% da largura
-    el.scrollBy({ left: delta, behavior: "smooth" });
-  };
+  const featured = list.filter(p => p.featured).slice(0, 12);
+  const bbb = list.filter(p => p.bbb).slice(0, 12);
+  const popular = list.filter(p => p.popular).slice(0, 12);
+  const more = list.slice(0, 12); // grid “Mais modelos…”
 
   return (
-    <div className="relative">
-      {/* seta esquerda (desktop) */}
-      <button
-        aria-label="Anterior"
-        onClick={() => scroll(-1)}
-        className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 border rounded-full px-3 py-2 shadow"
-      >
-        ‹
-      </button>
+    <>
+      {/* CELULARES EM OFERTA */}
+      <section className="mb-10">
+        <h2 className="text-xl font-extrabold mb-4">Celulares em Oferta</h2>
+        {featured.length === 0 ? (
+          <div className="text-sm text-zinc-500">Sem destaques no momento.</div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {featured.map(p => (
+              <ProductCard key={p.id} p={p} />
+            ))}
+          </div>
+        )}
+      </section>
 
-      {/* faixa rolável */}
-      <div
-        ref={ref}
-        className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 px-1
-                   [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {Array.isArray(children)
-          ? children.map((c, i) => (
-              <div key={i} className="snap-start shrink-0">
-                {c}
+      {/* BBB */}
+      <section className="mb-10">
+        <h2 className="text-xl font-extrabold mb-4">
+          Ofertas do dia | BBB = Bom, Bonito e Barato
+        </h2>
+        {bbb.length === 0 ? (
+          <div className="text-sm text-zinc-500">Sem ofertas BBB no momento.</div>
+        ) : (
+          <CarouselRow>
+            {bbb.map(p => (
+              <div key={p.id} className="w-[260px]">
+                <ProductCard p={p} />
               </div>
-            ))
-          : <div className="snap-start shrink-0">{children}</div>}
-      </div>
+            ))}
+          </CarouselRow>
+        )}
+      </section>
 
-      {/* seta direita (desktop) */}
-      <button
-        aria-label="Próximo"
-        onClick={() => scroll(1)}
-        className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 border rounded-full px-3 py-2 shadow"
-      >
-        ›
-      </button>
-    </div>
+      {/* MAIS BUSCADOS */}
+      <section className="mb-10">
+        <h2 className="text-xl font-extrabold mb-4">Mais buscados</h2>
+        {popular.length === 0 ? (
+          <div className="text-sm text-zinc-500">Sem itens populares no momento.</div>
+        ) : (
+          <CarouselRow>
+            {popular.map(p => (
+              <div key={p.id} className="w-[260px]">
+                <ProductCard p={p} />
+              </div>
+            ))}
+          </CarouselRow>
+        )}
+      </section>
+
+      {/* MAIS MODELOS */}
+      <section className="mb-6">
+        <h2 className="text-xl font-extrabold mb-4">Mais modelos…</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {more.map(p => (
+            <ProductCard key={p.id} p={p} />
+          ))}
+        </div>
+        <div className="text-center mt-6">
+          <Link href="/buscar?q=" className="btn-outline inline-block">
+            Ver mais modelos
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }
