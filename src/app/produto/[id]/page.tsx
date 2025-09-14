@@ -1,4 +1,3 @@
-// src/app/produto/[id]/page.tsx — COMPLETO (robusto p/ ids com/sem .jpg)
 "use client";
 
 import { useMemo } from "react";
@@ -20,7 +19,6 @@ type Product = {
   storage?: string | number;
 };
 
-// helpers para “normalizar” ids/nomes de arquivo
 function stripQuery(s: string) {
   const i = s.indexOf("?");
   return i >= 0 ? s.slice(0, i) : s;
@@ -33,19 +31,18 @@ function norm(s: string) {
 }
 function filename(path: string) {
   const p = String(path || "");
-  return p.split("/").pop() || p; // pega só o final
+  return p.split("/").pop() || p;
 }
 
 export default function ProdutoPage() {
   const params = useParams();
   const raw = Array.isArray(params?.id) ? params.id[0] : String(params?.id || "");
-  const slug = norm(raw); // id normalizado vindo da URL
+  const slug = norm(raw);
   const { add } = useCart();
 
   const p: Product | undefined = useMemo(() => {
     const list = products as Product[];
 
-    // 1) tenta por igualdade direta (id), com e sem extensão
     const byId =
       list.find((x) => norm(x.id) === slug) ||
       list.find((x) => norm(x.id) === `${slug}`) ||
@@ -56,11 +53,9 @@ export default function ProdutoPage() {
 
     if (byId) return byId;
 
-    // 2) tenta bater pelo nome do arquivo da imagem
     const byImage = list.find((x) => norm(filename(x.image)) === slug);
     if (byImage) return byImage;
 
-    // 3) fallback: tenta começar/terminar com o slug
     return list.find(
       (x) => norm(x.id).startsWith(slug) || norm(x.id).endsWith(slug)
     );
@@ -95,12 +90,11 @@ export default function ProdutoPage() {
     );
   }
 
-  const precoPix = withCoupon(p.price); // 30% OFF aplicado automaticamente
+  const precoPix = withCoupon(p.price);
   const parcela10 = p.price / 10;
 
   return (
     <div className="container p-6 grid md:grid-cols-[1fr,1fr] gap-8">
-      {/* Imagem */}
       <div className="rounded-2xl border bg-white p-6 flex items-center justify-center">
         <img
           src={p.image}
@@ -109,7 +103,6 @@ export default function ProdutoPage() {
         />
       </div>
 
-      {/* Detalhes */}
       <div className="space-y-4">
         <div className="text-xs uppercase tracking-wide text-zinc-500">
           {p.brand?.toLowerCase() === "apple"
@@ -122,7 +115,7 @@ export default function ProdutoPage() {
 
         <div className="space-y-1">
           <div className="text-2xl font-black text-accent">{br(precoPix)} no PIX</div>
-          <div className="text-sm text-zinc-500 line-through">{br(p.price)} sem desconto</div>
+          <div className="text-sm text-zinc-500 line-through">{br(p.price)}</div>
           <div className="text-sm text-zinc-700">
             ou 10x de <b>{br(parcela10)}</b>{" "}
             <span className="text-emerald-600 font-medium">sem juros</span>
@@ -132,7 +125,6 @@ export default function ProdutoPage() {
           </div>
         </div>
 
-        {/* Ações */}
         <div className="flex gap-3 pt-2">
           <button className="btn-primary" onClick={handleAdd}>
             <ShoppingCart className="w-5 h-5 mr-2" />
@@ -143,12 +135,16 @@ export default function ProdutoPage() {
           </Link>
         </div>
 
-        {/* Informações extras */}
         <ul className="text-sm text-zinc-700 space-y-1 pt-3">
           <li>Produto novo, lacrado e com garantia.</li>
           <li>Emissão de nota fiscal.</li>
           <li>Envio para todo o Brasil.</li>
         </ul>
+      </div>
+    </div>
+  );
+}
+
       </div>
     </div>
   );
