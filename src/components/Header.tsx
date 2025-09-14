@@ -2,8 +2,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ShoppingCart, User, ChevronDown } from "lucide-react";
+
 export function Header(){ 
   const [q,setQ] = useState('');
+  const m = "ver"; // rótulo dos itens do dropdown
+
   return (<header className="header">
     <div className="container py-4 flex items-center gap-4">
       <Link href="/" className="text-2xl font-extrabold text-accent">prostore</Link>
