@@ -5,29 +5,39 @@ import BoletoModal from "@/components/BoletoModal";
 import Testimonials from "@/components/Testimonials";
 import WhatsChat from "@/components/WhatsChat";
 
-function pick(n: number, sort?: (a: any, b: any) => number, filter?: (p: any) => boolean) {
-  let arr = (data as any[]).slice();
-  if (filter) arr = arr.filter(filter);
-  if (sort) arr.sort(sort);
-  return arr.slice(0, n);
-}
+function byPriceDesc(a: any, b: any) { return (b.price || 0) - (a.price || 0); }
+function byPriceAsc(a: any, b: any) { return (a.price || 0) - (b.price || 0); }
+function capBrand(b?: string){ return String(b||"").toLowerCase(); }
 
 export default function Home() {
-  const all = data as any[];
-  const ofertas = pick(6);
+  const all = (data as any[]).filter(p => typeof p.price === "number");
 
-  const appleTop = all
-    .filter((p) => p.brand?.toLowerCase() === "apple" && p.price)
-    .sort((a, b) => (b.price || 0) - (a.price || 0))[0];
-  const samsungTop = all
-    .filter((p) => p.brand?.toLowerCase() === "samsung" && p.price)
-    .sort((a, b) => (b.price || 0) - (a.price || 0))[0];
-  const barato = all
-    .filter((p) => p.price)
-    .sort((a, b) => (a.price || 0) - (b.price || 0))[0];
+  // Ofertas em Oferta (seção 1): 6 aleatórios/mais vendidos (fallback simples)
+  const ofertas = all.slice(0, 6);
 
-  const ofertasDia = [appleTop, samsungTop, barato].filter(Boolean);
-  const destaque = pick(6);
+  // BBB: garantir 3 (um Apple top, um Samsung top, um barato)
+  const appleTop = all.filter(p=>capBrand(p.brand)==="apple").sort(byPriceDesc)[0];
+  const samsungTop = all.filter(p=>capBrand(p.brand)==="samsung").sort(byPriceDesc)[0];
+  const barato = all.sort(byPriceAsc)[0];
+  const ofertasDiaSet = new Map<string, any>();
+  [appleTop, samsungTop, barato].forEach(p => p && ofertasDiaSet.set(String(p.id), p));
+  // fallback se faltar algum
+  for (const p of all) {
+    if (ofertasDiaSet.size >= 3) break;
+    ofertasDiaSet.set(String(p.id), p);
+  }
+  const ofertasDia = Array.from(ofertasDiaSet.values()).slice(0,3);
+
+  // Destaque: misturar brands (3 apple + 3 samsung; fallback completa)
+  const appleMix = all.filter(p=>capBrand(p.brand)==="apple").slice(0,3);
+  const samsMix  = all.filter(p=>capBrand(p.brand)==="samsung").slice(0,3);
+  let destaque = [...appleMix, ...samsMix];
+  if (destaque.length < 6) {
+    for (const p of all) {
+      if (destaque.length >= 6) break;
+      if (!destaque.find(d => d.id === p.id)) destaque.push(p);
+    }
+  }
 
   return (
     <main>
@@ -42,16 +52,14 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-4 text-right">
-          <Link href="/categoria/apple" className="btn-secondary">
-            Mais modelos…
-          </Link>
+          <Link href="/categoria/apple" className="btn-secondary">Mais modelos…</Link>
         </div>
       </section>
 
-      {/* Depoimentos novos (branco, carrossel auto) */}
+      {/* Depoimentos */}
       <Testimonials />
 
-      {/* Bloco bonito do BOLETO (hero compacto) */}
+      {/* Bloco do BOLETO */}
       <section className="container py-10">
         <div className="rounded-2xl p-6 md:p-8 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
           <div className="md:flex items-center gap-8">
@@ -86,11 +94,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Ofertas em Destaque */}
+      {/* Ofertas em Destaque (misturada) */}
       <section className="container py-8">
         <h2 className="text-2xl font-bold mb-4">Ofertas em Destaque</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {destaque.map((p) => (
+          {destaque.slice(0,6).map((p) => (
             <ProductCard key={p.id} p={p} />
           ))}
         </div>
