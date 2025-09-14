@@ -1,1 +1,15 @@
-import ProductCard from './ProductCard';export default function ProductGrid({items}:{items:any[]}){return <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-6'>{items.map(p=><ProductCard key={p.id} p={p}/>)}</div>}
+import ProductCard, { Product } from "./ProductCard";
+
+export default function ProductGrid({ products }: { products: Product[] }) {
+  if (!products || products.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+      {products.map((p) => (
+        <ProductCard key={p.id} product={p} />
+      ))}
+    </div>
+  );
+}
