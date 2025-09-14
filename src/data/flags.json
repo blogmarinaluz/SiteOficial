@@ -1,30 +1,31 @@
 {
-  "apple_iphone-14_128_preto": {
-    "freeShipping": true,
-    "tag": "Quinzena5",
-    "featured": true,
-    "bbb": true,
-    "popular": true
-  },
-  "samsung_galaxy-s21-fe_128_preto": {
-    "freeShipping": true,
-    "tag": "Quinzena5",
-    "featured": true,
-    "bbb": true,
-    "popular": true
-  },
-  "samsung_galaxy-s22_128_branco": {
-    "freeShipping": false,
-    "tag": "Oferta Relâmpago",
-    "featured": true,
-    "bbb": true,
-    "popular": true
-  },
-  "apple_iphone-12_128_branco": {
-    "freeShipping": true,
-    "tag": "Quinzena5",
-    "featured": false,
-    "bbb": true,
-    "popular": true
-  }
+  "apple_iphone-14-plus_128_amarelo_.jpg": { "freeShipping": true },
+  "apple_iphone-14-plus_128_roxo_.jpg": { "freeShipping": true },
+  "apple_iphone-14_128_preto_.jpg": { "freeShipping": true },
+  "apple_iphone-14_256_azul_.jpg": { "freeShipping": true },
+  "apple_iphone-15-plus_128_preto_.jpg": { "freeShipping": true },
+  "apple_iphone-15_128_rosa_.jpg": { "freeShipping": true },
+  "apple_iphone-15_256_preto_.jpg": { "freeShipping": true },
+  "apple_iphone-16-pro-max_256_titânio-preto_.jpg": { "freeShipping": true },
+  "apple_iphone-16-pro_256_titânio-branco_.jpg": { "freeShipping": true },
+  "apple_iphone-16_128_ultramarino_.jpg": { "freeShipping": true },
+  "apple_iphone-16_256_preto_.jpg": { "freeShipping": true },
+  "apple_iphone-16e_128_preto_.jpg": { "freeShipping": true },
+
+  "samsung_galaxy-s21-fe_128_preto_.jpg": { "freeShipping": true },
+  "samsung_galaxy-s22_128_branco_.jpg": { "freeShipping": true },
+  "samsung_galaxy-s24-fe_128_preto_.jpg": { "freeShipping": true },
+  "samsung_galaxy-s21+_128_5g_preto_.jpg": { "freeShipping": true },
+  "samsung_galaxy-a36_128_branco_.jpg": { "freeShipping": true },
+  "samsung_galaxy-a56_128_preto_.jpg": { "freeShipping": true },
+  "samsung_galaxy-a26_256_verde_.jpg": { "freeShipping": true },
+  "samsung_galaxy-s25_256_jetblack_.jpg": { "freeShipping": true },
+
+  "samsumg_galaxy-a07_128_preto_.jpg": { "freeShipping": true },
+  "samsumg_galaxy-a17_128_azul_.jpg": { "freeShipping": true },
+  "samsumg_galaxy-a26_256_preto_.jpg": { "freeShipping": true },
+  "samsumg_galaxy-a36_128_preto_.jpg": { "freeShipping": true },
+  "samsumg_galaxy-a56_128_rosa_.jpg": { "freeShipping": true },
+  "samsumg_galaxy-s24-fe_128_preto_.jpg": { "freeShipping": true },
+  "samsumg_galaxy-s25_256_jetblack_.jpg": { "freeShipping": true }
 }
