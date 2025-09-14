@@ -1,95 +1,113 @@
 "use client";
 
 import Link from "next/link";
-import { useCart } from "@/hooks/useCart"; // <<< import nomeado
 import { br, withCoupon } from "@/lib/format";
+import { useCart } from "@/hooks/useCart";
 
 type Product = {
   id: string | number;
-  name: string;
-  brand?: string;
-  image?: string;
-  price?: number;
+  brand: string;         // "apple" | "samsung" | etc
+  name: string;          // "iPhone 14 128GB"
+  image: string;
+  price: number;         // preço “tabela” (sem cupom)
+  tag?: string;          // ex.: "Oferta Relâmpago", "Quinzena5"
+  freeShipping?: boolean;
 };
 
-function titleCaseBrand(b?: string) {
-  if (!b) return "";
-  if (b.toLowerCase() === "apple") return "Apple";
-  if (b.toLowerCase() === "samsung") return "Samsung";
-  return b.charAt(0).toUpperCase() + b.slice(1);
+function capBrand(s: string) {
+  if (!s) return s;
+  const m = s.toLowerCase();
+  if (m === "apple") return "Apple";
+  if (m === "samsung") return "Samsung";
+  return m[0].toUpperCase() + m.slice(1);
 }
 
 export default function ProductCard({ p }: { p: Product }) {
-  const add = useCart((s) => s.add);
-  const hasPrice = typeof p.price === "number";
-  const brand = titleCaseBrand(p.brand);
+  const { add } = useCart();
 
-  const price10x = hasPrice ? (p.price as number) / 10 : 0;
+  const brand = capBrand(p.brand);
+  const pricePix = withCoupon(p.price);         // preço “no pix” com cupom 30%
+  const installmentQty = 10;
+  const perInstallment = p.price / installmentQty;
 
   return (
-    <article className="card flex flex-col">
-      {/* Imagem */}
-      <Link href={`/produto/${p.id}`} className="block">
-        <img
-          src={p.image || "/products/placeholder.jpg"}
-          alt={p.name}
-          className="rounded-2xl w-full object-cover aspect-[4/3]"
-          loading="lazy"
-        />
-      </Link>
-
-      {/* Texto */}
-      <div className="mt-3 flex-1">
-        {brand && (
-          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
-            {brand}
-          </div>
+    <article className="relative rounded-2xl border bg-white p-3 hover:shadow-lg transition">
+      {/* Badges */}
+      <div className="absolute left-3 top-3 z-10 flex gap-2">
+        {p.tag && (
+          <span className="rounded-full bg-orange-500/90 px-2.5 py-1 text-[11px] font-bold uppercase text-white shadow">
+            {p.tag}
+          </span>
         )}
-
-        <h3 className="font-semibold leading-snug line-clamp-2">{p.name}</h3>
-
-        {hasPrice ? (
-          <div className="mt-2 space-y-1">
-            <div className="text-lg font-bold">{br(p.price as number)}</div>
-
-            {/* 10x sem juros */}
-            <div className="text-xs text-zinc-600">
-              ou <b>10x</b> de <b>{br(price10x)}</b> <i>sem juros</i>
-            </div>
-
-            {/* preço com cupom/PIX */}
-            <div className="text-xs text-emerald-600">
-              no PIX: <b>{br(withCoupon(p.price as number))}</b> (desconto
-              aplicado)
-            </div>
-          </div>
-        ) : (
-          <div className="mt-2 text-sm text-zinc-500">Consulte</div>
+        {p.freeShipping && (
+          <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow">
+            Frete Grátis
+          </span>
         )}
       </div>
 
-      {/* Ações */}
+      {/* Imagem 1:1, centralizada e sem cortar */}
+      <Link href={`/produto/${p.id}`} className="block">
+        <div className="aspect-square w-full overflow-hidden rounded-xl bg-zinc-50 grid place-items-center">
+          <img
+            src={p.image}
+            alt={p.name}
+            className="h-full w-full object-contain"
+            loading="lazy"
+          />
+        </div>
+      </Link>
+
+      {/* Texto */}
+      <div className="mt-3 space-y-1">
+        <div className="text-xs font-medium text-zinc-500">{brand}</div>
+        <Link
+          href={`/produto/${p.id}`}
+          className="line-clamp-2 text-sm font-semibold text-zinc-900 hover:text-accent"
+        >
+          {p.name}
+        </Link>
+
+        {/* Preço PIX grande (destacado) */}
+        <div className="mt-1 text-[11px] text-zinc-500">A partir de</div>
+        <div className="text-2xl font-extrabold text-orange-600 leading-none">
+          {br(pricePix)}
+        </div>
+        <div className="text-[11px] text-zinc-500">no pix</div>
+
+        {/* Linha do cartão – usa o ícone /icons/card.svg se você colocar em /public */}
+        <div className="mt-2 flex items-center gap-2 text-xs text-zinc-700">
+          <img
+            src="/icons/card.svg"
+            alt=""
+            className="h-4 w-4"
+            onError={(e) => ((e.currentTarget.style.display = "none"))}
+          />
+          <span>
+            Ou <b>{br(p.price)}</b> em até <b>{installmentQty}x</b> de{" "}
+            <b>{br(perInstallment)}</b> s/ juros
+          </span>
+        </div>
+      </div>
+
+      {/* Ações claras */}
       <div className="mt-3 flex gap-2">
         <Link href={`/produto/${p.id}`} className="btn-outline flex-1 text-center">
           Ver produto
         </Link>
-
-        {hasPrice && (
-          <button
-            className="btn-primary flex-1"
-            onClick={() => {
-              // NÃO enviar qty — o hook já inicia como 1
-              add({
-                id: String(p.id),
-                name: p.name,
-                price: p.price,
-                image: p.image,
-              });
-            }}
-          >
-            Adicionar
-          </button>
-        )}
+        <button
+          className="btn-primary flex-1"
+          onClick={() =>
+            add({
+              id: String(p.id),
+              name: p.name,
+              price: p.price,         // deixa o hook aplicar cupom/total
+              image: p.image,
+            })
+          }
+        >
+          Adicionar
+        </button>
       </div>
     </article>
   );
