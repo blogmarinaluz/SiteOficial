@@ -6,7 +6,7 @@ import { catalog } from "@/lib/catalog";
 
 export const revalidate = 60;
 
-type P = any; // Mantém compat com a sua tipagem atual
+type P = any;
 
 function byBrand(arr: P[], brand: string) {
   const b = brand.toLowerCase();
@@ -26,29 +26,24 @@ export default function HomePage() {
   const all = (catalog as P[]);
 
   // 1) Em Oferta: só Samsung (8 itens)
-  const onlySamsung = byBrand(all, "samsung");
-  const emOferta = pickTop(onlySamsung, 8);
+  const emOferta = pickTop(byBrand(all, "samsung"), 8);
 
-  // 2) Ofertas do dia (BBB): os mais caros do catálogo (8 itens), evitando repetir os já usados em "Em Oferta"
+  // 2) BBB: mais caros (8), sem repetir os de Em Oferta
   const used1 = new Set<string>(emOferta.map((p) => String(p.id)));
-  const restantesParaBBB = excludeById(all, used1);
-  const bbb = pickTop(sortByPriceDesc(restantesParaBBB), 8);
+  const bbb = pickTop(sortByPriceDesc(excludeById(all, used1)), 8);
 
-  // 3) Destaque: 2 iPhone + 2 Samsung (4 itens), evitando repetir os já usados
+  // 3) Destaque: 2 Apple + 2 Samsung, sem repetir os anteriores
   const used2 = new Set<string>([...used1, ...bbb.map((p) => String(p.id))]);
-  const restantesParaDestaque = excludeById(all, used2);
+  const restantes = excludeById(all, used2);
 
-  const appleRest = byBrand(restantesParaDestaque, "apple");
-  const samsungRest = byBrand(restantesParaDestaque, "samsung");
-
-  const doisApple = pickTop(sortByPriceDesc(appleRest), 2);
-  const doisSamsung = pickTop(sortByPriceDesc(samsungRest), 2);
+  const doisApple = pickTop(sortByPriceDesc(byBrand(restantes, "apple")), 2);
+  const doisSamsung = pickTop(sortByPriceDesc(byBrand(restantes, "samsung")), 2);
   let destaque = [...doisApple, ...doisSamsung];
 
-  // fallback se faltar itens de alguma marca
+  // fallback se faltar item de alguma marca
   if (destaque.length < 4) {
     const falta = 4 - destaque.length;
-    const resto = excludeById(sortByPriceDesc(restantesParaDestaque), new Set(destaque.map((p) => String(p.id))));
+    const resto = excludeById(sortByPriceDesc(restantes), new Set(destaque.map((p) => String(p.id))));
     destaque = [...destaque, ...pickTop(resto, falta)];
   }
 
@@ -114,23 +109,6 @@ export default function HomePage() {
             Ofertas em Destaque
           </h2>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
-          {/* Como são 4 itens, renderei diretamente para manter 2/2, mas você pode usar ProductGrid se preferir */}
-          {destaque.map((p) => (
-            // ProductGrid aceita 4 também; se preferir:
-            // <ProductGrid products={destaque} /> e remova este bloco.
-            <div key={p.id} className="min-w-0">
-              {/* Reuso do card pela prop 'products' do ProductGrid seria o ideal,
-                  mas para forçar 4 exatos mantemos aqui simples: */}
-              {/* @ts-expect-error compat do seu ProductCard (aceita 'p') */}
-              {/** Usamos ProductCard via ProductGrid para evitar import duplicado */}
-            </div>
-          ))}
-        </div>
-        {/* Versão simples usando ProductGrid direto (recomendado): */}
-        {/* <div className="mt-4">
-          <ProductGrid products={destaque} />
-        </div> */}
         <div className="mt-4">
           <ProductGrid products={destaque} />
         </div>
@@ -159,7 +137,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Botão flutuante do WhatsApp */}
+      {/* WhatsApp flutuante */}
       <WhatsChat />
     </main>
   );
