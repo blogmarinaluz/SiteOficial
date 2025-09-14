@@ -1,6 +1,6 @@
 "use client";
+
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 
 export type CartItem = {
   id: string;
@@ -10,41 +10,78 @@ export type CartItem = {
   color?: string;
   price?: number;
   qty: number;
+  /** usado para exibir “Frete: Grátis” no carrinho */
+  freeShipping?: boolean;
 };
+
+type AddItem = Omit<CartItem, "qty"> & { qty?: number };
 
 type CartState = {
   items: CartItem[];
-  add: (item: Omit<CartItem, "qty">, qty?: number) => void;
+  add: (item: AddItem) => void;
+  decrease: (id: string) => void;
   remove: (id: string) => void;
   clear: () => void;
-  setQty: (id: string, qty: number) => void;
-  total: () => number;
 };
 
-export const useCart = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      add: (item, qty = 1) =>
-        set((state) => {
-          const i = state.items.findIndex((it) => it.id === item.id);
-          if (i >= 0) {
-            const clone = [...state.items];
-            clone[i] = { ...clone[i], qty: clone[i].qty + qty };
-            return { items: clone };
-          }
-          return { items: [...state.items, { ...item, qty }] };
-        }),
-      remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
-      clear: () => set({ items: [] }),
-      setQty: (id, qty) =>
-        set((s) => ({
-          items: s.items
-            .map((it) => (it.id === id ? { ...it, qty } : it))
-            .filter((it) => it.qty > 0),
-        })),
-      total: () => get().items.reduce((acc, it) => acc + (it.price || 0) * it.qty, 0),
-    }),
-    { name: "cart", storage: createJSONStorage(() => localStorage) }
-  )
-);
+// util
+const save = (items: CartItem[]) =>
+  typeof window !== "undefined" &&
+  localStorage.setItem("cart", JSON.stringify(items));
+
+const load = (): CartItem[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("cart");
+    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const useCart = create<CartState>((set, get) => ({
+  items: load(),
+
+  add: (item) => {
+    const items = [...get().items];
+    const idx = items.findIndex((i) => i.id === item.id);
+    if (idx >= 0) {
+      items[idx].qty += item.qty ?? 1;
+    } else {
+      items.push({
+        id: String(item.id),
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        color: item.color,
+        storage: item.storage,
+        freeShipping: item.freeShipping ?? false,
+        qty: item.qty ?? 1,
+      });
+    }
+    save(items);
+    set({ items });
+  },
+
+  decrease: (id) => {
+    const items = [...get().items];
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx >= 0) {
+      items[idx].qty -= 1;
+      if (items[idx].qty <= 0) items.splice(idx, 1);
+    }
+    save(items);
+    set({ items });
+  },
+
+  remove: (id) => {
+    const items = get().items.filter((i) => i.id !== id);
+    save(items);
+    set({ items });
+  },
+
+  clear: () => {
+    save([]);
+    set({ items: [] });
+  },
+}));
