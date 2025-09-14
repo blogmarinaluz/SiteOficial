@@ -96,16 +96,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Newsletter PRO */}
+      {/* Newsletter PRO (input destacado) */}
       <section className="bg-zinc-50">
         <div className="container py-12">
           <div className="rounded-2xl border bg-white p-6 md:p-8 md:flex items-center justify-between gap-6">
             <div>
               <h2 className="text-2xl font-bold">Assine e receba ofertas exclusivas</h2>
-              <p className="text-sm text-zinc-600 mt-1">Cupom de boas-vindas no seu e-mail.</p>
+              <p className="text-sm text-zinc-600 mt-1">Ganhe um cupom de boas-vindas no seu e-mail.</p>
             </div>
             <form className="mt-4 md:mt-0 flex gap-2 w-full md:w-auto">
-              <input type="email" placeholder="Seu e-mail" className="input w-full md:w-80" />
+              <div className="relative w-full md:w-80">
+                <label className="absolute -top-2 left-3 bg-white px-1 text-[11px] text-zinc-600">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  placeholder="ex: nome@email.com"
+                  className="input w-full ring-1 ring-zinc-300 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
               <button className="btn-primary">Quero receber</button>
             </form>
           </div>
