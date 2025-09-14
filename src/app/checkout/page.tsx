@@ -52,21 +52,24 @@ export default function Checkout() {
     }
   }, []);
 
-  // AUTO-PREENCHER POR CEP (ViaCEP)
+  // AUTO-PREENCHER POR CEP – blindado
   useEffect(() => {
-    const digits = cep.replace(/\D/g, "");
-    if (digits.length === 8) {
-      fetch(`https://viacep.com.br/ws/${digits}/json/`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d?.erro) return;
+    const digits = (cep || "").replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    let aborted = false;
+    (async () => {
+      try {
+        const r = await fetch(`https://viacep.com.br/ws/${digits}/json/`, { cache: "no-store" });
+        const d = await r.json();
+        if (!aborted && d && !d.erro) {
           setEndereco(d.logradouro || "");
           setBairro(d.bairro || "");
           setCidade(d.localidade || "");
           setUf(d.uf || "");
-        })
-        .catch(() => {});
-    }
+        }
+      } catch { /* silencioso */ }
+    })();
+    return () => { aborted = true; };
   }, [cep]);
 
   const subtotal = useMemo(
@@ -86,7 +89,7 @@ export default function Checkout() {
       return;
     }
     const linhas: string[] = [];
-    linhas.push("*Pedido ProStore*");
+    linhas.push("*Pedido proStore*");
     linhas.push(`*Cliente:* ${nome || "-"}`);
     linhas.push(`CPF: ${cpf || "-"}`);
     linhas.push(`WhatsApp: ${whats || "-"}`);
@@ -128,11 +131,10 @@ export default function Checkout() {
 
   return (
     <div className="container p-6 grid md:grid-cols-[2fr,1fr] gap-8">
-      {/* COLUNA ESQUERDA — DADOS */}
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Checkout seguro</h1>
         <p className="text-sm text-zinc-600 -mt-2">
-          Preencha seus dados para enviarmos o pedido ao WhatsApp do nosso time e finalizar por lá.
+          Preencha seus dados. Ao final, abriremos o WhatsApp com seu pedido.
         </p>
 
         <section className="border rounded-2xl p-4">
@@ -156,7 +158,7 @@ export default function Checkout() {
             <input className="input" placeholder="Cidade" value={cidade} onChange={e=>setCidade(e.target.value)} />
             <input className="input" placeholder="UF" value={uf} onChange={e=>setUf(e.target.value)} />
           </div>
-          <div className="text-[11px] text-zinc-500 mt-2">*Preenchimento automático pelo CEP.</div>
+          <div className="text-[11px] text-zinc-500 mt-2">*Preenchemos automaticamente pelo CEP.</div>
         </section>
 
         <section className="border rounded-2xl p-4">
@@ -176,7 +178,7 @@ export default function Checkout() {
             </button>
           </div>
           <div className="text-xs text-zinc-600 mt-2">
-            *Você será direcionado ao WhatsApp com o resumo do pedido para concluir com um atendente.
+            *Vamos abrir o WhatsApp com todas as informações para finalizar com um atendente.
           </div>
         </section>
 
@@ -186,7 +188,6 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* COLUNA DIREITA — RESUMO */}
       <aside className="border rounded-2xl p-4 h-fit sticky top-6">
         <h2 className="font-semibold mb-3">Resumo</h2>
         {!cart.length ? (
