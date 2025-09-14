@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useCart } from "@/hooks/useCart";
 import Link from "next/link";
-import { Trash2, Plus, Minus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 
 type CartItem = {
   id: string;
@@ -25,7 +25,7 @@ const SELLER_NUMBER =
   process.env.NEXT_PUBLIC_SELLER_NUMBER || "55999984905715";
 
 export default function CarrinhoPage() {
-  const { items, add, remove, clear, decrease } = useCart();
+  const { items, add, remove, clear } = useCart(); // <-- sem decrease
   const [sending, setSending] = useState(false);
 
   const subtotal = useMemo(
@@ -35,7 +35,7 @@ export default function CarrinhoPage() {
   const totalComCupom = useMemo(() => with30off(subtotal), [subtotal]);
   const desconto = Math.max(0, subtotal - totalComCupom);
 
-  // Frete: grátis somente se TODOS os itens do carrinho forem freeShipping
+  // Frete grátis somente se TODOS forem freeShipping
   const freteGratis = useMemo(
     () => items.length > 0 && items.every((i) => i.freeShipping),
     [items]
@@ -116,19 +116,11 @@ export default function CarrinhoPage() {
                   <div className="mt-1 text-sm">{br(it.price ?? 0)}</div>
                 </div>
 
-                {/* qty */}
+                {/* ações: + e remover */}
                 <div className="flex items-center gap-2">
                   <button
                     className="btn-outline px-2"
-                    aria-label="Diminuir"
-                    onClick={() => decrease(it.id)}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <div className="w-10 text-center">{it.qty}</div>
-                  <button
-                    className="btn-outline px-2"
-                    aria-label="Aumentar"
+                    aria-label="Adicionar 1"
                     onClick={() =>
                       add({
                         id: it.id,
@@ -143,17 +135,16 @@ export default function CarrinhoPage() {
                   >
                     <Plus className="w-4 h-4" />
                   </button>
+                  <div className="w-10 text-center">{it.qty}</div>
+                  <button
+                    className="btn-outline"
+                    aria-label="Remover item"
+                    onClick={() => remove(it.id)} // remove o item inteiro
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remover
+                  </button>
                 </div>
-
-                {/* remover */}
-                <button
-                  className="btn-outline"
-                  aria-label="Remover"
-                  onClick={() => remove(it.id)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remover
-                </button>
               </div>
             ))}
 
