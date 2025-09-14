@@ -5,11 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/hooks/useCart";
 
 /**
- * Header completo com:
+ * Header com:
  * - Top bar (promo à esquerda / contagem no centro / cupom à direita)
  * - Tagline alinhada à esquerda
  * - Linha principal (logo / busca / Entrar + Carrinho)
- * - Navegação com menus hover para iPhone e Samsung
+ * - Navegação com mega menu hover (iPhone / Samsung)
  */
 
 type Remain = { d: number; h: number; m: number; s: number };
@@ -53,7 +53,7 @@ function usePromoCountdown() {
   return remain;
 }
 
-/* Ícones SVG */
+/* Ícones SVG (sem dependências) */
 const IconUser = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
     <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.761-3.582-5-8-5Z" fill="currentColor"/>
@@ -78,7 +78,7 @@ const IconChevronDown = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-/* Menus (você pode ajustar a lista conforme seus produtos) */
+/* Listas (ajuste conforme catálogo; na sequência posso deixar dinâmico a partir do products.json) */
 const iphoneMenu = [
   "iPhone 15 Pro Max",
   "iPhone 15 Pro",
@@ -102,16 +102,16 @@ const samsungMenu = [
   "Galaxy A15",
 ];
 
-function Flyout({
+function MegaFlyout({
   label,
   href,
   items,
-  brandQuery,
+  brandQuery, // use "apple" para iPhone e "samsung" para Samsung
 }: {
   label: string;
   href: string;
   items: string[];
-  brandQuery?: string;
+  brandQuery: string;
 }) {
   return (
     <div className="relative group">
@@ -123,19 +123,18 @@ function Flyout({
         <IconChevronDown className="h-4 w-4 opacity-70" />
       </Link>
 
-      {/* Menu */}
-      <div className="absolute left-0 top-full z-50 hidden group-hover:block">
-        <div className="mt-2 w-[640px] rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl">
-          <div className="grid grid-cols-2 gap-2">
+      {/* Menu elegante */}
+      <div className="pointer-events-none absolute left-0 top-full z-50 opacity-0 transition-all duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
+        <div className="mt-2 w-[720px] rounded-2xl border border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
+          <div className="grid grid-cols-2 gap-1">
             {items.map((name) => {
-              const q = encodeURIComponent(
-                brandQuery ? `${brandQuery} ${name}` : name
-              );
+              // >>> IMPORTANTE: usa "apple"/"samsung" no termo para garantir match na busca (brand + name)
+              const q = encodeURIComponent(`${brandQuery} ${name}`);
               return (
                 <Link
                   key={name}
                   href={`/buscar?q=${q}`}
-                  className="truncate rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                  className="truncate rounded-lg px-3 py-2 text-[15px] text-neutral-800 hover:bg-neutral-50 hover:text-neutral-900"
                 >
                   {name}
                 </Link>
@@ -143,10 +142,10 @@ function Flyout({
             })}
           </div>
 
-          <div className="mt-3 border-t border-neutral-100 pt-3">
+          <div className="mt-4 border-t border-neutral-100 pt-3">
             <Link
               href={href}
-              className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
             >
               Ver todos os {label}
             </Link>
@@ -281,25 +280,22 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Navegação + Menus hover */}
+          {/* Navegação + Mega menus */}
           <nav className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-neutral-700">
-            {/* iPhone com menu */}
-            <Flyout
+            <MegaFlyout
               label="iPhone"
               href="/categoria/apple"
               items={iphoneMenu}
-              brandQuery="iphone"
+              brandQuery="apple"
             />
 
-            {/* Samsung com menu */}
-            <Flyout
+            <MegaFlyout
               label="Samsung"
               href="/categoria/samsung"
               items={samsungMenu}
               brandQuery="samsung"
             />
 
-            {/* Links simples */}
             <Link className="hover:text-neutral-900" href="/mais-buscados">Mais buscados</Link>
             <Link className="hover:text-neutral-900" href="/ofertas">BBB do dia</Link>
             <Link className="hover:text-neutral-900" href="/ofertas">Ofertas em destaque</Link>
