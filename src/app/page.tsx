@@ -1,4 +1,4 @@
-import data from "@/data/products.json";
+import { catalog } from "@/lib/catalog";
 import ProductCard from "@/components/ProductCard";
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -20,12 +20,12 @@ function RowCarousel({ children }: { children: React.ReactNode }) {
 }
 
 export default function Home() {
-  const featured = data.filter((p) => p.featured);
-  const bbb = data.filter((p) => p.bbb);
-  const popular = data.filter((p) => p.popular);
+  const featured = catalog.filter((p) => p.featured);
+  const bbb = catalog.filter((p) => p.bbb);
+  const popular = catalog.filter((p) => p.popular);
 
   // “Mais modelos” = tudo que não entrou como ‘featured’
-  const moreModels = data.filter((p) => !p.featured);
+  const moreModels = catalog.filter((p) => !p.featured);
 
   return (
     <div className="space-y-12">
