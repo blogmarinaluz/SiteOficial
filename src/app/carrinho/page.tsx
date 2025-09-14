@@ -2,85 +2,123 @@
 
 import Link from "next/link";
 import { useCart } from "@/hooks/useCart";
+import { br, withCoupon } from "@/lib/format";
 
-function br(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-const CUPOM = 0.7; // 30% OFF
+type CartItem = {
+  id: string;
+  name: string;
+  image?: string;
+  storage?: string | number;
+  color?: string;
+  price?: number;
+  qty: number;
+};
 
 export default function Carrinho() {
-  const { items, remove, setQty, clear, total } = useCart();
-  const subtotal = total();
-  const totalComCupom = Math.round(subtotal * CUPOM);
+  const { items, remove, clear, total } = useCart();
+
+  const subtotal = total();                // soma dos itens
+  const totalPix = withCoupon(subtotal);   // aplica 30% OFF (PIX) – ajuste em lib/format se quiser outro %.
+  const desconto = Math.max(0, subtotal - totalPix);
 
   return (
-    <div className="container py-6">
-      <h1 className="text-2xl font-bold mb-4">Carrinho</h1>
+    <div className="container p-6 grid md:grid-cols-[2fr,1fr] gap-8">
+      {/* COLUNA ESQUERDA — ITENS */}
+      <div>
+        <h1 className="text-2xl font-bold mb-4">Carrinho</h1>
 
-      {items.length === 0 ? (
-        <p>
-          Seu carrinho está vazio.{" "}
-          <Link href="/" className="text-accent underline">
-            Voltar às ofertas
-          </Link>
-        </p>
-      ) : (
-        <div className="grid md:grid-cols-[2fr,1fr] gap-8">
-          {/* LISTA DE ITENS */}
-          <div className="space-y-4">
-            {items.map((it) => (
-              <div key={it.id} className="flex gap-4 items-center border rounded-2xl p-3">
-                <img src={it.image} alt={it.name} className="w-20 h-20 rounded object-contain bg-white" />
+        {!items.length ? (
+          <div className="rounded-2xl border p-6 text-zinc-600">
+            Seu carrinho está vazio.{" "}
+            <Link href="/" className="text-accent underline">
+              Voltar e escolher produtos
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-2xl border divide-y">
+            {items.map((it: CartItem) => (
+              <div key={it.id} className="flex items-center gap-4 p-4">
+                <img
+                  src={it.image}
+                  alt={it.name}
+                  className="w-16 h-16 rounded object-cover bg-zinc-100"
+                />
                 <div className="flex-1">
                   <div className="font-medium">{it.name}</div>
                   <div className="text-xs text-zinc-500">
-                    {it.color} {it.storage ? `• ${it.storage}GB` : ""}
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-2">
-                    <button className="btn-outline px-3" onClick={() => setQty(it.id, Math.max(0, it.qty - 1))}>-</button>
-                    <span className="w-8 text-center">{it.qty}</span>
-                    <button className="btn-outline px-3" onClick={() => setQty(it.id, it.qty + 1)}>+</button>
-                    <button className="btn text-red-600" onClick={() => remove(it.id)}>Remover</button>
+                    {it.color ? `${it.color} • ` : ""}
+                    {it.storage ? `${it.storage}GB • ` : ""}
+                    {it.qty}x
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <div className="text-xs line-through text-zinc-500">{br((it.price || 0) * it.qty)}</div>
-                  <div className="text-sm font-semibold">{br(Math.round((it.price || 0) * it.qty * CUPOM))}</div>
-                  <div className="text-[11px] text-green-700">30% OFF aplicado</div>
+                <div className="text-sm whitespace-nowrap">
+                  {br((it.price || 0) * it.qty)}
                 </div>
+                <button
+                  className="text-xs text-red-600 underline ml-2"
+                  onClick={() => remove(it.id)}
+                  aria-label="Remover item"
+                >
+                  remover
+                </button>
               </div>
             ))}
-
-            <button className="btn-outline" onClick={clear}>Esvaziar carrinho</button>
           </div>
+        ))}
 
-          {/* RESUMO */}
-          <aside className="border rounded-2xl p-4 h-fit sticky top-6">
-            <h2 className="font-semibold mb-3">Resumo</h2>
-            <div className="flex justify-between text-sm">
-              <span>Subtotal (sem cupom)</span>
-              <span className="line-through">{br(subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Desconto Cupom 30%</span>
-              <b>- {br(subtotal - totalComCupom)}</b>
-            </div>
-            <div className="flex justify-between text-base mt-1">
-              <span>Total com cupom</span>
-              <b>{br(totalComCupom)}</b>
-            </div>
-
-            <Link href="/checkout" className="btn-primary mt-4 block text-center">
-              Finalizar no WhatsApp
+        {items.length > 0 && (
+          <div className="mt-4 flex gap-3">
+            <Link href="/checkout" className="btn-primary">
+              Finalizar pedido
             </Link>
-            <Link href="/" className="btn-outline mt-2 block text-center">
+            <button className="btn-outline" onClick={clear}>
+              Limpar carrinho
+            </button>
+            <Link className="btn-outline" href="/">
               Continuar comprando
             </Link>
-          </aside>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
+
+      {/* COLUNA DIREITA — RESUMO */}
+      <aside className="border rounded-2xl p-4 h-fit sticky top-6">
+        <h2 className="font-semibold mb-3">Resumo</h2>
+
+        {!items.length ? (
+          <div className="text-sm text-zinc-500">
+            Adicione produtos para ver o resumo da compra.
+          </div>
+        ) : (
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <b>{br(subtotal)}</b>
+            </div>
+
+            {/* AQUI ESTÁ O FRETE GRÁTIS */}
+            <div className="flex justify-between text-green-600">
+              <span>Frete</span>
+              <b>Grátis</b>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Cupom 30% OFF (PIX)</span>
+              <b>-{br(desconto)}</b>
+            </div>
+
+            <hr className="my-1" />
+
+            <div className="flex justify-between text-base">
+              <span>Total no PIX</span>
+              <b>{br(totalPix)}</b>
+            </div>
+            <div className="text-xs text-zinc-500">
+              No cartão: {br(subtotal)} em até 10x sem juros.
+            </div>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
