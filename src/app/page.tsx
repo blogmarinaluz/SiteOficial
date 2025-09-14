@@ -1,56 +1,82 @@
+import data from "@/data/products.json";
 import ProductCard from "@/components/ProductCard";
-import CarouselRow from "@/components/CarouselRow";
-import products from "@/data/products.json";
 
-/** Ajuste o tipo conforme seu JSON se quiser mais forte */
-type Product = {
-  id: string | number;
-  brand: string;
-  name: string;
-  image: string;
-  price: number;
-  tag?: string;
-  freeShipping?: boolean;
-  featured?: boolean; // Celulares em Oferta (grid)
-  bbb?: boolean;      // Ofertas do dia | BBB (carrossel)
-  popular?: boolean;  // Mais buscados (carrossel)
-};
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-xl md:text-2xl font-extrabold tracking-tight mb-4">
+      {children}
+    </h2>
+  );
+}
 
-export default function Page() {
-  const list = products as unknown as Product[];
+function RowCarousel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
 
-  // Seleções com fallback caso o JSON ainda não tenha flags
-  const ofertas = (list.filter(p => p.featured).length ? list.filter(p => p.featured) : list).slice(0, 6);
-  const bbb = (list.filter(p => p.bbb).length ? list.filter(p => p.bbb) : list).slice(0, 12);
-  const maisBuscados = (list.filter(p => p.popular).length ? list.filter(p => p.popular) : list).slice(0, 12);
+export default function Home() {
+  const featured = data.filter((p) => p.featured);
+  const bbb = data.filter((p) => p.bbb);
+  const popular = data.filter((p) => p.popular);
+
+  // “Mais modelos” = tudo que não entrou como ‘featured’
+  const moreModels = data.filter((p) => !p.featured);
 
   return (
     <div className="space-y-12">
-      {/* CELULARES EM OFERTA (GRID + 'Mais modelos…') */}
+      {/* CELULARES EM OFERTA */}
       <section>
-        <h1 className="mb-4 text-xl font-bold">Celulares em Oferta</h1>
-
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {ofertas.map((p) => (
-            <ProductCard key={p.id} p={p} />
+        <SectionTitle>Celulares em Oferta</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {featured.map((p) => (
+            <ProductCard key={p.id} p={p as any} />
           ))}
-        </div>
-
-        <div className="mt-5 text-center">
-          <a href="/buscar" className="btn-outline">
-            Mais modelos…
-          </a>
         </div>
       </section>
 
-      {/* OFERTAS DO DIA | BBB (CARROSSEL 4-por-vez) */}
-      <CarouselRow
-        title="Ofertas do dia | BBB = Bom, Bonito e Barato"
-        items={bbb}
-      />
+      {/* BBB */}
+      <section>
+        <SectionTitle>Ofertas do dia | BBB = Bom, Bonito e Barato</SectionTitle>
+        <RowCarousel>
+          {bbb.map((p) => (
+            <div key={p.id} className="min-w-[220px] snap-start">
+              <ProductCard p={p as any} />
+            </div>
+          ))}
+        </RowCarousel>
+      </section>
 
-      {/* MAIS BUSCADOS (CARROSSEL 4-por-vez) */}
-      <CarouselRow title="Mais buscados" items={maisBuscados} />
+      {/* MAIS BUSCADOS */}
+      <section>
+        <SectionTitle>Mais buscados</SectionTitle>
+        <RowCarousel>
+          {popular.map((p) => (
+            <div key={p.id} className="min-w-[220px] snap-start">
+              <ProductCard p={p as any} />
+            </div>
+          ))}
+        </RowCarousel>
+      </section>
+
+      {/* MAIS MODELOS */}
+      <section>
+        <SectionTitle>Mais modelos…</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {moreModels.slice(0, 12).map((p) => (
+            <ProductCard key={p.id} p={p as any} />
+          ))}
+        </div>
+        <div className="text-center mt-6">
+          <a href="/buscar?q=" className="btn-outline">
+            Ver todos os modelos
+          </a>
+        </div>
+      </section>
     </div>
   );
 }
