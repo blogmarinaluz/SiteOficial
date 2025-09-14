@@ -1,86 +1,123 @@
 "use client";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ShoppingCart, LogIn, Search } from "lucide-react";
+import { usePathname } from "next/navigation";
+import CartMini from "@/components/CartMini";
+import useCart from "@/hooks/useCart";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
 }
 
 export default function Header() {
-  // termina em 7 dias
-  const endsAt = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.getTime();
+  const { items } = useCart();
+  const pathname = usePathname();
+  const [endAt, setEndAt] = useState<number>(() => {
+    // persiste o fim da campanha por 7 dias
+    const key = "promo_end_at";
+    const cached = typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    if (cached) return Number(cached);
+    const end = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    if (typeof window !== "undefined") localStorage.setItem(key, String(end));
+    return end;
+  });
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
   }, []);
 
-  const [left, setLeft] = useState(endsAt - Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setLeft(endsAt - Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [endsAt]);
+  const left = Math.max(0, endAt - Date.now());
+  const d = Math.floor(left / 86400000);
+  const h = Math.floor((left % 86400000) / 3600000);
+  const m = Math.floor((left % 3600000) / 60000);
+  const s = Math.floor((left % 60000) / 1000);
 
-  const days = Math.max(0, Math.floor(left / (1000 * 60 * 60 * 24)));
-  const hours = Math.max(0, Math.floor((left / (1000 * 60 * 60)) % 24));
-  const mins = Math.max(0, Math.floor((left / (1000 * 60)) % 60));
-  const secs = Math.max(0, Math.floor((left / 1000) % 60));
+  const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
 
   return (
-    <header className="w-full border-b bg-white">
-      {/* faixa de campanha */}
-      <div className="w-full bg-indigo-800 text-white">
-        <div className="container mx-auto px-4 py-2 flex items-center justify-center gap-6 text-sm font-medium">
-          <span>🔥 <b>SEMANA DE PREÇOS BAIXOS</b> — <b>30% OFF</b> no site inteiro (cupom aplicado no carrinho)</span>
-          <span className="hidden sm:flex items-center gap-2">
-            ⏳ termina em:
-            <b>{pad(days)}d:{pad(hours)}h:{pad(mins)}m:{pad(secs)}s</b>
-          </span>
+    <header className="border-b bg-white">
+      {/* Barra da campanha */}
+      <div className="w-full bg-[#382ae1] text-white text-xs md:text-sm">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-4">
+          <div className="font-semibold">
+            🔥 SEMANA DE PREÇOS BAIXOS — <b>30% OFF</b> no site inteiro (cupom aplicado no carrinho)
+          </div>
+          <div className="opacity-90">
+            ⏳ termina em: <b>{pad(d)}d:{pad(h)}h:{pad(m)}m:{pad(s)}s</b>
+          </div>
         </div>
       </div>
 
-      {/* tagline */}
-      <div className="w-full bg-zinc-50 border-b">
-        <div className="container mx-auto px-4 py-2 text-center text-sm text-zinc-700">
-          Especialista em celulares novos com garantia!
-        </div>
+      {/* Faixa secundária */}
+      <div className="text-center text-[13px] py-2 text-zinc-600">
+        Especialista em celulares novos com garantia!
       </div>
 
-      {/* barra principal */}
-      <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-        <Link href="/" className="text-2xl font-extrabold text-indigo-700 tracking-tight">proStore</Link>
+      {/* Linha do topo */}
+      <div className="container mx-auto px-4 py-3 flex items-center gap-3">
+        <Link href="/" className="text-2xl font-extrabold tracking-tight text-[#4b4bfb]">
+          <span className="lowercase">pro</span><span className="capitalize">Store</span>
+        </Link>
 
-        <form action="/buscar" className="flex-1 flex items-stretch">
+        <form
+          action="/buscar"
+          className="ml-2 flex-1 flex rounded-xl overflow-hidden border"
+        >
           <input
             name="q"
-            placeholder="Encontre celulares e tablets…"
-            className="w-full border border-zinc-300 rounded-l-2xl px-4 py-2 outline-none"
+            placeholder="Encontre celulares e tablets..."
+            className="px-3 py-2 w-full outline-none"
+            defaultValue={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : ""}
           />
-          <button className="bg-indigo-600 hover:bg-indigo-700 rounded-r-2xl px-4 text-white flex items-center justify-center">
-            <Search className="w-5 h-5" />
-          </button>
+          <button className="bg-[#4b4bfb] text-white px-4">🔎</button>
         </form>
 
-        <Link href="/minha-conta" className="btn-outline flex items-center gap-2">
-          <LogIn className="w-5 h-5" /> Entrar
+        <Link
+          href="/minha-conta"
+          className="hidden md:inline-flex border rounded-xl px-3 py-2 text-sm items-center gap-2"
+        >
+          ➜ Entrar
         </Link>
-        <Link href="/carrinho" className="btn-primary flex items-center gap-2">
-          <ShoppingCart className="w-5 h-5" /> Carrinho
-        </Link>
+
+        <CartMini>
+          <button
+            aria-label="Abrir carrinho"
+            className="relative bg-[#ff8c00] text-white rounded-xl px-3 py-2 font-medium"
+          >
+            🛒 Carrinho
+            {count > 0 && (
+              <span className="absolute -top-2 -right-2 bg-white text-[#ff8c00] rounded-full text-xs px-2 py-0.5 border">
+                {count}
+              </span>
+            )}
+          </button>
+        </CartMini>
       </div>
 
-      {/* categorias + boleto */}
-      <div className="container mx-auto px-4 pb-4 flex items-center justify-between gap-4">
-        <nav className="flex gap-6 text-sm">
-          <Link href="/categoria/apple" className="hover:text-indigo-700">Apple</Link>
-          <Link href="/categoria/samsung" className="hover:text-indigo-700">Samsung</Link>
-          <Link href="/ofertas" className="hover:text-indigo-700">Ofertas</Link>
-          <Link href="/mais-buscados" className="hover:text-indigo-700">Mais buscados</Link>
-        </nav>
-        <Link href="/analise-de-cadastro" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-2xl text-sm">
-          Análise de Boleto
-        </Link>
-      </div>
+      {/* Menu categorias */}
+      <nav className="border-t">
+        <div className="container mx-auto px-4 py-3 flex flex-wrap items-center gap-5 text-sm">
+          <Link href="/categoria/apple" className={linkClass(pathname, "/categoria/apple")}>Apple</Link>
+          <Link href="/categoria/samsung" className={linkClass(pathname, "/categoria/samsung")}>Samsung</Link>
+          <Link href="/ofertas" className={linkClass(pathname, "/ofertas")}>Ofertas</Link>
+          <Link href="/mais-buscados" className={linkClass(pathname, "/mais-buscados")}>Mais buscados</Link>
+
+          <Link
+            href="/analise-de-cadastro"
+            className="ml-auto bg-[#ff8c00] text-white rounded-xl px-3 py-1.5 text-sm"
+          >
+            Análise de Boleto
+          </Link>
+        </div>
+      </nav>
     </header>
   );
+}
+
+function linkClass(pathname: string, href: string) {
+  const active = pathname?.startsWith(href);
+  return `hover:underline ${active ? "font-semibold text-zinc-900" : "text-zinc-600"}`;
 }
