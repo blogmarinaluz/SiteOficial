@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import useCart from "@/hooks/useCart";
+import { useCart } from "@/hooks/useCart"; // <<< import nomeado
 import { br, withCoupon } from "@/lib/format";
 
 type Product = {
   id: string | number;
   name: string;
-  brand?: string;        // "apple", "samsung", etc.
+  brand?: string;
   image?: string;
   price?: number;
 };
@@ -59,7 +59,8 @@ export default function ProductCard({ p }: { p: Product }) {
 
             {/* preço com cupom/PIX */}
             <div className="text-xs text-emerald-600">
-              no PIX: <b>{br(withCoupon(p.price as number))}</b> (desconto aplicado)
+              no PIX: <b>{br(withCoupon(p.price as number))}</b> (desconto
+              aplicado)
             </div>
           </div>
         ) : (
@@ -69,10 +70,7 @@ export default function ProductCard({ p }: { p: Product }) {
 
       {/* Ações */}
       <div className="mt-3 flex gap-2">
-        <Link
-          href={`/produto/${p.id}`}
-          className="btn-outline flex-1 text-center"
-        >
+        <Link href={`/produto/${p.id}`} className="btn-outline flex-1 text-center">
           Ver produto
         </Link>
 
@@ -80,7 +78,7 @@ export default function ProductCard({ p }: { p: Product }) {
           <button
             className="btn-primary flex-1"
             onClick={() => {
-              // NÃO envie qty — o hook já inicia como 1
+              // NÃO enviar qty — o hook já inicia como 1
               add({
                 id: String(p.id),
                 name: p.name,
