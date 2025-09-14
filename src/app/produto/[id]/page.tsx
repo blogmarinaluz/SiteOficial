@@ -25,9 +25,28 @@ export default function ProdutoPage() {
   const id = Array.isArray(params?.id) ? params.id[0] : String(params?.id || "");
   const { add } = useCart();
 
-  const p = useMemo(() => {
+  const p: Product | undefined = useMemo(() => {
     return (products as Product[]).find((x) => x.id === id);
   }, [id]);
+
+  function handleAdd() {
+    // usa variável local pra o TS fazer o narrowing
+    const prod = p;
+    if (!prod) return;
+
+    add(
+      {
+        id: prod.id,
+        name: prod.name,
+        price: prod.price,
+        image: prod.image,
+        color: prod.color,
+        storage: prod.storage,
+      },
+      1
+    );
+    alert("Adicionado ao carrinho!");
+  }
 
   if (!p) {
     return (
@@ -40,23 +59,7 @@ export default function ProdutoPage() {
     );
   }
 
-  function handleAdd() {
-    // ✅ passa o item SEM qty + a quantidade como 2º argumento
-    add(
-      {
-        id: p.id,
-        name: p.name,
-        price: p.price,
-        image: p.image,
-        color: p.color,
-        storage: p.storage,
-      },
-      1
-    );
-    alert("Adicionado ao carrinho!");
-  }
-
-  const precoPix = withCoupon(p.price); // 30% OFF aplicado
+  const precoPix = withCoupon(p.price); // 30% OFF aplicado automaticamente
   const parcela10 = p.price / 10;
 
   return (
@@ -73,8 +76,11 @@ export default function ProdutoPage() {
       {/* Detalhes */}
       <div className="space-y-4">
         <div className="text-xs uppercase tracking-wide text-zinc-500">
-          {p.brand?.toLowerCase() === "apple" ? "Apple" :
-           p.brand?.toLowerCase() === "samsung" ? "Samsung" : p.brand}
+          {p.brand?.toLowerCase() === "apple"
+            ? "Apple"
+            : p.brand?.toLowerCase() === "samsung"
+            ? "Samsung"
+            : p.brand}
         </div>
         <h1 className="text-2xl font-extrabold leading-tight">{p.name}</h1>
 
@@ -82,7 +88,8 @@ export default function ProdutoPage() {
           <div className="text-2xl font-black text-accent">{br(precoPix)} no PIX</div>
           <div className="text-sm text-zinc-500 line-through">{br(p.price)} sem desconto</div>
           <div className="text-sm text-zinc-700">
-            ou 10x de <b>{br(parcela10)}</b> <span className="text-emerald-600 font-medium">sem juros</span>
+            ou 10x de <b>{br(parcela10)}</b>{" "}
+            <span className="text-emerald-600 font-medium">sem juros</span>
           </div>
           <div className="text-xs text-zinc-500">
             Cupom de <b>30% OFF</b> aplicado automaticamente.
