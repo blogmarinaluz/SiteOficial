@@ -1,31 +1,43 @@
-import ProductCard from "@/components/ProductCard";
+// src/app/ofertas/page.tsx
 import products from "@/data/products.json";
+import ProductCard from "@/components/ProductCard";
 
-export const metadata = {
-  title: "Ofertas — proStore",
-  description:
-    "Seleção de ofertas com 30% OFF no carrinho. Boleto para negativados (análise de cadastro).",
+type Product = {
+  id: string;
+  brand?: string;
+  name: string;
+  image?: string;
+  price: number;
+  tag?: string;
+  featured?: boolean;
+  freeShipping?: boolean;
+  popular?: boolean;
+  bbb?: boolean;
 };
 
 export default function OfertasPage() {
-  // Mostra itens marcados como featured ou com tag contendo “oferta”
-  const list = (products as any[]).filter((p: any) => {
-    const tag = (p.tag || "").toString().toLowerCase();
-    return p.featured === true || tag.includes("oferta");
-  });
+  const all = products as Product[];
+
+  // ofertas explícitas (featured ou tag)
+  let list = all.filter((p) => p.featured === true || !!p.tag);
+
+  // fallback: pega os 12 mais baratos
+  if (list.length === 0) {
+    list = [...all].sort((a, b) => (a.price ?? 0) - (b.price ?? 0)).slice(0, 12);
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold">Ofertas</h1>
+      <h1 className="text-2xl font-extrabold">Celulares em Oferta</h1>
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border p-8 text-zinc-600">
+        <div className="rounded-2xl border p-6 text-zinc-600">
           Nenhuma oferta ativa no momento.
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((p: any) => (
-            <ProductCard key={p.id} p={p} />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {list.map((p) => (
+            <ProductCard key={p.id} p={p as any} />
           ))}
         </div>
       )}
