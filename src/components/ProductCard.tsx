@@ -12,7 +12,11 @@ export type Product = {
   image?: string;
   price: number;
   freeShipping?: boolean;
+  [k: string]: any;
 };
+
+/** Compat: aceita 'product' (novo) OU 'p' (antigo) */
+type Props = { product?: Product; p?: Product };
 
 const IconCard = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -20,11 +24,15 @@ const IconCard = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product: productProp, p: pProp }: Props) {
+  const product = (productProp ?? pProp) as Product | undefined;
   const { add } = useCart();
 
-  const cash = withCoupon(product.price);               // 30% OFF (pix/boleto)
-  const installment = cash / 10;                        // 10x sem juros
+  if (!product) return null;
+
+  const cash = withCoupon(product.price);   // 30% OFF (pix/boleto)
+  const installment = cash / 10;            // 10x sem juros
+
   const brandLabel =
     product.brand?.toLowerCase() === "apple"
       ? "Apple"
@@ -32,10 +40,9 @@ export default function ProductCard({ product }: { product: Product }) {
       ? "Samsung"
       : product.brand;
 
-  const imgSrc =
-    product.image
-      ? (product.image.startsWith("/") ? product.image : `/import_imgs/${product.image}`)
-      : "/import_imgs/placeholder.png";
+  const imgSrc = product.image
+    ? (product.image.startsWith("/") ? product.image : `/import_imgs/${product.image}`)
+    : "/import_imgs/placeholder.png";
 
   return (
     <div className="group relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -47,7 +54,10 @@ export default function ProductCard({ product }: { product: Product }) {
       )}
 
       {/* Imagem */}
-      <Link href={`/produto/${product.id}`} className="relative flex items-center justify-center rounded-xl border border-neutral-100 bg-neutral-50/60">
+      <Link
+        href={`/produto/${product.id}`}
+        className="relative flex items-center justify-center rounded-xl border border-neutral-100 bg-neutral-50/60"
+      >
         <div className="relative h-40 w-full md:h-44">
           <Image
             src={imgSrc}
@@ -63,7 +73,10 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="mt-3 flex flex-1 flex-col">
         <div className="min-h-[54px]">
           <p className="text-xs text-neutral-500">{brandLabel}</p>
-          <Link href={`/produto/${product.id}`} className="line-clamp-2 text-[15px] font-medium text-neutral-900">
+          <Link
+            href={`/produto/${product.id}`}
+            className="line-clamp-2 text-[15px] font-medium text-neutral-900"
+          >
             {product.name}
           </Link>
         </div>
@@ -72,13 +85,17 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="mt-3">
           <p className="text-xs text-neutral-600">A partir de</p>
           <div className="mt-0.5 text-xl font-extrabold text-orange-600">
-            {br(cash)} <span className="text-[13px] font-semibold text-neutral-700">no pix ou boleto</span>
+            {br(cash)}{" "}
+            <span className="text-[13px] font-semibold text-neutral-700">
+              no pix ou boleto
+            </span>
           </div>
 
           <div className="mt-2 flex items-center gap-1.5 text-sm">
             <IconCard className="h-4 w-4 text-neutral-700" />
             <span className="text-neutral-700">
-              ou {br(cash)} em até <span className="font-semibold">10x</span> de {br(installment)} <span className="font-semibold">sem juros</span>
+              ou {br(cash)} em até <span className="font-semibold">10x</span> de{" "}
+              {br(installment)} <span className="font-semibold">sem juros</span>
             </span>
           </div>
         </div>
