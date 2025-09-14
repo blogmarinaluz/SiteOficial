@@ -1,110 +1,110 @@
 "use client";
-import Link from "next/link";
-import { useMemo } from "react";
-import { useCart } from "@/hooks/useCart";
-import { br } from "@/lib/format";
 
-// selecionei ~20 ids para frete grátis (pode ajustar depois se quiser)
-const FREE_SHIP_IDS = new Set<string>([
-  "apple_iphone-14_128_preto","apple_iphone-14_128_azul","apple_iphone-14_128_meia-noite",
-  "apple_iphone-14_128_roxo","apple_iphone-14_256_preto","apple_iphone-14_256_azul",
-  "apple_iphone-15_128_preto","apple_iphone-15_128_rosa","apple_iphone-15_256_preto",
-  "apple_iphone-15-plus_128_amarelo","apple_iphone-15-plus_256_preto",
-  "samsumg_galaxy-a36_128_preto","samsumg_galaxy-a36_256_verde",
-  "samsumg_galaxy-a56_128_preto","samsumg_galaxy-a56_256_branco",
-  "samsumg_galaxy-s24-fe_128_preto","samsumg_galaxy-s24-fe_256_azul",
-  "samsumg_galaxy-a17_128_preto","samsumg_galaxy-a17_256_cinza",
-  "samsumg_galaxy-s21+_128gb","samsumg_galaxy-s22_128gb"
-]);
+import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
+import { br, withCoupon } from "@/lib/format";
+import { useCart } from "@/hooks/useCart";
 
 type Product = {
   id: string;
   brand: string;
   name: string;
-  image?: string;
-  price?: number;
+  image: string;
+  price: number;
+  color?: string;
+  storage?: string | number;
+  freeShipping?: boolean;
 };
 
-function cap(s: string) {
-  if (!s) return s;
-  const lower = s.toLowerCase();
-  return lower[0].toUpperCase() + lower.slice(1);
+// helpers
+function stripQuery(s: string) {
+  const i = s.indexOf("?");
+  return i >= 0 ? s.slice(0, i) : s;
+}
+function stripExt(s: string) {
+  return s.replace(/\.(jpg|jpeg|png|webp)$/i, "");
+}
+function filename(path: string) {
+  const p = String(path || "");
+  return p.split("/").pop() || p;
+}
+function productSlug(p: Product) {
+  // usa id se tiver, senão cai no nome da imagem
+  const base = p.id ? p.id : filename(p.image);
+  return stripExt(stripQuery(base));
+}
+function brandLabel(b?: string) {
+  const v = (b || "").toLowerCase();
+  if (v === "apple") return "Apple";
+  if (v === "samsung") return "Samsung";
+  return b || "";
 }
 
 export default function ProductCard({ p }: { p: Product }) {
   const { add } = useCart();
-
-  const hasPrice = typeof p.price === "number";
-  const installment = useMemo(() => {
-    const total = p.price || 0;
-    return total > 0 ? total / 10 : 0;
-  }, [p.price]);
-
-  const freeShipping = FREE_SHIP_IDS.has(p.id);
+  const slug = productSlug(p);
+  const precoPix = withCoupon(p.price);
+  const parcela10 = p.price / 10;
 
   return (
-    <article className="card flex flex-col bg-white border rounded-2xl overflow-hidden w-[280px] snap-start">
-      <Link href={`/produto/${p.id}`} className="block">
-        <img
-          src={p.image || "/products/placeholder.jpg"}
-          alt={p.name}
-          className="w-full aspect-[3/4] object-cover"
-        />
+    <article className="rounded-2xl border bg-white overflow-hidden flex flex-col hover:shadow-md transition">
+      {/* área da imagem */}
+      <Link href={`/produto/${encodeURIComponent(slug)}`} className="block">
+        <div className="w-full aspect-[4/5] bg-white p-4">
+          <img
+            src={p.image}
+            alt={p.name}
+            className="w-full h-full object-contain"
+          />
+        </div>
       </Link>
 
+      {/* conteúdo */}
       <div className="p-3 flex-1 flex flex-col">
-        <div className="text-xs text-zinc-500">{cap(p.brand)}</div>
-        <Link href={`/produto/${p.id}`} className="font-semibold leading-tight line-clamp-2 min-h-[2.6em]">
+        <div className="text-xs text-zinc-500">{brandLabel(p.brand)}</div>
+
+        <Link
+          href={`/produto/${encodeURIComponent(slug)}`}
+          className="font-semibold leading-snug mt-0.5"
+        >
           {p.name}
         </Link>
 
-        <div className="mt-3">
-          {hasPrice ? (
-            <>
-              <div className="text-2xl font-extrabold text-orange-600">{br(p.price!)}</div>
-              <div className="text-xs text-zinc-500">
-                ou 10x de <b>{br(installment)}</b> <span className="italic">sem juros</span>
-              </div>
-              {freeShipping && (
-                <div className="mt-1 inline-block text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  Frete: <b>Grátis</b>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-sm text-zinc-500">Indisponível</div>
+        <div className="mt-2 space-y-0.5">
+          <div className="text-lg font-extrabold text-accent">
+            {br(precoPix)} <span className="text-xs font-medium">no PIX</span>
+          </div>
+          <div className="text-xs text-zinc-500 line-through">{br(p.price)}</div>
+          <div className="text-xs text-zinc-700">
+            ou 10x de <b>{br(parcela10)}</b>{" "}
+            <span className="text-emerald-600 font-medium">sem juros</span>
+          </div>
+          {p.freeShipping && (
+            <div className="text-xs text-emerald-700 font-semibold">
+              Frete: Grátis
+            </div>
           )}
         </div>
 
-        <div className="mt-4 flex gap-2">
-          <Link href={`/produto/${p.id}`} className="btn-outline flex-1 text-center">
-            Ver produto
-          </Link>
-          {hasPrice ? (
-            <button
-              className="btn-primary flex-1"
-              onClick={() => {
-                add(
-                  {
-                    id: String(p.id),
-                    name: p.name,
-                    price: p.price,
-                    image: p.image,
-                    freeShipping,
-                  },
-                  1
-                );
-                // feedback simples
-                // (pode trocar por toast se quiser)
-                alert("Adicionado ao carrinho!");
-              }}
-            >
-              Adicionar
-            </button>
-          ) : (
-            <button className="btn-primary opacity-60 cursor-not-allowed flex-1">Indisponível</button>
-          )}
-        </div>
+        <button
+          className="btn-primary mt-3"
+          onClick={() =>
+            add(
+              {
+                id: p.id,
+                name: p.name,
+                price: p.price,
+                image: p.image,
+                color: p.color,
+                storage: p.storage,
+              },
+              1
+            )
+          }
+        >
+          <ShoppingCart className="w-5 h-5 mr-2" />
+          Adicionar
+        </button>
       </div>
     </article>
   );
