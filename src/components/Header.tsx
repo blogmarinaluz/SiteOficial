@@ -5,16 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/hooks/useCart";
 
 /**
- * Header completo
- * - Top bar: título promo (esq) / contagem regressiva (centro) / cupom (dir)
+ * Header completo com:
+ * - Top bar (promo à esquerda / contagem no centro / cupom à direita)
  * - Tagline alinhada à esquerda
- * - Linha principal: logo / busca / ações (Entrar + Carrinho)
- * - Nav secundária com alinhamento estável
- *
- * Observações:
- * - Sem dependências externas (ícones via SVG inline).
- * - Contagem regressiva: guarda um "deadline" no localStorage por 7 dias a partir do primeiro acesso.
- * - Caso queira usar um código de cupom real, defina NEXT_PUBLIC_COUPON_CODE; se não, mostramos só "30% OFF no site inteiro".
+ * - Linha principal (logo / busca / Entrar + Carrinho)
+ * - Navegação com menus hover para iPhone e Samsung
  */
 
 type Remain = { d: number; h: number; m: number; s: number };
@@ -77,11 +72,95 @@ const IconSearch = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const IconChevronDown = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <path d="M6.7 8.7a1 1 0 0 1 1.4 0L12 12.6l3.9-3.9a1 1 0 0 1 1.4 1.4l-4.6 4.6a1 1 0 0 1-1.4 0L6.7 10.1a1 1 0 0 1 0-1.4z" fill="currentColor"/>
+  </svg>
+);
+
+/* Menus (você pode ajustar a lista conforme seus produtos) */
+const iphoneMenu = [
+  "iPhone 15 Pro Max",
+  "iPhone 15 Pro",
+  "iPhone 15",
+  "iPhone 14 Pro Max",
+  "iPhone 14 Pro",
+  "iPhone 14",
+  "iPhone 13",
+  "iPhone 12",
+  "iPhone 11",
+];
+
+const samsungMenu = [
+  "Galaxy S24 Ultra",
+  "Galaxy S24",
+  "Galaxy S23 Ultra",
+  "Galaxy S23",
+  "Galaxy A55",
+  "Galaxy A54",
+  "Galaxy A34",
+  "Galaxy A15",
+];
+
+function Flyout({
+  label,
+  href,
+  items,
+  brandQuery,
+}: {
+  label: string;
+  href: string;
+  items: string[];
+  brandQuery?: string;
+}) {
+  return (
+    <div className="relative group">
+      <Link
+        href={href}
+        className="inline-flex items-center gap-1 text-sm text-neutral-700 hover:text-neutral-900"
+      >
+        {label}
+        <IconChevronDown className="h-4 w-4 opacity-70" />
+      </Link>
+
+      {/* Menu */}
+      <div className="absolute left-0 top-full z-50 hidden group-hover:block">
+        <div className="mt-2 w-[640px] rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl">
+          <div className="grid grid-cols-2 gap-2">
+            {items.map((name) => {
+              const q = encodeURIComponent(
+                brandQuery ? `${brandQuery} ${name}` : name
+              );
+              return (
+                <Link
+                  key={name}
+                  href={`/buscar?q=${q}`}
+                  className="truncate rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                >
+                  {name}
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 border-t border-neutral-100 pt-3">
+            <Link
+              href={href}
+              className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+            >
+              Ver todos os {label}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Header() {
   const { count, items } = useCart();
   const cartCount = useMemo(() => (typeof count === "number" ? count : items?.length ?? 0), [count, items]);
   const couponCode = process.env.NEXT_PUBLIC_COUPON_CODE || "";
-
   const remain = usePromoCountdown();
 
   const CountdownItem = ({ label, value }: { label: string; value: string }) => (
@@ -193,7 +272,7 @@ export default function Header() {
               >
                 <IconCart className="h-5 w-5 text-emerald-600" />
                 <span>Carrinho</span>
-                {cartCount > 0 && (
+                {(typeof cartCount === "number" && cartCount > 0) && (
                   <span className="ml-1 inline-flex items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">
                     {cartCount}
                   </span>
@@ -202,10 +281,25 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Navegação secundária */}
+          {/* Navegação + Menus hover */}
           <nav className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-neutral-700">
-            <Link className="hover:text-neutral-900" href="/categoria/apple">iPhone</Link>
-            <Link className="hover:text-neutral-900" href="/categoria/samsung">Samsung</Link>
+            {/* iPhone com menu */}
+            <Flyout
+              label="iPhone"
+              href="/categoria/apple"
+              items={iphoneMenu}
+              brandQuery="iphone"
+            />
+
+            {/* Samsung com menu */}
+            <Flyout
+              label="Samsung"
+              href="/categoria/samsung"
+              items={samsungMenu}
+              brandQuery="samsung"
+            />
+
+            {/* Links simples */}
             <Link className="hover:text-neutral-900" href="/mais-buscados">Mais buscados</Link>
             <Link className="hover:text-neutral-900" href="/ofertas">BBB do dia</Link>
             <Link className="hover:text-neutral-900" href="/ofertas">Ofertas em destaque</Link>
