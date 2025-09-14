@@ -1,5 +1,4 @@
 "use client";
-
 import { create } from "zustand";
 
 export type CartItem = {
@@ -9,79 +8,78 @@ export type CartItem = {
   storage?: string | number;
   color?: string;
   price?: number;
-  qty: number;
-  /** usado para exibir “Frete: Grátis” no carrinho */
   freeShipping?: boolean;
+  qty: number;
 };
-
-type AddItem = Omit<CartItem, "qty"> & { qty?: number };
 
 type CartState = {
   items: CartItem[];
-  add: (item: AddItem) => void;
+  add: (item: Omit<CartItem, "qty">, qty?: number) => void;
+  increase: (id: string) => void;
   decrease: (id: string) => void;
   remove: (id: string) => void;
   clear: () => void;
+
+  count: () => number;
+  total: () => number;
 };
 
-// util
-const save = (items: CartItem[]) =>
-  typeof window !== "undefined" &&
-  localStorage.setItem("cart", JSON.stringify(items));
-
-const load = (): CartItem[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("cart");
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
-  } catch {
-    return [];
+function save(items: CartItem[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("cart", JSON.stringify(items));
   }
-};
+}
 
 export const useCart = create<CartState>((set, get) => ({
-  items: load(),
+  items: (typeof window !== "undefined" && localStorage.getItem("cart"))
+    ? JSON.parse(localStorage.getItem("cart") as string)
+    : [],
 
-  add: (item) => {
-    const items = [...get().items];
-    const idx = items.findIndex((i) => i.id === item.id);
-    if (idx >= 0) {
-      items[idx].qty += item.qty ?? 1;
-    } else {
-      items.push({
-        id: String(item.id),
-        name: item.name,
-        price: item.price,
-        image: item.image,
-        color: item.color,
-        storage: item.storage,
-        freeShipping: item.freeShipping ?? false,
-        qty: item.qty ?? 1,
-      });
-    }
-    save(items);
-    set({ items });
-  },
+  add: (item, qty = 1) =>
+    set((state) => {
+      const exists = state.items.find((i) => i.id === item.id);
+      if (exists) {
+        const items = state.items.map((i) =>
+          i.id === item.id ? { ...i, qty: i.qty + qty } : i
+        );
+        save(items);
+        return { items };
+      }
+      const items = [...state.items, { ...item, qty }];
+      save(items);
+      return { items };
+    }),
 
-  decrease: (id) => {
-    const items = [...get().items];
-    const idx = items.findIndex((i) => i.id === id);
-    if (idx >= 0) {
-      items[idx].qty -= 1;
-      if (items[idx].qty <= 0) items.splice(idx, 1);
-    }
-    save(items);
-    set({ items });
-  },
+  increase: (id) =>
+    set((state) => {
+      const items = state.items.map((i) =>
+        i.id === id ? { ...i, qty: i.qty + 1 } : i
+      );
+      save(items);
+      return { items };
+    }),
 
-  remove: (id) => {
-    const items = get().items.filter((i) => i.id !== id);
-    save(items);
-    set({ items });
-  },
+  decrease: (id) =>
+    set((state) => {
+      const items = state.items
+        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
+        .filter((i) => i.qty > 0);
+      save(items);
+      return { items };
+    }),
+
+  remove: (id) =>
+    set((state) => {
+      const items = state.items.filter((i) => i.id !== id);
+      save(items);
+      return { items };
+    }),
 
   clear: () => {
     save([]);
     set({ items: [] });
   },
+
+  count: () => get().items.reduce((acc, i) => acc + i.qty, 0),
+  total: () => get().items.reduce((acc, i) => acc + (i.price || 0) * i.qty, 0),
 }));
