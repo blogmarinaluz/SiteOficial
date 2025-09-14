@@ -1,4 +1,4 @@
-// src/app/produto/[id]/page.tsx — COMPLETO
+// src/app/produto/[id]/page.tsx — COMPLETO (robusto p/ ids com/sem .jpg)
 "use client";
 
 import { useMemo } from "react";
@@ -20,17 +20,53 @@ type Product = {
   storage?: string | number;
 };
 
+// helpers para “normalizar” ids/nomes de arquivo
+function stripQuery(s: string) {
+  const i = s.indexOf("?");
+  return i >= 0 ? s.slice(0, i) : s;
+}
+function stripExt(s: string) {
+  return s.replace(/\.(jpg|jpeg|png|webp)$/i, "");
+}
+function norm(s: string) {
+  return stripExt(stripQuery(String(s || ""))).toLowerCase();
+}
+function filename(path: string) {
+  const p = String(path || "");
+  return p.split("/").pop() || p; // pega só o final
+}
+
 export default function ProdutoPage() {
   const params = useParams();
-  const id = Array.isArray(params?.id) ? params.id[0] : String(params?.id || "");
+  const raw = Array.isArray(params?.id) ? params.id[0] : String(params?.id || "");
+  const slug = norm(raw); // id normalizado vindo da URL
   const { add } = useCart();
 
   const p: Product | undefined = useMemo(() => {
-    return (products as Product[]).find((x) => x.id === id);
-  }, [id]);
+    const list = products as Product[];
+
+    // 1) tenta por igualdade direta (id), com e sem extensão
+    const byId =
+      list.find((x) => norm(x.id) === slug) ||
+      list.find((x) => norm(x.id) === `${slug}`) ||
+      list.find((x) => norm(x.id) === `${slug}.jpg`) ||
+      list.find((x) => norm(x.id) === `${slug}.jpeg`) ||
+      list.find((x) => norm(x.id) === `${slug}.png`) ||
+      list.find((x) => norm(x.id) === `${slug}.webp`);
+
+    if (byId) return byId;
+
+    // 2) tenta bater pelo nome do arquivo da imagem
+    const byImage = list.find((x) => norm(filename(x.image)) === slug);
+    if (byImage) return byImage;
+
+    // 3) fallback: tenta começar/terminar com o slug
+    return list.find(
+      (x) => norm(x.id).startsWith(slug) || norm(x.id).endsWith(slug)
+    );
+  }, [slug]);
 
   function handleAdd() {
-    // usa variável local pra o TS fazer o narrowing
     const prod = p;
     if (!prod) return;
 
