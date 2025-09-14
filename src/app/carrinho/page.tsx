@@ -6,14 +6,12 @@ import { useCart } from "@/hooks/useCart";
 function br(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-function withPix(n: number) {
-  return Math.round(n * 0.85); // 15% OFF no PIX
-}
+const CUPOM = 0.7; // 30% OFF
 
 export default function Carrinho() {
   const { items, remove, setQty, clear, total } = useCart();
   const subtotal = total();
-  const totalPix = withPix(subtotal);
+  const totalComCupom = Math.round(subtotal * CUPOM);
 
   return (
     <div className="container py-6">
@@ -31,15 +29,8 @@ export default function Carrinho() {
           {/* LISTA DE ITENS */}
           <div className="space-y-4">
             {items.map((it) => (
-              <div
-                key={it.id}
-                className="flex gap-4 items-center border rounded-2xl p-3"
-              >
-                <img
-                  src={it.image}
-                  alt={it.name}
-                  className="w-20 h-20 rounded object-cover"
-                />
+              <div key={it.id} className="flex gap-4 items-center border rounded-2xl p-3">
+                <img src={it.image} alt={it.name} className="w-20 h-20 rounded object-contain bg-white" />
                 <div className="flex-1">
                   <div className="font-medium">{it.name}</div>
                   <div className="text-xs text-zinc-500">
@@ -47,49 +38,38 @@ export default function Carrinho() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-2">
-                    <button
-                      className="btn-outline px-3"
-                      onClick={() => setQty(it.id, Math.max(0, it.qty - 1))}
-                    >
-                      -
-                    </button>
+                    <button className="btn-outline px-3" onClick={() => setQty(it.id, Math.max(0, it.qty - 1))}>-</button>
                     <span className="w-8 text-center">{it.qty}</span>
-                    <button
-                      className="btn-outline px-3"
-                      onClick={() => setQty(it.id, it.qty + 1)}
-                    >
-                      +
-                    </button>
-                    <button
-                      className="btn text-red-600"
-                      onClick={() => remove(it.id)}
-                    >
-                      Remover
-                    </button>
+                    <button className="btn-outline px-3" onClick={() => setQty(it.id, it.qty + 1)}>+</button>
+                    <button className="btn text-red-600" onClick={() => remove(it.id)}>Remover</button>
                   </div>
                 </div>
 
-                <div className="text-sm">
-                  {br((it.price || 0) * it.qty)}
+                <div className="text-right">
+                  <div className="text-xs line-through text-zinc-500">{br((it.price || 0) * it.qty)}</div>
+                  <div className="text-sm font-semibold">{br(Math.round((it.price || 0) * it.qty * CUPOM))}</div>
+                  <div className="text-[11px] text-green-700">30% OFF aplicado</div>
                 </div>
               </div>
             ))}
 
-            <button className="btn-outline" onClick={clear}>
-              Esvaziar carrinho
-            </button>
+            <button className="btn-outline" onClick={clear}>Esvaziar carrinho</button>
           </div>
 
           {/* RESUMO */}
           <aside className="border rounded-2xl p-4 h-fit sticky top-6">
             <h2 className="font-semibold mb-3">Resumo</h2>
             <div className="flex justify-between text-sm">
-              <span>Subtotal</span>
-              <b>{br(subtotal)}</b>
+              <span>Subtotal (sem cupom)</span>
+              <span className="line-through">{br(subtotal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>PIX (15% OFF)</span>
-              <b>{br(totalPix)}</b>
+              <span>Desconto Cupom 30%</span>
+              <b>- {br(subtotal - totalComCupom)}</b>
+            </div>
+            <div className="flex justify-between text-base mt-1">
+              <span>Total com cupom</span>
+              <b>{br(totalComCupom)}</b>
             </div>
 
             <Link href="/checkout" className="btn-primary mt-4 block text-center">
