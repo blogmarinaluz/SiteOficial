@@ -1,25 +1,82 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useCart } from "@/hooks/useCart";
-import { br, withCoupon } from "@/lib/format";
+import Link from "next/link";
+import { Trash2, Plus, Minus } from "lucide-react";
 
 type CartItem = {
   id: string;
   name: string;
   image?: string;
-  storage?: string | number;
-  color?: string;
   price?: number;
   qty: number;
+  color?: string;
+  storage?: string | number;
+  freeShipping?: boolean;
 };
 
-export default function Carrinho() {
-  const { items, remove, clear, total } = useCart();
+const br = (n: number) =>
+  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const subtotal = total();                // soma dos itens
-  const totalPix = withCoupon(subtotal);   // aplica 30% OFF (PIX) – ajuste em lib/format se quiser outro %.
-  const desconto = Math.max(0, subtotal - totalPix);
+const with30off = (n: number) => Math.round(n * 0.7); // 30% OFF no carrinho
+
+const SELLER_NUMBER =
+  process.env.NEXT_PUBLIC_SELLER_NUMBER || "55999984905715";
+
+export default function CarrinhoPage() {
+  const { items, add, remove, clear, decrease } = useCart();
+  const [sending, setSending] = useState(false);
+
+  const subtotal = useMemo(
+    () => items.reduce((acc, it) => acc + (it.price ?? 0) * (it.qty ?? 1), 0),
+    [items]
+  );
+  const totalComCupom = useMemo(() => with30off(subtotal), [subtotal]);
+  const desconto = Math.max(0, subtotal - totalComCupom);
+
+  // Frete: grátis somente se TODOS os itens do carrinho forem freeShipping
+  const freteGratis = useMemo(
+    () => items.length > 0 && items.every((i) => i.freeShipping),
+    [items]
+  );
+
+  async function finalizarWhatsApp() {
+    if (!items.length) return alert("Seu carrinho está vazio.");
+
+    setSending(true);
+    try {
+      const linhas: string[] = [];
+      linhas.push("*Pedido proStore*");
+      linhas.push("");
+      linhas.push("*Itens:*");
+      items.forEach((it) => {
+        const obs =
+          (it.color ? ` ${it.color}` : "") +
+          (it.storage ? ` ${it.storage}GB` : "");
+        linhas.push(
+          `• ${it.qty}x ${it.name}${obs} — ${br((it.price ?? 0) * it.qty)}`
+        );
+      });
+      linhas.push("");
+      linhas.push(`Subtotal: ${br(subtotal)}`);
+      linhas.push(`Cupom 30% OFF: -${br(desconto)}`);
+      linhas.push(
+        `Frete: ${freteGratis ? "*Grátis*" : "A combinar no atendimento"}`
+      );
+      linhas.push(`Total com cupom: *${br(totalComCupom)}*`);
+      linhas.push("");
+      linhas.push(
+        "_Obs.: finalizei o pedido no site e gostaria de concluir pelo WhatsApp._"
+      );
+
+      const msg = encodeURIComponent(linhas.join("\n"));
+      const url = `https://api.whatsapp.com/send?phone=${SELLER_NUMBER}&text=${msg}`;
+      window.location.href = url;
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div className="container p-6 grid md:grid-cols-[2fr,1fr] gap-8">
@@ -28,97 +85,164 @@ export default function Carrinho() {
         <h1 className="text-2xl font-bold mb-4">Carrinho</h1>
 
         {!items.length ? (
-          <div className="rounded-2xl border p-6 text-zinc-600">
+          <div className="border rounded-2xl p-6 text-center text-zinc-600">
             Seu carrinho está vazio.{" "}
-            <Link href="/" className="text-accent underline">
-              Voltar e escolher produtos
+            <Link className="text-indigo-600 font-semibold" href="/">
+              Voltar às ofertas
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border divide-y">
+          <div className="space-y-4">
             {items.map((it: CartItem) => (
-              <div key={it.id} className="flex items-center gap-4 p-4">
+              <div
+                key={it.id}
+                className="flex items-center gap-4 border rounded-2xl p-3"
+              >
+                {/* imagem */}
                 <img
                   src={it.image}
                   alt={it.name}
-                  className="w-16 h-16 rounded object-cover bg-zinc-100"
+                  className="w-20 h-20 object-cover rounded-lg bg-white"
                 />
-                <div className="flex-1">
-                  <div className="font-medium">{it.name}</div>
+
+                {/* infos */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{it.name}</div>
                   <div className="text-xs text-zinc-500">
                     {it.color ? `${it.color} • ` : ""}
                     {it.storage ? `${it.storage}GB • ` : ""}
-                    {it.qty}x
+                    {it.freeShipping ? "Frete: Grátis" : "Frete: a combinar"}
                   </div>
+                  <div className="mt-1 text-sm">{br(it.price ?? 0)}</div>
                 </div>
-                <div className="text-sm whitespace-nowrap">
-                  {br((it.price || 0) * it.qty)}
+
+                {/* qty */}
+                <div className="flex items-center gap-2">
+                  <button
+                    className="btn-outline px-2"
+                    aria-label="Diminuir"
+                    onClick={() => decrease(it.id)}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <div className="w-10 text-center">{it.qty}</div>
+                  <button
+                    className="btn-outline px-2"
+                    aria-label="Aumentar"
+                    onClick={() =>
+                      add({
+                        id: it.id,
+                        name: it.name,
+                        price: it.price,
+                        image: it.image,
+                        color: it.color,
+                        storage: it.storage,
+                        freeShipping: it.freeShipping,
+                      })
+                    }
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
+
+                {/* remover */}
                 <button
-                  className="text-xs text-red-600 underline ml-2"
+                  className="btn-outline"
+                  aria-label="Remover"
                   onClick={() => remove(it.id)}
-                  aria-label="Remover item"
                 >
-                  remover
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remover
                 </button>
               </div>
             ))}
-          </div>
-        ))}
 
-        {items.length > 0 && (
-          <div className="mt-4 flex gap-3">
-            <Link href="/checkout" className="btn-primary">
-              Finalizar pedido
-            </Link>
-            <button className="btn-outline" onClick={clear}>
-              Limpar carrinho
-            </button>
-            <Link className="btn-outline" href="/">
-              Continuar comprando
-            </Link>
+            <div className="flex gap-3">
+              <Link href="/" className="btn-outline">
+                Continuar comprando
+              </Link>
+              <button className="btn-outline" onClick={() => clear()}>
+                Limpar carrinho
+              </button>
+            </div>
           </div>
         )}
       </div>
 
       {/* COLUNA DIREITA — RESUMO */}
       <aside className="border rounded-2xl p-4 h-fit sticky top-6">
-        <h2 className="font-semibold mb-3">Resumo</h2>
+        <h2 className="font-semibold mb-3">Resumo do pedido</h2>
 
         {!items.length ? (
           <div className="text-sm text-zinc-500">
-            Adicione produtos para ver o resumo da compra.
+            Adicione produtos para ver o resumo.
           </div>
         ) : (
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <b>{br(subtotal)}</b>
-            </div>
+            <Row label="Subtotal" value={br(subtotal)} />
+            <Row label="Cupom 30% OFF" value={`- ${br(desconto)}`} />
+            <Row
+              label="Frete"
+              value={freteGratis ? "Grátis" : "A combinar no atendimento"}
+              emphasize={freteGratis}
+            />
+            <hr className="my-2" />
+            <Row
+              label="Total com cupom"
+              value={br(totalComCupom)}
+              bold
+              big
+              accent
+            />
 
-            {/* AQUI ESTÁ O FRETE GRÁTIS */}
-            <div className="flex justify-between text-green-600">
-              <span>Frete</span>
-              <b>Grátis</b>
-            </div>
+            <button
+              onClick={finalizarWhatsApp}
+              disabled={sending}
+              className="btn-primary w-full mt-3"
+            >
+              {sending ? "Abrindo WhatsApp…" : "Finalizar no WhatsApp"}
+            </button>
 
-            <div className="flex justify-between">
-              <span>Cupom 30% OFF (PIX)</span>
-              <b>-{br(desconto)}</b>
-            </div>
-
-            <hr className="my-1" />
-
-            <div className="flex justify-between text-base">
-              <span>Total no PIX</span>
-              <b>{br(totalPix)}</b>
-            </div>
-            <div className="text-xs text-zinc-500">
-              No cartão: {br(subtotal)} em até 10x sem juros.
+            <div className="text-xs text-zinc-500 mt-3">
+              *O pagamento é concluído com nosso atendente via WhatsApp. O
+              desconto de 30% já foi aplicado ao total.
             </div>
           </div>
         )}
       </aside>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  value,
+  bold,
+  big,
+  accent,
+  emphasize,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  big?: boolean;
+  accent?: boolean;
+  emphasize?: boolean;
+}) {
+  return (
+    <div className="flex justify-between items-baseline">
+      <span className={`text-zinc-600 ${emphasize ? "text-emerald-600" : ""}`}>
+        {label}
+      </span>
+      <span
+        className={[
+          bold ? "font-semibold" : "",
+          big ? "text-lg" : "",
+          accent ? "text-indigo-700" : "",
+        ].join(" ")}
+      >
+        {value}
+      </span>
     </div>
   );
 }
