@@ -80,7 +80,7 @@ export default function ProductCard({ p }: { p: Product }) {
           <button
             className="btn-primary flex-1"
             onClick={() => {
-              // qty NÃO é enviado — o hook já inicia como 1
+              // NÃO envie qty — o hook já inicia como 1
               add({
                 id: String(p.id),
                 name: p.name,
