@@ -2,164 +2,229 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import CartMini from "@/components/CartMini";
 import { useCart } from "@/hooks/useCart";
 
-function two(n: number) {
-  return n.toString().padStart(2, "0");
+/**
+ * Header completo
+ * - Top bar: título promo (esq) / contagem regressiva (centro) / cupom (dir)
+ * - Tagline alinhada à esquerda
+ * - Linha principal: logo / busca / ações (Entrar + Carrinho)
+ * - Nav secundária com alinhamento estável
+ *
+ * Observações:
+ * - Sem dependências externas (ícones via SVG inline).
+ * - Contagem regressiva: guarda um "deadline" no localStorage por 7 dias a partir do primeiro acesso.
+ * - Caso queira usar um código de cupom real, defina NEXT_PUBLIC_COUPON_CODE; se não, mostramos só "30% OFF no site inteiro".
+ */
+
+type Remain = { d: number; h: number; m: number; s: number };
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
 }
 
-export default function Header() {
-  // ---- Countdown (7 dias a partir de hoje) ----
-  const [remain, setRemain] = useState<{ d: number; h: number; m: number; s: number }>({
-    d: 0,
-    h: 0,
-    m: 0,
-    s: 0,
-  });
+function usePromoCountdown() {
+  const [remain, setRemain] = useState<Remain>({ d: 0, h: 0, m: 0, s: 0 });
 
   useEffect(() => {
-    // fixa a data final por 7 dias a partir do primeiro acesso e guarda no localStorage
     const key = "promo_deadline";
     const now = Date.now();
     const saved = typeof window !== "undefined" ? localStorage.getItem(key) : null;
     let deadline = saved ? Number(saved) : 0;
 
-    if (!deadline || isNaN(deadline) || deadline < now) {
+    if (!deadline || Number.isNaN(deadline) || deadline < now) {
+      // 7 dias a partir de agora
       deadline = now + 7 * 24 * 60 * 60 * 1000;
-      localStorage.setItem(key, String(deadline));
+      try {
+        localStorage.setItem(key, String(deadline));
+      } catch {}
     }
 
-    const tick = () => {
+    const calc = () => {
       const diff = Math.max(0, deadline - Date.now());
-      const d = Math.floor(diff / (24 * 60 * 60 * 1000));
-      const h = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-      const m = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-      const s = Math.floor((diff % (60 * 1000)) / 1000);
-      setRemain({ d, h, m, s });
+      const s = Math.floor(diff / 1000);
+      const d = Math.floor(s / 86400);
+      const h = Math.floor((s % 86400) / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      setRemain({ d, h, m, s: sec });
     };
 
-    tick();
-    const id = setInterval(tick, 1000);
+    calc();
+    const id = setInterval(calc, 1000);
     return () => clearInterval(id);
   }, []);
 
-  // ---- Busca ----
-  const [q, setQ] = useState("");
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const term = q.trim();
-    if (!term) return;
-    // redireciona para a página de ofertas com query
-    window.location.href = `/ofertas?q=${encodeURIComponent(term)}`;
-  };
+  return remain;
+}
 
-  // ---- Contagem rápida do carrinho (mostramos só na barra de categorias) ----
-  const { items } = useCart();
-  const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
+/* Ícones SVG */
+const IconUser = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.761-3.582-5-8-5Z" fill="currentColor"/>
+  </svg>
+);
+
+const IconCart = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <path d="M7 4h-2a1 1 0 1 0 0 2h1.28l1.6 8A3 3 0 0 0 10.83 17h5.84a3 3 0 0 0 2.94-2.37l1-4.63A1 1 0 0 0 19.66 9h-11l-.49-3A2 2 0 0 0 7 4Zm2 16a1.5 1.5 0 1 0-1.5-1.5A1.5 1.5 0 0 0 9 20Zm9 0a1.5 1.5 0 1 0-1.5-1.5A1.5 1.5 0 0 0 18 20Z" fill="currentColor"/>
+  </svg>
+);
+
+const IconSearch = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <path d="M10.5 3a7.5 7.5 0 1 0 4.74 13.35l4.2 4.21a1 1 0 1 0 1.42-1.42l-4.21-4.2A7.5 7.5 0 0 0 10.5 3Zm0 2a5.5 5.5 0 1 1-5.5 5.5A5.5 5.5 0 0 1 10.5 5Z" fill="currentColor"/>
+  </svg>
+);
+
+export default function Header() {
+  const { count, items } = useCart();
+  const cartCount = useMemo(() => (typeof count === "number" ? count : items?.length ?? 0), [count, items]);
+  const couponCode = process.env.NEXT_PUBLIC_COUPON_CODE || "";
+
+  const remain = usePromoCountdown();
+
+  const CountdownItem = ({ label, value }: { label: string; value: string }) => (
+    <div className="min-w-[58px] rounded-xl bg-white/10 px-2 py-1 text-center backdrop-blur-sm">
+      <div className="text-lg font-semibold text-white leading-none">{value}</div>
+      <div className="mt-0.5 text-[10px] uppercase tracking-wide text-white/80">{label}</div>
+    </div>
+  );
 
   return (
-    <header className="border-b bg-white">
-      {/* TOP BAR PROMO */}
-      <div className="bg-[#111] text-white">
-        <div className="container mx-auto px-4 py-2 text-center">
-          <div className="text-[13px] leading-tight font-semibold tracking-wide">
-            SEMANA DE PREÇOS BAIXOS — 30% OFF no site inteiro — Boleto para negativados
-          </div>
-          <div className="mt-1 text-sm">
-            Termina em:{" "}
-            <span className="font-mono">
-              {two(remain.d)}d : {two(remain.h)}h : {two(remain.m)}m : {two(remain.s)}s
-            </span>
+    <header className="w-full border-b border-neutral-100">
+      {/* TOP BAR */}
+      <div className="w-full bg-neutral-900">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-3 py-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+            {/* ESQUERDA: Título */}
+            <div className="flex sm:justify-start justify-center">
+              <div className="inline-flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-sm sm:text-base font-semibold tracking-wide text-white">
+                  SEMANA DE PREÇOS BAIXOS
+                </span>
+              </div>
+            </div>
+
+            {/* CENTRO: Countdown */}
+            <div className="flex justify-center">
+              <div className="flex items-center gap-2">
+                <CountdownItem label="dias" value={String(remain.d)} />
+                <span className="text-white/60">:</span>
+                <CountdownItem label="horas" value={pad2(remain.h)} />
+                <span className="text-white/60">:</span>
+                <CountdownItem label="min" value={pad2(remain.m)} />
+                <span className="text-white/60">:</span>
+                <CountdownItem label="seg" value={pad2(remain.s)} />
+              </div>
+            </div>
+
+            {/* DIREITA: Cupom */}
+            <div className="flex sm:justify-end justify-center">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-emerald-600/15 text-emerald-300 border border-emerald-400/30 px-3 py-1 text-xs sm:text-sm font-medium">
+                  30% OFF no site inteiro
+                </span>
+                {couponCode ? (
+                  <span className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs sm:text-sm font-semibold text-white shadow-sm">
+                    CUPOM: {couponCode}
+                  </span>
+                ) : null}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TAGLINE */}
-      <div className="bg-zinc-50">
-        <div className="container mx-auto px-4 py-2 text-center text-sm text-zinc-700">
-          Especialista em celulares novos com garantia!
+      {/* TAGLINE alinhada à ESQUERDA */}
+      <div className="bg-neutral-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2">
+          <p className="text-xs sm:text-sm text-neutral-600">
+            Especialista em celulares novos com garantia!
+          </p>
         </div>
       </div>
 
-      {/* LOGO + BUSCA + AÇÕES */}
-      <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-        {/* Logo */}
-        <Link href="/" className="text-2xl font-extrabold tracking-tight">
-          <span className="text-zinc-900">pro</span>
-          <span className="text-emerald-600">Store</span>
-        </Link>
-
-        {/* Busca */}
-        <form onSubmit={submitSearch} className="flex-1 flex items-stretch gap-0 max-w-3xl">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            type="search"
-            placeholder="Buscar por modelo, cor, armazenamento…"
-            className="w-full border border-zinc-300 rounded-l-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          <button
-            type="submit"
-            className="px-4 rounded-r-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700"
-          >
-            Buscar
-          </button>
-        </form>
-
-        {/* Entrar / Carrinho */}
-        <Link
-          href="/login"
-          className="hidden sm:inline-block text-sm text-zinc-700 hover:text-zinc-900"
-        >
-          Entrar
-        </Link>
-
-        {/* <<< AQUI: CartMini auto-fechado, sem children >>> */}
-        <CartMini />
-      </div>
-
-      {/* CATEGORIAS + BOTÃO BOLETO */}
-      <div className="border-t">
-        <div className="container mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-          <nav className="flex items-center gap-4 text-sm">
-            <Link href="/ofertas?brand=apple" className="hover:text-emerald-600">
-              iPhone
-            </Link>
-            <Link href="/ofertas?brand=samsung" className="hover:text-emerald-600">
-              Samsung
-            </Link>
-            <Link href="/ofertas?popular=1" className="hover:text-emerald-600">
-              Mais buscados
-            </Link>
-            <Link href="/ofertas?bbb=1" className="hover:text-emerald-600">
-              BBB do dia
-            </Link>
-            <Link href="/ofertas?featured=1" className="hover:text-emerald-600">
-              Ofertas em destaque
-            </Link>
-          </nav>
-
-          <div className="ml-auto flex items-center gap-3">
-            <Link
-              href="/analise-de-cadastro"
-              className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-xl"
-            >
-              Análise de Boleto
-            </Link>
-            <Link
-              href="/checkout"
-              className="text-sm text-zinc-700 hover:text-zinc-900"
-              title="Ir para o checkout"
-            >
-              Checkout
-            </Link>
-            {count > 0 && (
-              <span className="text-xs text-emerald-700 font-semibold">
-                {count} item{count > 1 ? "s" : ""} no carrinho
+      {/* LINHA PRINCIPAL: logo / busca / ações */}
+      <div className="bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center gap-4">
+            {/* Logo */}
+            <Link href="/" className="shrink-0">
+              <span className="text-2xl font-extrabold select-none">
+                <span className="text-neutral-900">pro</span>
+                <span className="text-emerald-600">Store</span>
               </span>
-            )}
+            </Link>
+
+            {/* Busca */}
+            <form action="/buscar" className="flex-1">
+              <div className="flex items-stretch rounded-2xl border border-neutral-200 bg-white shadow-sm focus-within:ring-2 focus-within:ring-emerald-500/30 overflow-hidden">
+                <input
+                  name="q"
+                  placeholder="Buscar por modelo, cor, armazenamento..."
+                  className="w-full px-4 py-2.5 text-sm outline-none placeholder:text-neutral-400"
+                  defaultValue=""
+                />
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 bg-emerald-600 px-4 py-2.5 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
+                >
+                  <IconSearch className="h-4 w-4" />
+                  Buscar
+                </button>
+              </div>
+            </form>
+
+            {/* Ações: Entrar / Carrinho */}
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <Link
+                href="/entrar"
+                className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                <IconUser className="h-5 w-5 text-emerald-600" />
+                Entrar
+              </Link>
+
+              <Link
+                href="/carrinho"
+                className="relative inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                <IconCart className="h-5 w-5 text-emerald-600" />
+                <span>Carrinho</span>
+                {cartCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
+
+          {/* Navegação secundária */}
+          <nav className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-neutral-700">
+            <Link className="hover:text-neutral-900" href="/categoria/apple">iPhone</Link>
+            <Link className="hover:text-neutral-900" href="/categoria/samsung">Samsung</Link>
+            <Link className="hover:text-neutral-900" href="/mais-buscados">Mais buscados</Link>
+            <Link className="hover:text-neutral-900" href="/ofertas">BBB do dia</Link>
+            <Link className="hover:text-neutral-900" href="/ofertas">Ofertas em destaque</Link>
+
+            <div className="ml-auto flex items-center gap-3">
+              <Link
+                href="/analise-de-cadastro"
+                className="inline-flex items-center rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+              >
+                Análise de Boleto
+              </Link>
+              <Link
+                href="/checkout"
+                className="text-sm font-medium text-neutral-700 hover:text-neutral-900"
+              >
+                Checkout
+              </Link>
+            </div>
+          </nav>
         </div>
       </div>
     </header>
