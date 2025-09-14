@@ -1,83 +1,97 @@
 "use client";
-import Link from "next/link";
-import { useCart } from "@/hooks/useCart";
-import { withCoupon, br } from "@/lib/format";
 
-function capBrand(b?: string) {
-  const m = String(b || "").toLowerCase();
-  if (m === "apple") return "Apple";
-  if (m === "samsung") return "Samsung";
-  return m.replace(/^\w/, (c) => c.toUpperCase());
+import Link from "next/link";
+import useCart from "@/hooks/useCart";
+import { br, withCoupon } from "@/lib/format";
+
+type Product = {
+  id: string | number;
+  name: string;
+  brand?: string;        // "apple", "samsung", etc.
+  image?: string;
+  price?: number;
+};
+
+function titleCaseBrand(b?: string) {
+  if (!b) return "";
+  if (b.toLowerCase() === "apple") return "Apple";
+  if (b.toLowerCase() === "samsung") return "Samsung";
+  return b.charAt(0).toUpperCase() + b.slice(1);
 }
 
-export default function ProductCard({ p }: { p: any }) {
-  const { add } = useCart();
+export default function ProductCard({ p }: { p: Product }) {
+  const add = useCart((s) => s.add);
   const hasPrice = typeof p.price === "number";
-  const price = hasPrice ? p.price : 0;
-  const price10x = hasPrice ? price / 10 : 0;
+  const brand = titleCaseBrand(p.brand);
+
+  const price10x = hasPrice ? (p.price as number) / 10 : 0;
 
   return (
-    <article className="rounded-2xl border bg-white shadow-sm hover:shadow-md transition overflow-hidden">
-      {/* Imagem padronizada (quadrada, contain) */}
-      <Link href={`/produto/${p.id}`} className="block bg-white">
-        <div className="w-full aspect-square grid place-items-center p-4">
-          <img
-            src={p.image}
-            alt={p.name}
-            className="max-h-full max-w-full object-contain"
-            loading="lazy"
-          />
-        </div>
+    <article className="card flex flex-col">
+      {/* Imagem */}
+      <Link href={`/produto/${p.id}`} className="block">
+        <img
+          src={p.image || "/products/placeholder.jpg"}
+          alt={p.name}
+          className="rounded-2xl w-full object-cover aspect-[4/3]"
+          loading="lazy"
+        />
       </Link>
 
-      <div className="p-4">
-        {/* Marca capitalizada */}
-        <div className="text-xs uppercase tracking-wide text-zinc-500">
-          {capBrand(p.brand)}
-        </div>
+      {/* Texto */}
+      <div className="mt-3 flex-1">
+        {brand && (
+          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
+            {brand}
+          </div>
+        )}
 
-        {/* Nome do produto (sem cor/GB extras aqui) */}
-        <Link href={`/produto/${p.id}`} className="block mt-1 font-semibold leading-snug">
-          {p.name}
-        </Link>
+        <h3 className="font-semibold leading-snug line-clamp-2">{p.name}</h3>
 
-        {/* Preços */}
         {hasPrice ? (
-          <div className="mt-2">
-            <div className="text-lg font-bold">{br(price)}</div>
+          <div className="mt-2 space-y-1">
+            <div className="text-lg font-bold">{br(p.price as number)}</div>
+
+            {/* 10x sem juros */}
             <div className="text-xs text-zinc-600">
-              ou <b>10x de {br(price10x)}</b> <span className="text-emerald-600">sem juros</span>
+              ou <b>10x</b> de <b>{br(price10x)}</b> <i>sem juros</i>
             </div>
-            <div className="text-xs text-emerald-700 mt-1">
-              Cupom <b>30% OFF</b> aplicado no carrinho
+
+            {/* preço com cupom/PIX */}
+            <div className="text-xs text-emerald-600">
+              no PIX: <b>{br(withCoupon(p.price as number))}</b> (desconto aplicado)
             </div>
           </div>
         ) : (
-          <div className="mt-2 text-sm text-zinc-500">Consulte condições</div>
+          <div className="mt-2 text-sm text-zinc-500">Consulte</div>
         )}
+      </div>
 
-        {/* Ações claras */}
-        <div className="mt-3 flex gap-2">
-          <Link href={`/produto/${p.id}`} className="btn-outline flex-1 text-center">
-            Ver produto
-          </Link>
-          {hasPrice && (
-            <button
-              className="btn-primary flex-1"
-              onClick={() =>
-                add({
-                  id: String(p.id),
-                  name: p.name,
-                  price: p.price,
-                  qty: 1,
-                  image: p.image,
-                })
-              }
-            >
-              Adicionar
-            </button>
-          )}
-        </div>
+      {/* Ações */}
+      <div className="mt-3 flex gap-2">
+        <Link
+          href={`/produto/${p.id}`}
+          className="btn-outline flex-1 text-center"
+        >
+          Ver produto
+        </Link>
+
+        {hasPrice && (
+          <button
+            className="btn-primary flex-1"
+            onClick={() => {
+              // qty NÃO é enviado — o hook já inicia como 1
+              add({
+                id: String(p.id),
+                name: p.name,
+                price: p.price,
+                image: p.image,
+              });
+            }}
+          >
+            Adicionar
+          </button>
+        )}
       </div>
     </article>
   );
