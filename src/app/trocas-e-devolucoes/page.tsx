@@ -1,0 +1,1 @@
+export default function Page(){return(<article className='prose max-w-none'><h1>Trocas & Devoluções</h1><p>Arrependimento em até 7 dias corridos após o recebimento. Emitimos etiqueta de devolução e efetuamos reembolso após conferência.</p><h2>Troca por defeito</h2><p>Até 7 dias conosco; após, assistência técnica autorizada do fabricante.</p></article>)}

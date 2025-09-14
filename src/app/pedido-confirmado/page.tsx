@@ -1,0 +1,1 @@
+export default function Page(){return(<div className='card'><h1 className='text-xl font-semibold'>Pedido confirmado!</h1><p className='text-sm text-zinc-600 mt-2'>Enviaremos as informações por e-mail.</p></div>)}

@@ -1,0 +1,1 @@
+import ProductCard from './ProductCard';export default function ProductGrid({items}:{items:any[]}){return <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-6'>{items.map(p=><ProductCard key={p.id} p={p}/>)}</div>}

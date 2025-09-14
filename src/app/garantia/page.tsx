@@ -1,0 +1,1 @@
+export default function Page(){return(<article className='prose max-w-none'><h1>Garantia do Fabricante</h1><p>Produtos novos e lacrados com NF. Garantia oficial de 12 meses conforme Apple/Samsung.</p><h2>Como acionar</h2><ol><li>Verifique IMEI/série</li><li>Agende na assistência autorizada</li><li>Leve aparelho, NF e acessórios</li></ol></article>)}

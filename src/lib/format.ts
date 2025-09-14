@@ -1,0 +1,1 @@
+export const br=(n:number)=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});export const withCoupon=(n:number)=>Math.round(n*0.7);
