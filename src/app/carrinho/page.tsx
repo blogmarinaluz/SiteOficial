@@ -1,82 +1,67 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useCart } from "@/hooks/useCart";
 import Link from "next/link";
-import { Trash2, Plus } from "lucide-react";
 
-type CartItem = {
-  id: string;
-  name: string;
-  image?: string;
-  price?: number;
-  qty: number;
-  color?: string;
-  storage?: string | number;
-  freeShipping?: boolean;
-};
-
-const br = (n: number) =>
-  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-const with30off = (n: number) => Math.round(n * 0.7); // 30% OFF no carrinho
+function br(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function withCoupon(n: number) {
+  // 30% OFF no carrinho
+  return Math.round(n * 0.7);
+}
 
 const SELLER_NUMBER =
   process.env.NEXT_PUBLIC_SELLER_NUMBER || "55999984905715";
 
 export default function CarrinhoPage() {
-  const { items, add, remove, clear } = useCart(); // <-- sem decrease
+  const { items, add, decrease, remove, clear } = useCart();
   const [sending, setSending] = useState(false);
 
   const subtotal = useMemo(
-    () => items.reduce((acc, it) => acc + (it.price ?? 0) * (it.qty ?? 1), 0),
+    () => items.reduce((acc, it) => acc + (it.price || 0) * it.qty, 0),
     [items]
   );
-  const totalComCupom = useMemo(() => with30off(subtotal), [subtotal]);
+  const totalComCupom = useMemo(() => withCoupon(subtotal), [subtotal]);
   const desconto = Math.max(0, subtotal - totalComCupom);
 
-  // Frete grátis somente se TODOS forem freeShipping
+  // Frete grátis somente se TODOS os itens forem freeShipping
   const freteGratis = useMemo(
-    () => items.length > 0 && items.every((i) => i.freeShipping),
+    () => items.length > 0 && items.every((i) => i.freeShipping === true),
     [items]
   );
 
-  async function finalizarWhatsApp() {
+  const enviarWhats = async () => {
     if (!items.length) return alert("Seu carrinho está vazio.");
-
     setSending(true);
-    try {
-      const linhas: string[] = [];
-      linhas.push("*Pedido proStore*");
-      linhas.push("");
-      linhas.push("*Itens:*");
-      items.forEach((it) => {
-        const obs =
-          (it.color ? ` ${it.color}` : "") +
-          (it.storage ? ` ${it.storage}GB` : "");
-        linhas.push(
-          `• ${it.qty}x ${it.name}${obs} — ${br((it.price ?? 0) * it.qty)}`
-        );
-      });
-      linhas.push("");
-      linhas.push(`Subtotal: ${br(subtotal)}`);
-      linhas.push(`Cupom 30% OFF: -${br(desconto)}`);
-      linhas.push(
-        `Frete: ${freteGratis ? "*Grátis*" : "A combinar no atendimento"}`
-      );
-      linhas.push(`Total com cupom: *${br(totalComCupom)}*`);
-      linhas.push("");
-      linhas.push(
-        "_Obs.: finalizei o pedido no site e gostaria de concluir pelo WhatsApp._"
-      );
 
-      const msg = encodeURIComponent(linhas.join("\n"));
-      const url = `https://api.whatsapp.com/send?phone=${SELLER_NUMBER}&text=${msg}`;
-      window.location.href = url;
-    } finally {
-      setSending(false);
-    }
-  }
+    const linhas: string[] = [];
+    linhas.push("*Pedido — proStore*");
+    linhas.push("");
+    linhas.push("*Itens:*");
+    items.forEach((it) => {
+      linhas.push(
+        `• ${it.qty}x ${it.name}${it.color ? " - " + it.color : ""}${
+          it.storage ? " " + it.storage + "GB" : ""
+        } — ${br((it.price || 0) * it.qty)}`
+      );
+    });
+    linhas.push("");
+    linhas.push(`Subtotal: ${br(subtotal)}`);
+    linhas.push(`Cupom 30% OFF: -${br(desconto)}`);
+    linhas.push(`*Total com cupom*: *${br(totalComCupom)}*`);
+    linhas.push(freteGratis ? "Frete: *Grátis*" : "Frete: a combinar");
+    linhas.push("");
+    linhas.push(
+      "_Observação: pedido gerado pelo site para finalizar no WhatsApp._"
+    );
+
+    const msg = encodeURIComponent(linhas.join("\n"));
+    window.location.href = `https://api.whatsapp.com/send?phone=${SELLER_NUMBER}&text=${msg}`;
+    setSending(false);
+  };
 
   return (
     <div className="container p-6 grid md:grid-cols-[2fr,1fr] gap-8">
@@ -85,76 +70,96 @@ export default function CarrinhoPage() {
         <h1 className="text-2xl font-bold mb-4">Carrinho</h1>
 
         {!items.length ? (
-          <div className="border rounded-2xl p-6 text-center text-zinc-600">
+          <div className="rounded-2xl border p-6 text-zinc-600">
             Seu carrinho está vazio.{" "}
-            <Link className="text-indigo-600 font-semibold" href="/">
-              Voltar às ofertas
+            <Link className="text-accent underline" href="/">
+              Começar a comprar
             </Link>
           </div>
         ) : (
           <div className="space-y-4">
-            {items.map((it: CartItem) => (
+            {items.map((it) => (
               <div
                 key={it.id}
-                className="flex items-center gap-4 border rounded-2xl p-3"
+                className="flex gap-4 items-center border rounded-2xl p-3"
               >
-                {/* imagem */}
-                <img
-                  src={it.image}
-                  alt={it.name}
-                  className="w-20 h-20 object-cover rounded-lg bg-white"
-                />
-
-                {/* infos */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{it.name}</div>
-                  <div className="text-xs text-zinc-500">
-                    {it.color ? `${it.color} • ` : ""}
-                    {it.storage ? `${it.storage}GB • ` : ""}
-                    {it.freeShipping ? "Frete: Grátis" : "Frete: a combinar"}
-                  </div>
-                  <div className="mt-1 text-sm">{br(it.price ?? 0)}</div>
+                <div className="w-20 h-20 relative shrink-0">
+                  <Image
+                    src={it.image || "/products/placeholder.jpg"}
+                    alt={it.name}
+                    fill
+                    sizes="80px"
+                    className="object-contain rounded-lg bg-white"
+                  />
                 </div>
 
-                {/* ações: + e remover */}
-                <div className="flex items-center gap-2">
-                  <button
-                    className="btn-outline px-2"
-                    aria-label="Adicionar 1"
-                    onClick={() =>
-                      add({
-                        id: it.id,
-                        name: it.name,
-                        price: it.price,
-                        image: it.image,
-                        color: it.color,
-                        storage: it.storage,
-                        freeShipping: it.freeShipping,
-                      })
-                    }
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                  <div className="w-10 text-center">{it.qty}</div>
-                  <button
-                    className="btn-outline"
-                    aria-label="Remover item"
-                    onClick={() => remove(it.id)} // remove o item inteiro
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Remover
-                  </button>
+                <div className="flex-1">
+                  <div className="font-medium">{it.name}</div>
+                  <div className="text-xs text-zinc-500">
+                    {it.color ? `${it.color}` : ""}
+                    {it.storage ? ` • ${it.storage}GB` : ""}
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      aria-label="Diminuir"
+                      onClick={() => decrease(it.id)}
+                      className="px-3 py-1 rounded-lg border"
+                    >
+                      –
+                    </button>
+                    <span className="w-8 text-center">{it.qty}</span>
+                    <button
+                      aria-label="Aumentar"
+                      onClick={() =>
+                        add({
+                          id: it.id,
+                          name: it.name,
+                          price: it.price,
+                          image: it.image,
+                          color: it.color,
+                          storage: it.storage,
+                          freeShipping: it.freeShipping,
+                          qty: 1,
+                        })
+                      }
+                      className="px-3 py-1 rounded-lg border"
+                    >
+                      +
+                    </button>
+
+                    <button
+                      onClick={() => remove(it.id)}
+                      className="ml-4 text-sm text-red-600 hover:underline"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-sm text-zinc-500">Preço</div>
+                  <div className="font-semibold">
+                    {br((it.price || 0) * it.qty)}
+                  </div>
+                  <div className="text-xs mt-1">
+                    10x de{" "}
+                    <b>
+                      {br(Math.round(((it.price || 0) * it.qty) / 10))}
+                    </b>{" "}
+                    <i>sem juros</i>
+                  </div>
                 </div>
               </div>
             ))}
 
             <div className="flex gap-3">
+              <button onClick={clear} className="btn-outline">
+                Limpar carrinho
+              </button>
               <Link href="/" className="btn-outline">
                 Continuar comprando
               </Link>
-              <button className="btn-outline" onClick={() => clear()}>
-                Limpar carrinho
-              </button>
             </div>
           </div>
         )}
@@ -162,78 +167,46 @@ export default function CarrinhoPage() {
 
       {/* COLUNA DIREITA — RESUMO */}
       <aside className="border rounded-2xl p-4 h-fit sticky top-6">
-        <h2 className="font-semibold mb-3">Resumo do pedido</h2>
+        <h2 className="font-semibold mb-3">Resumo</h2>
 
-        {!items.length ? (
-          <div className="text-sm text-zinc-500">
-            Adicione produtos para ver o resumo.
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <b>{br(subtotal)}</b>
           </div>
-        ) : (
-          <div className="space-y-2 text-sm">
-            <Row label="Subtotal" value={br(subtotal)} />
-            <Row label="Cupom 30% OFF" value={`- ${br(desconto)}`} />
-            <Row
-              label="Frete"
-              value={freteGratis ? "Grátis" : "A combinar no atendimento"}
-              emphasize={freteGratis}
-            />
-            <hr className="my-2" />
-            <Row
-              label="Total com cupom"
-              value={br(totalComCupom)}
-              bold
-              big
-              accent
-            />
 
-            <button
-              onClick={finalizarWhatsApp}
-              disabled={sending}
-              className="btn-primary w-full mt-3"
-            >
-              {sending ? "Abrindo WhatsApp…" : "Finalizar no WhatsApp"}
-            </button>
-
-            <div className="text-xs text-zinc-500 mt-3">
-              *O pagamento é concluído com nosso atendente via WhatsApp. O
-              desconto de 30% já foi aplicado ao total.
-            </div>
+          <div className="flex justify-between">
+            <span>Desconto (cupom 30%)</span>
+            <b className="text-green-600">- {br(desconto)}</b>
           </div>
-        )}
+
+          <div className="flex justify-between">
+            <span>Frete</span>
+            <b className={freteGratis ? "text-green-600" : ""}>
+              {freteGratis ? "Grátis" : "a combinar"}
+            </b>
+          </div>
+
+          <div className="h-px bg-zinc-200 my-2" />
+
+          <div className="flex justify-between text-base">
+            <span>Total</span>
+            <b>{br(totalComCupom)}</b>
+          </div>
+
+          <div className="text-xs text-zinc-500">
+            *Pagamento e envio finalizados no WhatsApp.
+          </div>
+        </div>
+
+        <button
+          onClick={enviarWhats}
+          disabled={!items.length || sending}
+          className="btn-primary w-full mt-4"
+        >
+          {sending ? "Abrindo WhatsApp..." : "Finalizar no WhatsApp"}
+        </button>
       </aside>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  bold,
-  big,
-  accent,
-  emphasize,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-  big?: boolean;
-  accent?: boolean;
-  emphasize?: boolean;
-}) {
-  return (
-    <div className="flex justify-between items-baseline">
-      <span className={`text-zinc-600 ${emphasize ? "text-emerald-600" : ""}`}>
-        {label}
-      </span>
-      <span
-        className={[
-          bold ? "font-semibold" : "",
-          big ? "text-lg" : "",
-          accent ? "text-indigo-700" : "",
-        ].join(" ")}
-      >
-        {value}
-      </span>
     </div>
   );
 }
