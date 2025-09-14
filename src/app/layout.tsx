@@ -1,5 +1,6 @@
+// src/app/layout.tsx
 import "./globals.css";
-import { Header } from "@/components/Header";
+import Header from "@/components/Header";   // <- default import
 import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 
@@ -13,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body>
         <Header />
-        {children}
+        <main className="container py-8">{children}</main>
         <Footer />
       </body>
     </html>
