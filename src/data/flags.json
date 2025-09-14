@@ -1,0 +1,30 @@
+{
+  "apple_iphone-14_128_preto": {
+    "freeShipping": true,
+    "tag": "Quinzena5",
+    "featured": true,
+    "bbb": true,
+    "popular": true
+  },
+  "samsung_galaxy-s21-fe_128_preto": {
+    "freeShipping": true,
+    "tag": "Quinzena5",
+    "featured": true,
+    "bbb": true,
+    "popular": true
+  },
+  "samsung_galaxy-s22_128_branco": {
+    "freeShipping": false,
+    "tag": "Oferta Relâmpago",
+    "featured": true,
+    "bbb": true,
+    "popular": true
+  },
+  "apple_iphone-12_128_branco": {
+    "freeShipping": true,
+    "tag": "Quinzena5",
+    "featured": false,
+    "bbb": true,
+    "popular": true
+  }
+}
