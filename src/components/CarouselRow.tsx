@@ -1,93 +1,56 @@
-import Link from "next/link";
-import ProductCard from "@/components/ProductCard";
-import CarouselRow from "@/components/CarouselRow";
-import products from "@/data/products.json";
+// src/components/CarouselRow.tsx — COMPLETO
+"use client";
 
-// Tipagem leve compatível com seu JSON
-type P = {
-  id: string;
-  brand: string;
-  name: string;
-  image: string;
-  price: number;
-  freeShipping?: boolean;
-  featured?: boolean; // "Celulares em Oferta"
-  bbb?: boolean;      // carrossel BBB
-  popular?: boolean;  // carrossel “Mais buscados”
+import { useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+type Props = {
+  children: React.ReactNode; // <— necessário para usar <CarouselRow>...</CarouselRow>
+  className?: string;
 };
 
-export default function HomePage() {
-  const list = products as unknown as P[];
+export default function CarouselRow({ children, className = "" }: Props) {
+  const ref = useRef<HTMLDivElement | null>(null);
 
-  const featured = list.filter(p => p.featured).slice(0, 12);
-  const bbb = list.filter(p => p.bbb).slice(0, 12);
-  const popular = list.filter(p => p.popular).slice(0, 12);
-  const more = list.slice(0, 12); // grid “Mais modelos…”
+  function scrollBy(dx: number) {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollBy({ left: dx, behavior: "smooth" });
+  }
 
   return (
-    <>
-      {/* CELULARES EM OFERTA */}
-      <section className="mb-10">
-        <h2 className="text-xl font-extrabold mb-4">Celulares em Oferta</h2>
-        {featured.length === 0 ? (
-          <div className="text-sm text-zinc-500">Sem destaques no momento.</div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {featured.map(p => (
-              <ProductCard key={p.id} p={p} />
-            ))}
-          </div>
-        )}
-      </section>
+    <div className={`relative ${className}`}>
+      {/* trilho */}
+      <div
+        ref={ref}
+        className="overflow-x-auto no-scrollbar scroll-smooth"
+      >
+        <div className="flex gap-4 pr-6">{children}</div>
+      </div>
 
-      {/* BBB */}
-      <section className="mb-10">
-        <h2 className="text-xl font-extrabold mb-4">
-          Ofertas do dia | BBB = Bom, Bonito e Barato
-        </h2>
-        {bbb.length === 0 ? (
-          <div className="text-sm text-zinc-500">Sem ofertas BBB no momento.</div>
-        ) : (
-          <CarouselRow>
-            {bbb.map(p => (
-              <div key={p.id} className="w-[260px]">
-                <ProductCard p={p} />
-              </div>
-            ))}
-          </CarouselRow>
-        )}
-      </section>
-
-      {/* MAIS BUSCADOS */}
-      <section className="mb-10">
-        <h2 className="text-xl font-extrabold mb-4">Mais buscados</h2>
-        {popular.length === 0 ? (
-          <div className="text-sm text-zinc-500">Sem itens populares no momento.</div>
-        ) : (
-          <CarouselRow>
-            {popular.map(p => (
-              <div key={p.id} className="w-[260px]">
-                <ProductCard p={p} />
-              </div>
-            ))}
-          </CarouselRow>
-        )}
-      </section>
-
-      {/* MAIS MODELOS */}
-      <section className="mb-6">
-        <h2 className="text-xl font-extrabold mb-4">Mais modelos…</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {more.map(p => (
-            <ProductCard key={p.id} p={p} />
-          ))}
-        </div>
-        <div className="text-center mt-6">
-          <Link href="/buscar?q=" className="btn-outline inline-block">
-            Ver mais modelos
-          </Link>
-        </div>
-      </section>
-    </>
+      {/* botões */}
+      <button
+        type="button"
+        aria-label="Anterior"
+        onClick={() => scrollBy(-320)}
+        className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 h-9 w-9 items-center justify-center rounded-full border bg-white shadow hover:bg-zinc-50"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        aria-label="Próximo"
+        onClick={() => scrollBy(320)}
+        className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 h-9 w-9 items-center justify-center rounded-full border bg-white shadow hover:bg-zinc-50"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </button>
+    </div>
   );
 }
+
+/* util: esconder barra de rolagem (coloque no seu globals.css se ainda não tiver)
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+*/
+
