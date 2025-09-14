@@ -1,82 +1,73 @@
-import { catalog } from "@/lib/catalog";
+import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
+import Carousel from "@/components/Carousel";
+import products from "@/data/products.json";
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-xl md:text-2xl font-extrabold tracking-tight mb-4">
-      {children}
-    </h2>
-  );
-}
+type P = {
+  id: string; brand: string; name: string; image?: string; price?: number;
+};
 
-function RowCarousel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative">
-      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {children}
-      </div>
-    </div>
-  );
-}
+// heurísticas para montar blocos sem mexer no JSON
+const all: P[] = (products as any[]).filter(p => p && p.id && p.name);
+
+// oferta = os 8 primeiros com preço
+const oferta = all.filter(p => typeof p.price === "number").slice(0, 8);
+
+// BBB = 8 mais baratos (preço asc)
+const bbb = all
+  .filter(p => typeof p.price === "number")
+  .sort((a,b) => (a.price||0) - (b.price||0))
+  .slice(0, 8);
+
+// populares = mistura Apple/Samsung por padrão
+const populares = [
+  ...all.filter(p => p.brand?.toLowerCase().includes("apple")).slice(0, 4),
+  ...all.filter(p => p.brand?.toLowerCase().includes("samsung")).slice(0, 4),
+].slice(0, 8);
+
+// “mais modelos” = vitrine compacta
+const maisModelos = all.slice(8, 20);
 
 export default function Home() {
-  const featured = catalog.filter((p) => p.featured);
-  const bbb = catalog.filter((p) => p.bbb);
-  const popular = catalog.filter((p) => p.popular);
-
-  // “Mais modelos” = tudo que não entrou como ‘featured’
-  const moreModels = catalog.filter((p) => !p.featured);
-
   return (
-    <div className="space-y-12">
-      {/* CELULARES EM OFERTA */}
-      <section>
-        <SectionTitle>Celulares em Oferta</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {featured.map((p) => (
-            <ProductCard key={p.id} p={p as any} />
-          ))}
-        </div>
-      </section>
+    <>
+      <Header />
+      <main className="container mx-auto px-4 py-8">
+        {/* Celulares em Oferta */}
+        <section className="mb-10">
+          <h2 className="text-xl font-extrabold mb-4">Celulares em Oferta</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {oferta.map((p) => <ProductCard key={p.id} p={p} />)}
+          </div>
+        </section>
 
-      {/* BBB */}
-      <section>
-        <SectionTitle>Ofertas do dia | BBB = Bom, Bonito e Barato</SectionTitle>
-        <RowCarousel>
-          {bbb.map((p) => (
-            <div key={p.id} className="min-w-[220px] snap-start">
-              <ProductCard p={p as any} />
-            </div>
-          ))}
-        </RowCarousel>
-      </section>
+        {/* BBB */}
+        <section className="mb-10">
+          <h2 className="text-xl font-extrabold mb-4">Ofertas do dia | BBB = Bom, Bonito e Barato</h2>
+          <Carousel>
+            {bbb.map((p) => <ProductCard key={p.id} p={p} />)}
+          </Carousel>
+        </section>
 
-      {/* MAIS BUSCADOS */}
-      <section>
-        <SectionTitle>Mais buscados</SectionTitle>
-        <RowCarousel>
-          {popular.map((p) => (
-            <div key={p.id} className="min-w-[220px] snap-start">
-              <ProductCard p={p as any} />
-            </div>
-          ))}
-        </RowCarousel>
-      </section>
+        {/* Mais buscados */}
+        <section className="mb-10">
+          <h2 className="text-xl font-extrabold mb-4">Mais buscados</h2>
+          <Carousel>
+            {populares.map((p) => <ProductCard key={p.id} p={p} />)}
+          </Carousel>
+        </section>
 
-      {/* MAIS MODELOS */}
-      <section>
-        <SectionTitle>Mais modelos…</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {moreModels.slice(0, 12).map((p) => (
-            <ProductCard key={p.id} p={p as any} />
-          ))}
-        </div>
-        <div className="text-center mt-6">
-          <a href="/buscar?q=" className="btn-outline">
-            Ver todos os modelos
-          </a>
-        </div>
-      </section>
-    </div>
+        {/* Mais modelos */}
+        <section className="mb-4">
+          <h2 className="text-xl font-extrabold mb-4">Mais modelos…</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            {maisModelos.map((p) => <ProductCard key={p.id} p={p} />)}
+          </div>
+          <div className="mt-6 text-center">
+            <a href="/buscar?q=" className="btn-outline">Ver catálogo completo</a>
+          </div>
+        </section>
+      </main>
+    </>
   );
 }
