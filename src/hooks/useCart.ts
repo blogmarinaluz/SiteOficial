@@ -31,9 +31,10 @@ function save(items: CartItem[]) {
 }
 
 export const useCart = create<CartState>((set, get) => ({
-  items: (typeof window !== "undefined" && localStorage.getItem("cart"))
-    ? JSON.parse(localStorage.getItem("cart") as string)
-    : [],
+  items:
+    typeof window !== "undefined" && localStorage.getItem("cart")
+      ? JSON.parse(localStorage.getItem("cart") as string)
+      : [],
 
   add: (item, qty = 1) =>
     set((state) => {
@@ -83,3 +84,6 @@ export const useCart = create<CartState>((set, get) => ({
   count: () => get().items.reduce((acc, i) => acc + i.qty, 0),
   total: () => get().items.reduce((acc, i) => acc + (i.price || 0) * i.qty, 0),
 }));
+
+// ✅ Adiciona export default para compatibilizar com imports existentes
+export default useCart;
