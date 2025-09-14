@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
-import Carousel from "@/components/Carousel";
+import CarouselRow from "@/components/CarouselRow";
 import products from "@/data/products.json";
 
 type P = {
