@@ -1,46 +1,33 @@
-// src/app/ofertas/page.tsx
-import products from "@/data/products.json";
 import ProductCard from "@/components/ProductCard";
+import products from "@/data/products.json";
 
-type Product = {
-  id: string;
-  brand?: string;
-  name: string;
-  image?: string;
-  price: number;
-  tag?: string;
-  featured?: boolean;
-  freeShipping?: boolean;
-  popular?: boolean;
-  bbb?: boolean;
-};
+const TERMS = [
+  "iphone 11", "iphone 12", "iphone 13", "iphone 14",
+  "galaxy a07", "s21 fe", "s22", "s21+"
+];
+
+function mark(p: any) {
+  const name = `${p.brand} ${p.name}`.toLowerCase();
+  const freeShipping = ["iphone", "galaxy a07", "s21 fe", "s22"].some(t => name.includes(t));
+  const featured = TERMS.some(t => name.includes(t));
+  return { ...p, freeShipping, __featured: featured };
+}
 
 export default function OfertasPage() {
-  const all = products as Product[];
-
-  // ofertas explícitas (featured ou tag)
-  let list = all.filter((p) => p.featured === true || !!p.tag);
-
-  // fallback: pega os 12 mais baratos
-  if (list.length === 0) {
-    list = [...all].sort((a, b) => (a.price ?? 0) - (b.price ?? 0)).slice(0, 12);
-  }
+  const list = (products as any[]).map(mark).filter(p => p.__featured);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold">Celulares em Oferta</h1>
-
+    <main className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-extrabold mb-6">Celulares em Oferta</h1>
       {list.length === 0 ? (
-        <div className="rounded-2xl border p-6 text-zinc-600">
+        <div className="border rounded-2xl p-6 text-sm text-zinc-600">
           Nenhuma oferta ativa no momento.
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {list.map((p) => (
-            <ProductCard key={p.id} p={p as any} />
-          ))}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {list.map((p) => <ProductCard key={p.id} p={p} />)}
         </div>
       )}
-    </div>
+    </main>
   );
 }
