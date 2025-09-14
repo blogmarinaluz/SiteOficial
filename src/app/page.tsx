@@ -2,6 +2,8 @@ import data from "@/data/products.json";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
 import BoletoModal from "@/components/BoletoModal";
+import Testimonials from "@/components/Testimonials";
+import WhatsChat from "@/components/WhatsChat";
 
 function pick(n: number, sort?: (a: any, b: any) => number, filter?: (p: any) => boolean) {
   let arr = (data as any[]).slice();
@@ -12,7 +14,6 @@ function pick(n: number, sort?: (a: any, b: any) => number, filter?: (p: any) =>
 
 export default function Home() {
   const all = data as any[];
-
   const ofertas = pick(6);
 
   const appleTop = all
@@ -26,7 +27,6 @@ export default function Home() {
     .sort((a, b) => (a.price || 0) - (b.price || 0))[0];
 
   const ofertasDia = [appleTop, samsungTop, barato].filter(Boolean);
-
   const destaque = pick(6);
 
   return (
@@ -48,30 +48,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Depoimentos (mais profissional) */}
-      <section className="bg-zinc-50 border-y">
-        <div className="container py-10">
-          <h2 className="text-2xl font-bold mb-2">Depoimentos</h2>
-          <p className="text-sm text-zinc-600 mb-6">
-            Quem comprou recomenda. Avaliações reais de clientes.
-          </p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { nome: "Ana Souza", texto: "Processo simples. Chegou rápido e bem embalado.", nota: 5 },
-              { nome: "Marcos Lima", texto: "Aprovado no boleto. Atendimento atencioso.", nota: 5 },
-              { nome: "Marina Luz", texto: "Preço e condição excelentes. Recomendo!", nota: 5 },
-            ].map((d, i) => (
-              <figure key={i} className="rounded-2xl border bg-white p-5">
-                <div className="flex items-center justify-between">
-                  <figcaption className="font-semibold">{d.nome}</figcaption>
-                  <div className="text-yellow-500 text-sm">{"★".repeat(d.nota)}</div>
-                </div>
-                <p className="text-sm text-zinc-700 mt-2">{d.texto}</p>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Depoimentos novos (branco, carrossel auto) */}
+      <Testimonials />
 
       {/* Bloco bonito do BOLETO (hero compacto) */}
       <section className="container py-10">
@@ -118,7 +96,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Newsletter (mais bonita) */}
+      {/* Newsletter PRO */}
       <section className="bg-zinc-50">
         <div className="container py-12">
           <div className="rounded-2xl border bg-white p-6 md:p-8 md:flex items-center justify-between gap-6">
@@ -133,6 +111,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Chat WhatsApp flutuante */}
+      <WhatsChat />
     </main>
   );
 }
