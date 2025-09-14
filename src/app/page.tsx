@@ -1,29 +1,205 @@
-import ProductGrid from "@/components/ProductGrid";
-import data from "@/data/products.json";
-export default function Home(){
-  const destaques = data.slice(0, 6);
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+type CartItem = {
+  id: string;
+  name: string;
+  image?: string;
+  storage?: string | number;
+  color?: string;
+  price?: number;
+  qty: number;
+};
+
+function br(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function withPix(n: number) {
+  return Math.round(n * 0.85); // 15% OFF no PIX
+}
+
+const SELLER_NUMBER =
+  process.env.NEXT_PUBLIC_SELLER_NUMBER || "55999984905715"; // ex: 5585999999999
+
+export default function Checkout() {
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Dados do cliente
+  const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [whats, setWhats] = useState("");
+  const [email, setEmail] = useState("");
+  const [cep, setCep] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [numero, setNumero] = useState("");
+  const [complemento, setComplemento] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [uf, setUf] = useState("");
+  const [pagamento, setPagamento] = useState<"PIX" | "Cartão">("PIX");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("cart");
+      const list: CartItem[] = raw ? JSON.parse(raw) : [];
+      setCart(list);
+    } catch {
+      setCart([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const subtotal = useMemo(
+    () => cart.reduce((acc, it) => acc + (it.price || 0) * it.qty, 0),
+    [cart]
+  );
+  const totalPix = useMemo(() => withPix(subtotal), [subtotal]);
+
+  function limparCarrinho() {
+    localStorage.removeItem("cart");
+    setCart([]);
+  }
+
+  function toWhatsApp() {
+    if (!cart.length) {
+      alert("Seu carrinho está vazio.");
+      return;
+    }
+    const linhas: string[] = [];
+    linhas.push("*Pedido ProStore*");
+    linhas.push(`*Cliente:* ${nome || "-"}`);
+    linhas.push(`CPF: ${cpf || "-"}`);
+    linhas.push(`WhatsApp: ${whats || "-"}`);
+    linhas.push(`E-mail: ${email || "-"}`);
+    linhas.push(
+      `Endereço: ${endereco || "-"}, Nº ${numero || "-"} ${
+        complemento ? " - " + complemento : ""
+      }`
+    );
+    linhas.push(`Bairro: ${bairro || "-"} - ${cidade || "-"} / ${uf || "-"}`);
+    linhas.push(`CEP: ${cep || "-"}`);
+    linhas.push("");
+    linhas.push("*Itens:*");
+    cart.forEach((it) => {
+      linhas.push(
+        `• ${it.qty}x ${it.name}${it.color ? " - " + it.color : ""}${
+          it.storage ? " " + it.storage + "GB" : ""
+        } — ${br((it.price || 0) * it.qty)}`
+      );
+    });
+    linhas.push("");
+    linhas.push(`Subtotal: ${br(subtotal)}`);
+    if (pagamento === "PIX") {
+      linhas.push(`Total no PIX (15% OFF): *${br(totalPix)}*`);
+    } else {
+      linhas.push(`Total no Cartão (até 10x): *${br(subtotal)}*`);
+    }
+    linhas.push("");
+    linhas.push(`Forma de pagamento: ${pagamento}`);
+    linhas.push("");
+    linhas.push("_Obs.: pedido enviado via site para finalizar no WhatsApp._");
+
+    const msg = encodeURIComponent(linhas.join("\n"));
+    const link = `https://api.whatsapp.com/send?phone=${SELLER_NUMBER}&text=${msg}`;
+    window.location.href = link;
+  }
+
+  if (loading) return <div className="p-6">Carregando…</div>;
+
   return (
-    <div className="space-y-12">
-      <section className="card">
-        <h1 className="text-3xl md:text-4xl font-extrabold">Apple & Samsung com 30% OFF</h1>
-        <p className="text-zinc-600 mt-2">Produtos novos e lacrados com NF e garantia. Boleto para negativados (mediante análise de cadastro).</p>
-      </section>
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Destaques</h2>
-        <ProductGrid items={destaques} />
-      </section>
-      <section className="card">
-        <h3 className="text-xl font-semibold">Formas de Pagamento</h3>
-        <p className="text-sm text-zinc-600">Pix · Cartão em até 12x · Boleto (inclusive para negativados, mediante análise)</p>
-      </section>
-      <section className="card">
-        <h3 className="text-xl font-semibold">O que os clientes dizem</h3>
-        <ul className="mt-2 space-y-2 text-sm text-zinc-700">
-          <li>“Comprei o iPhone 15 Pro. Chegou lacrado e antes do prazo. Excelente!” — <b>Amanda S.</b></li>
-          <li>“Fiz a análise e consegui comprar no boleto mesmo negativado.” — <b>Lucas R.</b></li>
-          <li>“Suporte respondeu rápido, processo simples.” — <b>Carla M.</b></li>
-        </ul>
-      </section>
+    <div className="container p-6 grid md:grid-cols-[2fr,1fr] gap-8">
+      {/* COLUNA ESQUERDA — DADOS */}
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Finalizar pedido</h1>
+
+        <section className="border rounded-2xl p-4">
+          <h2 className="font-semibold mb-3">Seus dados</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input className="input" placeholder="Nome completo" value={nome} onChange={e=>setNome(e.target.value)} />
+            <input className="input" placeholder="CPF" value={cpf} onChange={e=>setCpf(e.target.value)} />
+            <input className="input" placeholder="WhatsApp (DDD+Número)" value={whats} onChange={e=>setWhats(e.target.value)} />
+            <input className="input" placeholder="E-mail" value={email} onChange={e=>setEmail(e.target.value)} />
+          </div>
+        </section>
+
+        <section className="border rounded-2xl p-4">
+          <h2 className="font-semibold mb-3">Endereço</h2>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <input className="input" placeholder="CEP" value={cep} onChange={e=>setCep(e.target.value)} />
+            <input className="input sm:col-span-2" placeholder="Endereço" value={endereco} onChange={e=>setEndereco(e.target.value)} />
+            <input className="input" placeholder="Número" value={numero} onChange={e=>setNumero(e.target.value)} />
+            <input className="input sm:col-span-2" placeholder="Complemento" value={complemento} onChange={e=>setComplemento(e.target.value)} />
+            <input className="input" placeholder="Bairro" value={bairro} onChange={e=>setBairro(e.target.value)} />
+            <input className="input" placeholder="Cidade" value={cidade} onChange={e=>setCidade(e.target.value)} />
+            <input className="input" placeholder="UF" value={uf} onChange={e=>setUf(e.target.value)} />
+          </div>
+        </section>
+
+        <section className="border rounded-2xl p-4">
+          <h2 className="font-semibold mb-3">Pagamento</h2>
+          <div className="flex gap-3">
+            <button
+              className={`btn ${pagamento === "PIX" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => setPagamento("PIX")}
+            >
+              PIX (15% OFF)
+            </button>
+            <button
+              className={`btn ${pagamento === "Cartão" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => setPagamento("Cartão")}
+            >
+              Cartão (até 10x)
+            </button>
+          </div>
+        </section>
+
+        <div className="flex gap-3">
+          <button className="btn-primary" onClick={toWhatsApp}>
+            Enviar pedido no WhatsApp
+          </button>
+          <button className="btn-outline" onClick={limparCarrinho}>
+            Limpar carrinho
+          </button>
+        </div>
+      </div>
+
+      {/* COLUNA DIREITA — RESUMO */}
+      <aside className="border rounded-2xl p-4 h-fit sticky top-6">
+        <h2 className="font-semibold mb-3">Resumo</h2>
+        {!cart.length ? (
+          <div className="text-sm text-zinc-500">Seu carrinho está vazio.</div>
+        ) : (
+          <div className="space-y-3">
+            {cart.map((it) => (
+              <div key={it.id} className="flex gap-3 items-center border-b pb-3">
+                <img src={it.image} alt={it.name} className="w-16 h-16 rounded object-cover" />
+                <div className="flex-1">
+                  <div className="font-medium">{it.name}</div>
+                  <div className="text-xs text-zinc-500">
+                    {it.color} {it.storage ? `• ${it.storage}GB` : ""} • {it.qty}x
+                  </div>
+                </div>
+                <div className="text-sm">{br((it.price || 0) * it.qty)}</div>
+              </div>
+            ))}
+
+            <div className="flex justify-between text-sm pt-2">
+              <span>Subtotal</span>
+              <b>{br(subtotal)}</b>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>PIX (15% OFF)</span>
+              <b>{br(totalPix)}</b>
+            </div>
+          </div>
+        )}
+        <div className="text-xs text-zinc-500 mt-4">
+          *O pagamento é finalizado no WhatsApp com nosso atendente.
+        </div>
+      </aside>
     </div>
-  )
+  );
 }
