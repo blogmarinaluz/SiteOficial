@@ -2,15 +2,18 @@
 import { useMemo, useState } from "react";
 import data from "@/data/products.json";
 import Link from "next/link";
+import { useCart } from "@/hooks/useCart";
 
 function br(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 function withPix(n: number) {
-  return Math.round(n * 0.85);
+  return Math.round(n * 0.85); // 15% OFF no PIX
 }
 
 export default function Produto({ params }: { params: { id: string } }) {
+  const { add } = useCart();
+
   const id = decodeURIComponent(params.id);
   const item = useMemo(() => (data as any[]).find((p) => p.id === id), [id]);
   if (!item) return <div className="p-6">Produto não encontrado.</div>;
@@ -36,21 +39,21 @@ export default function Produto({ params }: { params: { id: string } }) {
   const preco = ativo.price as number | undefined;
 
   function addToCart() {
-    const raw = typeof window !== "undefined" ? localStorage.getItem("cart") : "[]";
-    const cart = JSON.parse(raw || "[]");
-    const i = cart.findIndex((c: any) => c.id === ativo.id);
-    if (i >= 0) cart[i].qty += 1;
-    else
-      cart.push({
+    if (!preco) {
+      alert("Indisponível nesta combinação.");
+      return;
+    }
+    add(
+      {
         id: ativo.id,
         name: ativo.name,
         image: ativo.image,
         storage: ativo.storage,
         color: ativo.color,
         price: ativo.price,
-        qty: 1,
-      });
-    localStorage.setItem("cart", JSON.stringify(cart));
+      },
+      1
+    );
     alert("Adicionado ao carrinho!");
   }
 
@@ -143,6 +146,7 @@ export default function Produto({ params }: { params: { id: string } }) {
           </Link>
         </div>
 
+        {/* DESCRIÇÃO e CARACTERÍSTICAS */}
         <div className="mt-10 space-y-6">
           <section className="border rounded-2xl p-4">
             <h2 className="text-xl font-semibold mb-2">Descrição do produto</h2>
@@ -151,6 +155,7 @@ export default function Produto({ params }: { params: { id: string } }) {
                 "Descrição breve do produto e condições (recondicionado, testado, com garantia)."}
             </p>
           </section>
+
           <section className="border rounded-2xl p-4">
             <h2 className="text-xl font-semibold mb-2">Características técnicas</h2>
             <div className="grid sm:grid-cols-2 gap-3 text-sm">
