@@ -2,122 +2,166 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
 import CartMini from "@/components/CartMini";
-import useCart from "@/hooks/useCart";
+import { useCart } from "@/hooks/useCart";
 
-function pad(n: number) {
+function two(n: number) {
   return n.toString().padStart(2, "0");
 }
 
 export default function Header() {
-  const { items } = useCart();
-  const pathname = usePathname();
-  const [endAt, setEndAt] = useState<number>(() => {
-    // persiste o fim da campanha por 7 dias
-    const key = "promo_end_at";
-    const cached = typeof window !== "undefined" ? localStorage.getItem(key) : null;
-    if (cached) return Number(cached);
-    const end = Date.now() + 7 * 24 * 60 * 60 * 1000;
-    if (typeof window !== "undefined") localStorage.setItem(key, String(end));
-    return end;
+  // ---- Countdown (7 dias a partir de hoje) ----
+  const [remain, setRemain] = useState<{ d: number; h: number; m: number; s: number }>({
+    d: 0,
+    h: 0,
+    m: 0,
+    s: 0,
   });
-  const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    // fixa a data final por 7 dias a partir do primeiro acesso e guarda no localStorage
+    const key = "promo_deadline";
+    const now = Date.now();
+    const saved = typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    let deadline = saved ? Number(saved) : 0;
+
+    if (!deadline || isNaN(deadline) || deadline < now) {
+      deadline = now + 7 * 24 * 60 * 60 * 1000;
+      localStorage.setItem(key, String(deadline));
+    }
+
+    const tick = () => {
+      const diff = Math.max(0, deadline - Date.now());
+      const d = Math.floor(diff / (24 * 60 * 60 * 1000));
+      const h = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const m = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+      const s = Math.floor((diff % (60 * 1000)) / 1000);
+      setRemain({ d, h, m, s });
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 
-  const left = Math.max(0, endAt - Date.now());
-  const d = Math.floor(left / 86400000);
-  const h = Math.floor((left % 86400000) / 3600000);
-  const m = Math.floor((left % 3600000) / 60000);
-  const s = Math.floor((left % 60000) / 1000);
+  // ---- Busca ----
+  const [q, setQ] = useState("");
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const term = q.trim();
+    if (!term) return;
+    // redireciona para a página de ofertas com query
+    window.location.href = `/ofertas?q=${encodeURIComponent(term)}`;
+  };
 
+  // ---- Contagem rápida do carrinho (mostramos só na barra de categorias) ----
+  const { items } = useCart();
   const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
 
   return (
     <header className="border-b bg-white">
-      {/* Barra da campanha */}
-      <div className="w-full bg-[#382ae1] text-white text-xs md:text-sm">
-        <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-4">
-          <div className="font-semibold">
-            🔥 SEMANA DE PREÇOS BAIXOS — <b>30% OFF</b> no site inteiro (cupom aplicado no carrinho)
+      {/* TOP BAR PROMO */}
+      <div className="bg-[#111] text-white">
+        <div className="container mx-auto px-4 py-2 text-center">
+          <div className="text-[13px] leading-tight font-semibold tracking-wide">
+            SEMANA DE PREÇOS BAIXOS — 30% OFF no site inteiro — Boleto para negativados
           </div>
-          <div className="opacity-90">
-            ⏳ termina em: <b>{pad(d)}d:{pad(h)}h:{pad(m)}m:{pad(s)}s</b>
+          <div className="mt-1 text-sm">
+            Termina em:{" "}
+            <span className="font-mono">
+              {two(remain.d)}d : {two(remain.h)}h : {two(remain.m)}m : {two(remain.s)}s
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Faixa secundária */}
-      <div className="text-center text-[13px] py-2 text-zinc-600">
-        Especialista em celulares novos com garantia!
+      {/* TAGLINE */}
+      <div className="bg-zinc-50">
+        <div className="container mx-auto px-4 py-2 text-center text-sm text-zinc-700">
+          Especialista em celulares novos com garantia!
+        </div>
       </div>
 
-      {/* Linha do topo */}
-      <div className="container mx-auto px-4 py-3 flex items-center gap-3">
-        <Link href="/" className="text-2xl font-extrabold tracking-tight text-[#4b4bfb]">
-          <span className="lowercase">pro</span><span className="capitalize">Store</span>
+      {/* LOGO + BUSCA + AÇÕES */}
+      <div className="container mx-auto px-4 py-4 flex items-center gap-4">
+        {/* Logo */}
+        <Link href="/" className="text-2xl font-extrabold tracking-tight">
+          <span className="text-zinc-900">pro</span>
+          <span className="text-emerald-600">Store</span>
         </Link>
 
-        <form
-          action="/buscar"
-          className="ml-2 flex-1 flex rounded-xl overflow-hidden border"
-        >
+        {/* Busca */}
+        <form onSubmit={submitSearch} className="flex-1 flex items-stretch gap-0 max-w-3xl">
           <input
-            name="q"
-            placeholder="Encontre celulares e tablets..."
-            className="px-3 py-2 w-full outline-none"
-            defaultValue={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : ""}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            type="search"
+            placeholder="Buscar por modelo, cor, armazenamento…"
+            className="w-full border border-zinc-300 rounded-l-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
           />
-          <button className="bg-[#4b4bfb] text-white px-4">🔎</button>
+          <button
+            type="submit"
+            className="px-4 rounded-r-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700"
+          >
+            Buscar
+          </button>
         </form>
 
+        {/* Entrar / Carrinho */}
         <Link
-          href="/minha-conta"
-          className="hidden md:inline-flex border rounded-xl px-3 py-2 text-sm items-center gap-2"
+          href="/login"
+          className="hidden sm:inline-block text-sm text-zinc-700 hover:text-zinc-900"
         >
-          ➜ Entrar
+          Entrar
         </Link>
 
-        <CartMini>
-          <button
-            aria-label="Abrir carrinho"
-            className="relative bg-[#ff8c00] text-white rounded-xl px-3 py-2 font-medium"
-          >
-            🛒 Carrinho
-            {count > 0 && (
-              <span className="absolute -top-2 -right-2 bg-white text-[#ff8c00] rounded-full text-xs px-2 py-0.5 border">
-                {count}
-              </span>
-            )}
-          </button>
-        </CartMini>
+        {/* <<< AQUI: CartMini auto-fechado, sem children >>> */}
+        <CartMini />
       </div>
 
-      {/* Menu categorias */}
-      <nav className="border-t">
-        <div className="container mx-auto px-4 py-3 flex flex-wrap items-center gap-5 text-sm">
-          <Link href="/categoria/apple" className={linkClass(pathname, "/categoria/apple")}>Apple</Link>
-          <Link href="/categoria/samsung" className={linkClass(pathname, "/categoria/samsung")}>Samsung</Link>
-          <Link href="/ofertas" className={linkClass(pathname, "/ofertas")}>Ofertas</Link>
-          <Link href="/mais-buscados" className={linkClass(pathname, "/mais-buscados")}>Mais buscados</Link>
+      {/* CATEGORIAS + BOTÃO BOLETO */}
+      <div className="border-t">
+        <div className="container mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+          <nav className="flex items-center gap-4 text-sm">
+            <Link href="/ofertas?brand=apple" className="hover:text-emerald-600">
+              iPhone
+            </Link>
+            <Link href="/ofertas?brand=samsung" className="hover:text-emerald-600">
+              Samsung
+            </Link>
+            <Link href="/ofertas?popular=1" className="hover:text-emerald-600">
+              Mais buscados
+            </Link>
+            <Link href="/ofertas?bbb=1" className="hover:text-emerald-600">
+              BBB do dia
+            </Link>
+            <Link href="/ofertas?featured=1" className="hover:text-emerald-600">
+              Ofertas em destaque
+            </Link>
+          </nav>
 
-          <Link
-            href="/analise-de-cadastro"
-            className="ml-auto bg-[#ff8c00] text-white rounded-xl px-3 py-1.5 text-sm"
-          >
-            Análise de Boleto
-          </Link>
+          <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/analise-de-cadastro"
+              className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-xl"
+            >
+              Análise de Boleto
+            </Link>
+            <Link
+              href="/checkout"
+              className="text-sm text-zinc-700 hover:text-zinc-900"
+              title="Ir para o checkout"
+            >
+              Checkout
+            </Link>
+            {count > 0 && (
+              <span className="text-xs text-emerald-700 font-semibold">
+                {count} item{count > 1 ? "s" : ""} no carrinho
+              </span>
+            )}
+          </div>
         </div>
-      </nav>
+      </div>
     </header>
   );
-}
-
-function linkClass(pathname: string, href: string) {
-  const active = pathname?.startsWith(href);
-  return `hover:underline ${active ? "font-semibold text-zinc-900" : "text-zinc-600"}`;
 }
