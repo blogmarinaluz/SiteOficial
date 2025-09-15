@@ -1,371 +1,519 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import useCart, { CartItem } from "@/hooks/useCart";
+import Link from "next/link";
+import Image from "next/image";
+import { useCart } from "@/hooks/useCart";
+import { br, withCoupon } from "@/lib/format";
+import {
+  Truck,
+  CreditCard,
+  Receipt,
+  QrCode,
+  Plus,
+  Minus,
+  Trash2,
+  X,
+  Loader2,
+  MapPin,
+  Shield,
+  FileText,
+  CheckCircle2,
+} from "lucide-react";
 
-type Form = {
-  nome: string;
-  cpf: string;
-  whats: string;
-  email: string;
-  cep: string;
-  endereco: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  uf: string;
-  pagamento: "PIX" | "Cartão";
+/** ======= Ajuste este caminho se sua página de análise for diferente ======= */
+const BOLETO_ANALISE_PATH = "/analise-boleto";
+/** ======================================================================== */
+
+// ---------------- Frete (mesma lógica do produto) ----------------
+type Regiao = "N" | "NE" | "CO" | "SE" | "S";
+const UF_REGION: Record<string, Regiao> = {
+  AC: "N", AM: "N", AP: "N", PA: "N", RO: "N", RR: "N", TO: "N",
+  AL: "NE", BA: "NE", CE: "NE", MA: "NE", PB: "NE", PE: "NE", PI: "NE", RN: "NE", SE: "NE",
+  DF: "CO", GO: "CO", MT: "CO", MS: "CO",
+  ES: "SE", MG: "SE", RJ: "SE", SP: "SE",
+  PR: "S", RS: "S", SC: "S",
 };
+const FRETE_TABELA = {
+  SEDEX: { SE: 24.9, S: 29.9, CO: 34.9, NE: 39.9, N: 49.9 },
+  ECONOMICO: { SE: 14.9, S: 19.9, CO: 24.9, NE: 29.9, N: 39.9 },
+};
+const PRAZO_TABELA = {
+  SEDEX: { SE: "2–4 dias úteis", S: "3–5 dias úteis", CO: "3–6 dias úteis", NE: "4–7 dias úteis", N: "5–9 dias úteis" },
+  ECONOMICO: { SE: "4–7 dias úteis", S: "5–8 dias úteis", CO: "6–10 dias úteis", NE: "7–12 dias úteis", N: "10–15 dias úteis" },
+};
+const normalizeCep = (v: string) => (v || "").replace(/\D/g, "").slice(0, 8);
+const getRegiao = (uf?: string): Regiao => (uf && UF_REGION[uf]) || "SE";
 
-const SELLER_NUMBER =
-  process.env.NEXT_PUBLIC_SELLER_NUMBER || "55999984905715"; // ex: 5585999999999
-const COUPON_LABEL = "PRO30";
-const COUPON_OFF = 0.30; // 30% OFF no site inteiro
+type Frete = { tipo: "SEDEX" | "ECONOMICO"; valor: number; prazo: string };
+type EnderecoViaCep = { logradouro?: string; bairro?: string; localidade?: string; uf?: string };
 
-function br(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function useFreteInicial(): { cep?: string; frete?: Frete } {
+  const [state, setState] = useState<{ cep?: string; frete?: Frete }>({});
+  useEffect(() => {
+    const cep = typeof window !== "undefined" ? window.localStorage.getItem("prostore:cep") || undefined : undefined;
+    const fs = typeof window !== "undefined" ? window.localStorage.getItem("prostore:frete_selected") : null;
+    const frete = fs ? (JSON.parse(fs) as Frete) : undefined;
+    setState({ cep, frete });
+  }, []);
+  return state;
 }
 
-export default function CheckoutPage() {
-  const { items, increase, decrease, remove, clear } = useCart();
-  const [sending, setSending] = useState(false);
-  const [f, setF] = useState<Form>({
-    nome: "",
-    cpf: "",
-    whats: "",
-    email: "",
-    cep: "",
-    endereco: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    cidade: "",
-    uf: "",
-    pagamento: "PIX",
-  });
+// ---------------- Modal CEP ----------------
+function CepModal({
+  open,
+  onClose,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) => void;
+}) {
+  const [cep, setCep] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
+  const [opcoes, setOpcoes] = useState<Frete[] | null>(null);
 
-  // subtotal SEM desconto (corrigido p/ price opcional)
-  const subtotal = useMemo(
-    () => items.reduce((n, i) => n + ((i.price ?? 0) * i.qty), 0),
-    [items]
-  );
-
-  // Cupom 30% OFF
-  const desconto = useMemo(() => Math.round(subtotal * COUPON_OFF), [subtotal]);
-  const total = useMemo(() => Math.max(0, subtotal - desconto), [subtotal, desconto]);
-
-  // Frete grátis se TODOS os itens forem freeShipping
-  const freteGratis = useMemo(
-    () => items.length > 0 && items.every((i) => i.freeShipping === true),
-    [items]
-  );
-
-  // CEP -> viaCEP (auto-preenchimento)
   useEffect(() => {
-    const rawCep = (f.cep || "").replace(/\D/g, "");
-    if (rawCep.length !== 8) return;
+    if (!open) return;
+    const savedCep = localStorage.getItem("prostore:cep");
+    if (savedCep) setCep(savedCep);
+  }, [open]);
 
-    let aborted = false;
-    (async () => {
-      try {
-        const res = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
-        const json = await res.json();
-        if (aborted || json.erro) return;
-        setF((old) => ({
-          ...old,
-          endereco: json.logradouro || old.endereco,
-          bairro: json.bairro || old.bairro,
-          cidade: json.localidade || old.cidade,
-          uf: json.uf || old.uf,
-        }));
-      } catch {
-        // silencioso
-      }
-    })();
-
-    return () => {
-      aborted = true;
-    };
-  }, [f.cep]);
-
-  function onChange<K extends keyof Form>(k: K, v: Form[K]) {
-    setF((old) => ({ ...old, [k]: v }));
-  }
-
-  function toWhatsApp() {
-    if (items.length === 0) {
-      alert("Seu carrinho está vazio.");
+  async function consultar() {
+    setErro(null);
+    setEndereco(null);
+    setOpcoes(null);
+    const raw = normalizeCep(cep);
+    if (raw.length !== 8) {
+      setErro("Digite um CEP válido (8 dígitos).");
       return;
     }
-    setSending(true);
+    setLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+      const data = await res.json();
+      if (data?.erro) {
+        setErro("CEP não encontrado.");
+        setLoading(false);
+        return;
+      }
+      const uf = data.uf as string | undefined;
+      const reg = getRegiao(uf);
+      const op: Frete[] = [
+        { tipo: "SEDEX", valor: FRETE_TABELA.SEDEX[reg], prazo: PRAZO_TABELA.SEDEX[reg] },
+        { tipo: "ECONOMICO", valor: FRETE_TABELA.ECONOMICO[reg], prazo: PRAZO_TABELA.ECONOMICO[reg] },
+      ];
+      setEndereco({ logradouro: data.logradouro, bairro: data.bairro, localidade: data.localidade, uf });
+      setOpcoes(op);
+      localStorage.setItem("prostore:cep", raw);
+    } catch {
+      setErro("Falha ao consultar CEP. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    const linhas: string[] = [];
-    linhas.push("*Pedido — proStore*");
-    linhas.push(`*Cliente:* ${f.nome || "-"}`);
-    linhas.push(`CPF: ${f.cpf || "-"}`);
-    linhas.push(`WhatsApp: ${f.whats || "-"}`);
-    linhas.push(`E-mail: ${f.email || "-"}`);
-    linhas.push(
-      `Endereço: ${f.endereco || "-"}, Nº ${f.numero || "-"}${
-        f.complemento ? " - " + f.complemento : ""
-      }`
-    );
-    linhas.push(`Bairro: ${f.bairro || "-"} - ${f.cidade || "-"} / ${f.uf || "-"}`);
-    linhas.push(`CEP: ${f.cep || "-"}`);
-    linhas.push("");
-    linhas.push("*Itens:*");
-    items.forEach((it) => {
-      const price = (it.price ?? 0);
-      linhas.push(
-        `• ${it.qty}x ${it.name}${it.color ? " - " + it.color : ""}${
-          it.storage ? " " + it.storage + "GB" : ""
-        } — ${br(price * it.qty)}`
-      );
-    });
-    linhas.push("");
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    if (open) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
-    linhas.push(`Subtotal: ${br(subtotal)}`);
-    linhas.push(`Cupom ${COUPON_LABEL} (30% OFF): -${br(desconto)}`);
-    freteGratis
-      ? linhas.push(`Frete: *Grátis*`)
-      : linhas.push(`Frete: a combinar (calculado no WhatsApp)`);
-    linhas.push(`*Total com desconto: ${br(total)}*`);
-    linhas.push("");
-    linhas.push(`Forma de pagamento preferida: ${f.pagamento}`);
-    linhas.push("");
-    linhas.push(`_Obs.: pedido enviado via site para finalizar no WhatsApp._`);
+  if (!open) return null;
 
-    const msg = encodeURIComponent(linhas.join("\n"));
-    const link = `https://api.whatsapp.com/send?phone=${SELLER_NUMBER}&text=${msg}`;
+  return (
+    <div className="fixed inset-0 z-[70]">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 grid place-items-center p-4">
+        <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-emerald-100 p-2">
+              <Truck className="h-5 w-5 text-emerald-700" />
+            </div>
+            <h3 className="text-lg font-semibold">Calcular entrega</h3>
+            <button onClick={onClose} className="ml-auto rounded-md p-1 text-zinc-500 hover:bg-zinc-100" aria-label="Fechar">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-    // redireciona
-    window.location.href = link;
-    setSending(false);
+          <div className="mt-4 flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && consultar()}
+                placeholder="Digite seu CEP"
+                inputMode="numeric"
+                maxLength={9}
+                className="w-full pl-9 pr-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              />
+            </div>
+            <button
+              onClick={consultar}
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calcular"}
+            </button>
+          </div>
+
+          {erro && <div className="mt-3 text-sm text-red-600">{erro}</div>}
+
+          {endereco && (
+            <div className="mt-4 rounded-lg border bg-zinc-50 p-3 text-sm text-zinc-700">
+              Entrega para: <b>{[endereco.logradouro, endereco.bairro].filter(Boolean).join(" - ")}</b> — {endereco.localidade}/{endereco.uf}
+            </div>
+          )}
+
+          {opcoes && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {opcoes.map((o) => (
+                <button
+                  key={o.tipo}
+                  onClick={() => {
+                    const raw = normalizeCep(cep);
+                    localStorage.setItem("prostore:frete_selected", JSON.stringify(o));
+                    onSelect({ cep: raw, endereco: endereco || {}, frete: o });
+                    onClose();
+                  }}
+                  className="text-left rounded-xl border p-4 hover:shadow-sm transition"
+                >
+                  <div className="font-semibold">{o.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"}</div>
+                  <div className="text-sm text-zinc-600">{o.prazo}</div>
+                  <div className="text-lg font-semibold text-emerald-700 mt-1">{br(o.valor)}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Página ----------------
+type Payment = "PIX" | "CARTAO" | "BOLETO";
+
+export default function CheckoutPage() {
+  const cart: any = useCart();
+  const items = (cart?.items as any[]) || [];
+
+  const [cepModal, setCepModal] = useState(false);
+  const init = useFreteInicial();
+  const [cep, setCep] = useState<string | undefined>(init.cep);
+  const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
+  const [frete, setFrete] = useState<Frete | undefined>(init.frete);
+  const [pay, setPay] = useState<Payment>("PIX");
+
+  const subtotal = useMemo(
+    () =>
+      items.reduce((acc, it) => acc + (it.price || 0) * (it.qty || it.quantity || 1), 0),
+    [items]
+  );
+  const descontoPix = pay === "PIX" ? Math.round(subtotal * 0.30) : 0; // 30% OFF (mesma regra do site)
+  const total = Math.max(0, subtotal - descontoPix) + (frete?.valor || 0);
+
+  function onFreteSelect(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) {
+    setCep(payload.cep);
+    setEndereco(payload.endereco);
+    setFrete(payload.frete);
   }
 
   return (
-    <div className="container p-6 grid md:grid-cols-[2fr,1fr] gap-8">
-      {/* COLUNA ESQUERDA — ITENS & DADOS */}
-      <div>
-        <h1 className="text-2xl font-extrabold mb-4">Finalizar pedido</h1>
+    <>
+      <CepModal open={cepModal} onClose={() => setCepModal(false)} onSelect={onFreteSelect} />
 
-        {/* ITENS */}
-        <section className="border rounded-2xl p-4 mb-6">
-          <h2 className="font-semibold mb-3">Seus itens</h2>
-          {items.length === 0 ? (
-            <div className="text-sm text-zinc-500">Seu carrinho está vazio.</div>
-          ) : (
-            <div className="space-y-3">
-              {items.map((it) => (
-                <div key={it.id} className="flex gap-3 items-center border-b pb-3">
-                  <img
-                    src={it.image}
-                    alt={it.name}
-                    className="w-16 h-16 rounded object-cover bg-white"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium">{it.name}</div>
-                    <div className="text-xs text-zinc-500">
-                      {it.color ? `${it.color}` : ""}
-                      {it.storage ? ` • ${it.storage}GB` : ""}
-                      {it.freeShipping ? " • Frete Grátis" : ""}
+      <div className="container py-6 md:py-8">
+        <h1 className="text-xl md:text-2xl font-semibold">Finalizar pedido</h1>
+
+        <div className="mt-4 grid lg:grid-cols-12 gap-6">
+          {/* Coluna principal */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Itens */}
+            <section className="rounded-2xl border bg-white">
+              <header className="px-4 py-3 border-b font-medium">Seus itens</header>
+              <div className="divide-y">
+                {items.length === 0 && (
+                  <div className="p-4 text-sm text-zinc-500">Seu carrinho está vazio.</div>
+                )}
+
+                {items.map((it) => (
+                  <div key={it.id} className="p-4 flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-lg overflow-hidden border bg-white">
+                      {it.image ? (
+                        <Image src={it.image} alt={it.name} width={48} height={48} className="h-full w-full object-contain" />
+                      ) : (
+                        <div className="h-full w-full grid place-items-center text-xs text-zinc-400">IMG</div>
+                      )}
                     </div>
-                    <div className="text-sm mt-1">{br((it.price ?? 0))}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium leading-tight">{it.name}</div>
+                      <div className="text-xs text-zinc-500">
+                        {it.color ? `Cor: ${it.color} • ` : ""}{it.storage ? `${it.storage} GB` : ""}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => cart?.decrement?.(it.id)}
+                        className="h-7 w-7 grid place-items-center rounded-md border hover:bg-zinc-50"
+                        aria-label="Diminuir"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <div className="w-6 text-center text-sm">{it.qty ?? it.quantity ?? 1}</div>
+                      <button
+                        onClick={() => cart?.increment?.(it.id)}
+                        className="h-7 w-7 grid place-items-center rounded-md border hover:bg-zinc-50"
+                        aria-label="Aumentar"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="w-28 text-right text-sm font-medium">{br((it.price || 0) * (it.qty ?? it.quantity ?? 1))}</div>
+
                     <button
-                      className="px-2 py-1 border rounded"
-                      onClick={() => decrease(it.id)}
+                      onClick={() => cart?.remove?.(it.id)}
+                      className="ml-2 text-zinc-400 hover:text-red-600"
+                      aria-label="Remover"
                     >
-                      -
-                    </button>
-                    <span className="w-8 text-center">{it.qty}</span>
-                    <button
-                      className="px-2 py-1 border rounded"
-                      onClick={() => increase(it.id)}
-                    >
-                      +
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="w-24 text-right font-medium">
-                    {br((it.price ?? 0) * it.qty)}
-                  </div>
+                ))}
+              </div>
+
+              {items.length > 0 && (
+                <div className="px-4 py-3 border-t flex items-center justify-between">
                   <button
-                    className="text-red-500 text-sm ml-2"
-                    onClick={() => remove(it.id)}
+                    onClick={() => cart?.clear?.()}
+                    className="text-sm text-zinc-600 hover:text-zinc-800"
                   >
-                    remover
+                    Limpar carrinho
                   </button>
                 </div>
-              ))}
-              <div className="text-right">
-                <button className="btn-outline text-sm" onClick={clear}>
-                  Limpar carrinho
-                </button>
+              )}
+            </section>
+
+            {/* Dados do comprador */}
+            <section className="rounded-2xl border bg-white">
+              <header className="px-4 py-3 border-b font-medium">Seus dados</header>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <input className="input" placeholder="Nome completo" />
+                <input className="input" placeholder="CPF" inputMode="numeric" />
+                <input className="input" placeholder="WhatsApp (DDD+Número)" inputMode="tel" />
+                <input className="input" placeholder="E-mail" type="email" />
+              </div>
+            </section>
+
+            {/* Endereço & frete */}
+            <section className="rounded-2xl border bg-white">
+              <header className="px-4 py-3 border-b font-medium">Endereço</header>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="col-span-full">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Truck className="h-4 w-4 text-emerald-600" />
+                    <span className="font-medium">Entrega</span>
+                    <button onClick={() => setCepModal(true)} className="text-emerald-700 underline ml-2">
+                      {cep ? "Alterar" : "Calcular"}
+                    </button>
+                  </div>
+
+                  {cep ? (
+                    <div className="mt-2 rounded-lg border bg-zinc-50 p-3 flex items-center justify-between">
+                      <div className="text-xs md:text-sm text-zinc-700">
+                        CEP <b>{cep}</b>
+                        {endereco?.localidade && (
+                          <> — {endereco.localidade}/{endereco.uf}</>
+                        )}
+                        {frete ? (
+                          <>
+                            <div className="mt-1">
+                              {frete.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"} • {frete.prazo} •{" "}
+                              <b className="text-emerald-700">{br(frete.valor)}</b>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="mt-1 text-amber-700">Selecione a opção de frete.</div>
+                        )}
+                      </div>
+                      <button onClick={() => setCepModal(true)} className="text-sm rounded-md border px-3 py-1 hover:bg-zinc-50">
+                        Alterar frete
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-xs text-zinc-600">Sem CEP calculado.</div>
+                  )}
+                </div>
+
+                <input className="input" placeholder="Endereço" />
+                <input className="input" placeholder="Número" inputMode="numeric" />
+                <input className="input" placeholder="Complemento" />
+                <input className="input" placeholder="Bairro" />
+                <input className="input" placeholder="Cidade" />
+                <input className="input" placeholder="UF" maxLength={2} />
+              </div>
+            </section>
+
+            {/* Pagamento */}
+            <section className="rounded-2xl border bg-white">
+              <header className="px-4 py-3 border-b font-medium">Pagamento</header>
+
+              {/* Abas simples */}
+              <div className="p-4">
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={() => setPay("PIX")}
+                    className={`tab ${pay === "PIX" ? "tab-active" : ""}`}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" /> PIX
+                  </button>
+                  <button
+                    onClick={() => setPay("CARTAO")}
+                    className={`tab ${pay === "CARTAO" ? "tab-active" : ""}`}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" /> Cartão (até 10x)
+                  </button>
+                  <button
+                    onClick={() => setPay("BOLETO")}
+                    className={`tab ${pay === "BOLETO" ? "tab-active" : ""}`}
+                  >
+                    <Receipt className="h-4 w-4 mr-2" /> Boleto
+                  </button>
+                </div>
+
+                {pay === "PIX" && (
+                  <div className="note">
+                    Cupom <b>PR030</b> (30% OFF) aplicado automaticamente no total do PIX.
+                  </div>
+                )}
+
+                {pay === "CARTAO" && (
+                  <div className="note">
+                    Pague em até <b>10x sem juros</b> no cartão. Dados do cartão serão finalizados por WhatsApp com nosso atendente.
+                  </div>
+                )}
+
+                {pay === "BOLETO" && (
+                  <div className="note flex items-center justify-between gap-3">
+                    <span>Emissão e análise de boleto realizados em ambiente seguro.</span>
+                    <Link
+                      href={BOLETO_ANALISE_PATH}
+                      className="rounded-lg bg-zinc-900 text-white px-3 py-2 text-sm hover:bg-black"
+                    >
+                      Ir para análise de boleto
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Ações finais */}
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={`https://wa.me/55?text=Olá! Quero finalizar meu pedido. Total ${br(total)}.`}
+                target="_blank"
+                className="btn-primary"
+              >
+                Finalizar no WhatsApp
+              </Link>
+              <button
+                onClick={() => cart?.clear?.()}
+                className="btn-secondary"
+              >
+                Limpar carrinho
+              </button>
+            </div>
+
+            {/* Selos de confiança */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="trust">
+                <Shield className="h-4 w-4 text-emerald-600" />
+                180 dias de garantia
+              </div>
+              <div className="trust">
+                <FileText className="h-4 w-4 text-emerald-600" />
+                Nota Fiscal
+              </div>
+              <div className="trust">
+                <Truck className="h-4 w-4 text-emerald-600" />
+                Entrega para todo o Brasil
+              </div>
+              <div className="trust">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                Produto novo e original
               </div>
             </div>
-          )}
-        </section>
-
-        {/* DADOS DO CLIENTE */}
-        <section className="border rounded-2xl p-4 mb-6">
-          <h2 className="font-semibold mb-3">Seus dados</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input
-              className="input"
-              placeholder="Nome completo"
-              value={f.nome}
-              onChange={(e) => onChange("nome", e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="CPF"
-              value={f.cpf}
-              onChange={(e) => onChange("cpf", e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="WhatsApp (DDD+Número)"
-              value={f.whats}
-              onChange={(e) => onChange("whats", e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="E-mail"
-              value={f.email}
-              onChange={(e) => onChange("email", e.target.value)}
-            />
           </div>
-        </section>
 
-        {/* ENDEREÇO */}
-        <section className="border rounded-2xl p-4 mb-6">
-          <h2 className="font-semibold mb-3">Endereço</h2>
-          <div className="grid sm:grid-cols-3 gap-3">
-            <input
-              className="input"
-              placeholder="CEP"
-              value={f.cep}
-              onChange={(e) => onChange("cep", e.target.value)}
-            />
-            <input
-              className="input sm:col-span-2"
-              placeholder="Endereço"
-              value={f.endereco}
-              onChange={(e) => onChange("endereco", e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="Número"
-              value={f.numero}
-              onChange={(e) => onChange("numero", e.target.value)}
-            />
-            <input
-              className="input sm:col-span-2"
-              placeholder="Complemento"
-              value={f.complemento}
-              onChange={(e) => onChange("complemento", e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="Bairro"
-              value={f.bairro}
-              onChange={(e) => onChange("bairro", e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="Cidade"
-              value={f.cidade}
-              onChange={(e) => onChange("cidade", e.target.value)}
-            />
-            <input
-              className="input"
-              placeholder="UF"
-              value={f.uf}
-              onChange={(e) => onChange("uf", e.target.value)}
-            />
-          </div>
-        </section>
+          {/* Resumo */}
+          <aside className="lg:col-span-4">
+            <div className="sticky top-20 rounded-2xl border bg-white p-4">
+              <h3 className="font-semibold mb-3">Resumo</h3>
 
-        {/* PAGAMENTO */}
-        <section className="border rounded-2xl p-4 mb-6">
-          <h2 className="font-semibold mb-3">Pagamento</h2>
-          <div className="flex gap-3">
-            <button
-              className={`btn ${f.pagamento === "PIX" ? "btn-primary" : "btn-outline"}`}
-              onClick={() => onChange("pagamento", "PIX")}
-            >
-              PIX
-            </button>
-            <button
-              className={`btn ${f.pagamento === "Cartão" ? "btn-primary" : "btn-outline"}`}
-              onClick={() => onChange("pagamento", "Cartão")}
-            >
-              Cartão (até 10x)
-            </button>
-          </div>
-          <p className="text-xs text-zinc-500 mt-2">
-            Cupom <b>{COUPON_LABEL}</b> (30% OFF) já aplicado ao total.
-          </p>
-        </section>
+              <div className="space-y-3">
+                {items.map((it) => (
+                  <div key={it.id} className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-md overflow-hidden border bg-white">
+                      {it.image ? (
+                        <Image src={it.image} alt={it.name} width={40} height={40} className="h-full w-full object-contain" />
+                      ) : null}
+                    </div>
+                    <div className="flex-1 text-xs">
+                      <div className="font-medium line-clamp-1">{it.name}</div>
+                      <div className="text-zinc-500">{it.color ? `${it.color} • ` : ""}{it.storage ? `${it.storage} GB • ` : ""}{it.qty ?? it.quantity ?? 1}x</div>
+                    </div>
+                    <div className="text-sm font-medium">{br((it.price || 0) * (it.qty ?? it.quantity ?? 1))}</div>
+                  </div>
+                ))}
+              </div>
 
-        <div className="flex gap-3">
-          <button className="btn-primary" onClick={toWhatsApp} disabled={sending || items.length === 0}>
-            Finalizar no WhatsApp
-          </button>
-          <button className="btn-outline" onClick={clear}>Limpar carrinho</button>
+              <hr className="my-3" />
+              <div className="text-sm space-y-1">
+                <div className="flex justify-between"><span>Subtotal</span><span>{br(subtotal)}</span></div>
+                {pay === "PIX" && (
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Cupom PR030 (30% OFF)</span>
+                    <span>- {br(descontoPix)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span>Frete</span>
+                  <span>{frete ? `${br(frete.valor)} • ${frete.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"}` : "A calcular"}</span>
+                </div>
+              </div>
+              <hr className="my-3" />
+              <div className="flex justify-between items-center">
+                <div className="font-semibold">Total</div>
+                <div className="text-lg font-semibold text-emerald-700">{br(total)}</div>
+              </div>
+
+              <div className="mt-3 text-[11px] text-zinc-500">
+                * O pagamento e a entrega são finalizados pelo WhatsApp com nosso atendente.
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
 
-      {/* COLUNA DIREITA — RESUMO */}
-      <aside className="border rounded-2xl p-4 h-fit sticky top-6">
-        <h2 className="font-semibold mb-3">Resumo</h2>
-        {items.length === 0 ? (
-          <div className="text-sm text-zinc-500">Seu carrinho está vazio.</div>
-        ) : (
-          <div className="space-y-3">
-            {items.map((it) => (
-              <div key={it.id} className="flex gap-3 items-center border-b pb-3">
-                <img src={it.image} alt={it.name} className="w-12 h-12 rounded object-cover" />
-                <div className="flex-1">
-                  <div className="text-sm">{it.name}</div>
-                  <div className="text-xs text-zinc-500">
-                    {it.color ? `${it.color}` : ""}
-                    {it.storage ? ` • ${it.storage}GB` : ""}
-                    {it.freeShipping ? " • Frete Grátis" : ""}
-                    {" • "}{it.qty}x
-                  </div>
-                </div>
-                <div className="text-sm">{br((it.price ?? 0) * it.qty)}</div>
-              </div>
-            ))}
-
-            <div className="flex justify-between text-sm pt-2">
-              <span>Subtotal</span>
-              <b>{br(subtotal)}</b>
-            </div>
-
-            <div className="flex justify-between text-sm">
-              <span>Cupom {COUPON_LABEL} (30% OFF)</span>
-              <b>- {br(desconto)}</b>
-            </div>
-
-            <div className="flex justify-between text-sm">
-              <span>Frete</span>
-              <b>{freteGratis ? "Grátis" : "A combinar"}</b>
-            </div>
-
-            <div className="flex justify-between text-base border-t pt-2">
-              <span className="font-semibold">Total</span>
-              <b className="font-semibold">{br(total)}</b>
-            </div>
-          </div>
-        )}
-        <div className="text-xs text-zinc-500 mt-4">
-          *O pagamento e entrega são finalizados pelo WhatsApp com nosso atendente.
-        </div>
-      </aside>
-    </div>
+      {/* estilos utilitários locais */}
+      <style jsx global>{`
+        .input { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; }
+        .input:focus { box-shadow: 0 0 0 2px rgba(16, 185, 129, .25); border-color: #10b981; }
+        .tab { display:flex; align-items:center; padding:8px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; }
+        .tab-active { border-color:#10b981; box-shadow:0 0 0 2px rgba(16,185,129,.12) inset; }
+        .btn-primary { background:#10b981; color:#fff; padding:12px 16px; border-radius:10px; font-weight:600; }
+        .btn-primary:hover { background:#0e9f6e; }
+        .btn-secondary { background:#111827; color:#fff; padding:12px 16px; border-radius:10px; font-weight:500; }
+        .btn-secondary:hover { background:#000; }
+        .note { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px; font-size:13px; color:#374151; }
+        .trust { display:flex; align-items:center; gap:8px; font-size:13px; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; background:#fff; }
+      `}</style>
+    </>
   );
 }
