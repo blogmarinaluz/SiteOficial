@@ -40,12 +40,13 @@ export default function ProductCard({ product }: Props) {
       <Link href={`/produto/${product.id}`} className="group block">
         {/* ====== SOMENTE TAMANHO PADRÃO DA IMAGEM ====== */}
         <div className="mb-3">
-          <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-3">
-            <div className="h-[180px] w-full flex items-center justify-center">
+          <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
+            {/* palco fixo para TODAS as imagens */}
+            <div className="h-[200px] w-full flex items-center justify-center">
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-[160px] w-auto max-w-[150px] object-contain"
+                className="max-h-[180px] max-w-[180px] w-auto h-auto object-contain"
                 loading="lazy"
               />
             </div>
@@ -65,7 +66,7 @@ export default function ProductCard({ product }: Props) {
             <span className="font-normal text-zinc-700">no pix ou boleto</span>
           </div>
 
-          <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+        <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
             <svg
               viewBox="0 0 24 24"
               className="h-4 w-4"
