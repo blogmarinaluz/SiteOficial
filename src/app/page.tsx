@@ -112,60 +112,61 @@ export default function HomePage() {
         <Testimonials />
       </section>
 
-      {/* CONDIÇÃO EXCLUSIVA - VERSÃO COMPACTA */}
+      {/* CONDIÇÃO EXCLUSIVA - VERSÃO COMPACTA 2 */}
 <section aria-labelledby="exclusive-heading" className="mt-8">
-  <div className="mx-auto max-w-7xl rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 p-1 shadow-md">
-    <div className="rounded-xl bg-white/5 px-5 py-6 md:flex md:items-center md:gap-6 lg:py-7">
-      {/* Left: icon + headline (compacto) */}
-      <div className="flex-1 text-white">
-        <div className="flex items-start gap-3">
-          <div className="rounded-md bg-white/10 p-2">
-            <svg viewBox="0 0 24 24" className="h-6 w-6 text-white" aria-hidden="true">
+  <div className="mx-auto max-w-7xl rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 p-[1px] shadow-sm">
+    <div className="rounded-lg bg-white/6 px-4 py-5 md:flex md:items-center md:gap-6 lg:py-6">
+      {/* left: icon + text (2/3) */}
+      <div className="flex-1 md:flex md:items-center">
+        <div className="flex items-start gap-3 md:gap-4">
+          <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-md bg-white/12 p-2">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" aria-hidden="true">
               <path d="M12 2 4 5v6c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V5l-8-3z" fill="currentColor" />
             </svg>
           </div>
+
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/90">Condição exclusiva</p>
-            <h2 id="exclusive-heading" className="mt-1 text-lg font-extrabold leading-tight">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/90">Condição exclusiva</p>
+            <h2 id="exclusive-heading" className="mt-1 text-base font-extrabold leading-snug text-white">
               Boleto aprovado mesmo com score baixo
             </h2>
-            <p className="mt-1 text-sm text-white/90 max-w-lg">
+            <p className="mt-1 text-sm text-white/90 max-w-xl">
               Análise ágil e liberação em até <strong>24h</strong>. Sem necessidade de cartão — atendimento humano via WhatsApp.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Right: bullets + CTA (mais compacto) */}
-      <div className="mt-4 md:mt-0 md:w-[360px]">
+      {/* right: bullets + CTA (1/3) */}
+      <div className="mt-4 md:mt-0 md:w-1/3">
         <ul className="grid gap-2">
-          <li className="flex items-start gap-2 rounded-lg bg-white/7 px-3 py-2">
-            <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white">
+          <li className="flex items-center gap-3 rounded-md bg-white/8 px-3 py-2">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
               <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
             </span>
-            <div>
-              <p className="text-sm font-semibold text-white">Sem cartão</p>
-              <p className="mt-0.5 text-[12px] text-white/80">Análise documental e score alternativo.</p>
+            <div className="text-sm">
+              <div className="font-semibold text-white">Sem cartão</div>
+              <div className="text-[12px] text-white/80">Análise documental e score alternativo</div>
             </div>
           </li>
 
-          <li className="flex items-start gap-2 rounded-lg bg-white/7 px-3 py-2">
-            <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white">
+          <li className="flex items-center gap-3 rounded-md bg-white/8 px-3 py-2">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
               <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
             </span>
-            <div>
-              <p className="text-sm font-semibold text-white">Aprovação rápida</p>
-              <p className="mt-0.5 text-[12px] text-white/80">Análise em até 24h com revisão humana.</p>
+            <div className="text-sm">
+              <div className="font-semibold text-white">Aprovação rápida</div>
+              <div className="text-[12px] text-white/80">Análise em até 24h com revisão humana</div>
             </div>
           </li>
 
-          <li className="flex items-start gap-2 rounded-lg bg-white/7 px-3 py-2">
-            <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white">
+          <li className="flex items-center gap-3 rounded-md bg-white/8 px-3 py-2">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
               <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
             </span>
-            <div>
-              <p className="text-sm font-semibold text-white">Estoque imediato</p>
-              <p className="mt-0.5 text-[12px] text-white/80">Reservamos o aparelho após aprovação.</p>
+            <div className="text-sm">
+              <div className="font-semibold text-white">Estoque imediato</div>
+              <div className="text-[12px] text-white/80">Reservamos o aparelho após aprovação</div>
             </div>
           </li>
         </ul>
@@ -173,22 +174,16 @@ export default function HomePage() {
         <div className="mt-3 flex items-center gap-3">
           <Link
             href="/analise-de-cadastro"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-emerald-700 shadow-sm hover:shadow-md"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm hover:shadow-md"
             aria-label="Solicitar análise de boleto"
           >
             <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white">
-              <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
-                <path d="M12 2 2 7v5c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V7l-8-5z" fill="currentColor" />
-              </svg>
+              <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true"><path d="M12 2 2 7v5c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V7l-8-5z" fill="currentColor" /></svg>
             </span>
             Solicitar pelo boleto
           </Link>
 
-          <Link
-            href="/analise-de-cadastro"
-            className="text-sm font-medium text-white/90 hover:underline"
-            aria-label="Saiba mais sobre análise de boleto"
-          >
+          <Link href="/analise-de-cadastro" className="text-sm font-medium text-white/90 hover:underline" aria-label="Saiba mais">
             Saiba mais
           </Link>
         </div>
