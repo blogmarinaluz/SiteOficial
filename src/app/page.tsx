@@ -112,84 +112,69 @@ export default function HomePage() {
         <Testimonials />
       </section>
 
-      {/* CONDIÇÃO EXCLUSIVA - VERSÃO PROFISSIONAL COMPACTA */}
+     {/* CONDIÇÃO EXCLUSIVA — ELEGANTE, INLINE E ENXUTA */}
 <section aria-labelledby="exclusive-heading" className="mt-8">
-  <div className="mx-auto max-w-7xl rounded-lg p-[1px] bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-sm">
-    <div className="rounded-lg bg-white/6 px-6 py-5 md:flex md:items-center md:gap-6 lg:py-6">
-      {/* LEFT: texto (limita largura para evitar espaço morto) */}
-      <div className="flex-1">
-        <div className="md:flex md:items-start md:gap-4">
-          <div className="md:flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/90">Condição exclusiva</p>
-            <h2 id="exclusive-heading" className="mt-1 text-lg font-bold leading-snug text-white max-w-xl">
-              Boleto aprovado mesmo com score baixo
-            </h2>
-            <p className="mt-2 text-sm text-white/90 max-w-md">
-              Análise ágil e liberação em até <strong>24h</strong>. Sem necessidade de cartão — atendimento humano via WhatsApp para acompanhar o processo.
-            </p>
+  <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 p-[1px] shadow-md">
+    <div className="rounded-2xl bg-white/6 px-6 py-5">
+      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        {/* Texto principal (limitado em largura p/ não sobrar espaço) */}
+        <div className="md:flex-1 md:pr-6">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/90">
+            Condição exclusiva
+          </p>
+          <h2
+            id="exclusive-heading"
+            className="mt-1 text-2xl md:text-[28px] font-extrabold leading-tight text-white"
+          >
+            Boleto aprovado mesmo com score baixo
+          </h2>
+          <p className="mt-2 text-sm md:text-[15px] text-white/90 max-w-2xl">
+            Análise simples e liberação em até <strong>24h</strong>. Sem cartão. Atendimento humano pelo WhatsApp.
+          </p>
+
+          {/* Benefícios em linha (chips) */}
+          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-sm text-white ring-1 ring-white/10 backdrop-blur">
+              <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
+                <path d="M7.5 13.5 4 10l1.2-1.2 2.3 2.3 6.5-6.5L15.4 6l-7.9 7.5z" fill="currentColor"/>
+              </svg>
+              Sem cartão
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-sm text-white ring-1 ring-white/10 backdrop-blur">
+              <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
+                <path d="M7.5 13.5 4 10l1.2-1.2 2.3 2.3 6.5-6.5L15.4 6l-7.9 7.5z" fill="currentColor"/>
+              </svg>
+              Aprovação rápida
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-sm text-white ring-1 ring-white/10 backdrop-blur">
+              <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true">
+                <path d="M7.5 13.5 4 10l1.2-1.2 2.3 2.3 6.5-6.5L15.4 6l-7.9 7.5z" fill="currentColor"/>
+              </svg>
+              Estoque imediato
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* RIGHT: bullets + CTA (compacto) */}
-      <div className="mt-3 md:mt-0 md:w-80">
-        <ul className="grid gap-2">
-          <li className="flex items-start gap-3 rounded-md bg-white/8 px-3 py-2">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
-            </span>
-            <div className="text-sm">
-              <div className="font-semibold text-white">Sem cartão</div>
-              <div className="text-[12px] text-white/80">Análise documental e score alternativo</div>
-            </div>
-          </li>
-
-          <li className="flex items-start gap-3 rounded-md bg-white/8 px-3 py-2">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
-            </span>
-            <div className="text-sm">
-              <div className="font-semibold text-white">Aprovação rápida</div>
-              <div className="text-[12px] text-white/80">Análise em até 24h com revisão humana</div>
-            </div>
-          </li>
-
-          <li className="flex items-start gap-3 rounded-md bg-white/8 px-3 py-2">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
-            </span>
-            <div className="text-sm">
-              <div className="font-semibold text-white">Estoque imediato</div>
-              <div className="text-[12px] text-white/80">Reservamos o aparelho após aprovação</div>
-            </div>
-          </li>
-        </ul>
-
-        <div className="mt-3 flex items-center gap-3">
-          <Link
+        {/* CTA à direita (em linha no desktop) */}
+        <div className="shrink-0">
+          <a
             href="/analise-de-cadastro"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm hover:shadow-md"
-            aria-label="Solicitar análise de boleto"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm ring-1 ring-black/5 transition hover:shadow-md"
+            aria-label="Solicitar análise pelo boleto"
           >
             <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white">
-              <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true"><path d="M12 2 2 7v5c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V7l-8-5z" fill="currentColor" /></svg>
+              <svg viewBox="0 0 20 20" className="h-3 w-3" aria-hidden="true">
+                <path d="M10 2 4 5v6c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V5l-8-3z" fill="currentColor"/>
+              </svg>
             </span>
             Solicitar pelo boleto
-          </Link>
-
-          <Link href="/analise-de-cadastro" className="text-sm font-medium text-white/90 hover:underline" aria-label="Saiba mais">
-            Saiba mais
-          </Link>
+          </a>
         </div>
-
-        <p className="mt-2 text-xs text-white/80">
-          Clique em <strong>Solicitar pelo boleto</strong> para abrir a página de análise — o formulário coleta os dados necessários.
-        </p>
       </div>
     </div>
   </div>
 </section>
-
+      
       {/* 4) BBB — mais caros */}
       <section className="pt-12">
         <div className="flex items-baseline justify-between">
