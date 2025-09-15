@@ -20,21 +20,19 @@ function capBrand(brand: string) {
   return brand?.charAt(0).toUpperCase() + brand?.slice(1);
 }
 
-type Props = {
-  product: Product;
-};
+type Props = { product: Product };
 
 export default function ProductCard({ product }: Props) {
   const { add } = useCart();
 
-  // Preços
+  // preços
   const original = Number(product?.price) || 0;
   const promo = withCoupon(original); // 30% OFF (sua função)
   const parcela = promo / 10;
 
   return (
     <div className="card relative overflow-hidden">
-      {/* selo frete grátis (quando houver) */}
+      {/* Selo frete grátis */}
       {product.freeShipping && (
         <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm ring-1 ring-emerald-700/30">
           Frete grátis
@@ -42,9 +40,8 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* imagem */}
+        {/* Imagem */}
         <div className="mb-3 flex h-40 w-full items-center justify-center rounded-xl bg-white">
-          {/* manter fundo branco p/ todas as imagens ficarem limpas no card */}
           <img
             src={product.image}
             alt={product.name}
@@ -53,22 +50,22 @@ export default function ProductCard({ product }: Props) {
           />
         </div>
 
-        {/* nome/brand */}
+        {/* Título */}
         <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
         <h3 className="line-clamp-2 text-sm font-medium text-zinc-900">
           {product.name}
         </h3>
 
-        {/* preços */}
+        {/* Preços */}
         <div className="mt-2">
           <div className="text-[13px] text-zinc-500 line-through">{br(original)}</div>
           <div className="mt-0.5 text-[15px] font-extrabold text-emerald-700">
-            A partir de {br(promo)} <span className="font-normal text-zinc-700">no pix ou boleto</span>
+            A partir de {br(promo)}{" "}
+            <span className="font-normal text-zinc-700">no pix ou boleto</span>
           </div>
 
-          {/* cartão + parcelamento */}
+          {/* Cartão + parcelamento */}
           <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
-            {/* ícone de cartão clean */}
             <svg
               viewBox="0 0 24 24"
               className="h-4 w-4"
@@ -88,17 +85,18 @@ export default function ProductCard({ product }: Props) {
         </div>
       </Link>
 
-      {/* ações */}
-      <div className="mt-3 flex gap-2">
+      {/* Ações – sem classes globais, 100% na sua paleta */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <Link
           href={`/produto/${product.id}`}
-          className="btn btn-outline flex-1"
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
         >
           Ver detalhes
         </Link>
+
         <button
-          onClick={() => add(product, 1)} // API: add(item, qty?)
-          className="btn btn-primary flex-1 bg-emerald-600 text-white hover:opacity-95"
+          onClick={() => add(product, 1)}
+          className="inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm font-semibold text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700"
         >
           Adicionar
         </button>
