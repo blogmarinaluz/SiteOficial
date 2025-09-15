@@ -13,3 +13,48 @@ body{@apply bg-white text-zinc-900}
 .whatsapp-fab{position:fixed;right:16px;bottom:16px;z-index:60;border-radius:9999px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 ul.bullets li{ @apply pl-5 relative; }
 ul.bullets li:before{ content:'•'; position:absolute; left:0; }
+      {/* 6) Newsletter */}
+      <section className="mt-10">
+        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-7 shadow-md">
+          <div className="text-center">
+            <h3 className="text-xl md:text-2xl font-extrabold text-white">
+              Inscreva-se na nossa Newsletter
+            </h3>
+            <p className="mt-1 text-sm text-white/90">
+              Fique por dentro das novidades e promoções exclusivas
+            </p>
+          </div>
+
+          <form className="mx-auto mt-4 flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:gap-3" action="#" noValidate>
+            <label className="sr-only" htmlFor="nl-name">Nome</label>
+            <input
+              id="nl-name"
+              type="text"
+              placeholder="Digite o seu nome"
+              className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+              required
+            />
+            <label className="sr-only" htmlFor="nl-email">E-mail</label>
+            <input
+              id="nl-email"
+              type="email"
+              placeholder="Digite o seu e-mail"
+              className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+              required
+            />
+            <button
+              type="button"
+              className="w-full sm:w-auto rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"
+            >
+              Cadastrar
+            </button>
+          </form>
+
+          <p className="mx-auto mt-3 max-w-4xl text-[11px] leading-relaxed text-white/90">
+            *Ao clicar em cadastrar você autoriza a coleta, armazenamento e tratamento de dados, de acordo com a
+            <a href="#" className="underline underline-offset-2"> Política de Privacidade</a>,
+            <a href="#" className="underline underline-offset-2"> Termos de Uso</a> e
+            <a href="#" className="underline underline-offset-2"> Política de Cookies</a>.
+          </p>
+        </div>
+      </section>
