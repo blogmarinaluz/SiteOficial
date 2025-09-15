@@ -7,7 +7,7 @@ import { br, withCoupon } from "@/lib/format";
 
 export type Product = {
   id: string;
-  brand: "apple" | "samsung" | string;
+  brand: string;
   name: string;
   image?: string;
   price: number;
@@ -15,16 +15,14 @@ export type Product = {
   [k: string]: any;
 };
 
-/** Compat: aceita 'product' (novo) OU 'p' (antigo) */
 type Props = { product?: Product; p?: Product };
 
-/* Ícones (SVGs leves, sem libs) */
+/* Ícones */
 const IconCreditCard = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
     <path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm16 2H4v3h16V7Zm-9 7H5a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2Z" fill="currentColor"/>
   </svg>
 );
-
 const IconTruck = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
     <path d="M3 6a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3h2.59A2 2 0 0 1 19 10l2 3v4a2 2 0 0 1-2 2h-1a2.5 2.5 0 1 1-5 0H9a2.5 2.5 0 1 1-5 0H3a2 2 0 0 1-2-2V6Zm2 0v11h.17A2.5 2.5 0 0 1 7 18.5a2.5 2.5 0 0 1 4.83.5h2.34a2.5 2.5 0 0 1 4.83-.5H20v-2h-3a1 1 0 0 1-1-1V8H5ZM20 12.76 18.92 11H16v2h4Z" fill="currentColor"/>
@@ -36,15 +34,15 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
   const { add } = useCart();
   if (!product) return null;
 
-  const cash = withCoupon(product.price);   // 30% OFF (pix/boleto)
-  const installment = cash / 10;            // 10x sem juros
+  const cash = withCoupon(product.price);
+  const installment = cash / 10;
 
+  // Marca sempre capitalizada
+  const b = String(product.brand ?? "");
   const brandLabel =
-    product.brand?.toLowerCase() === "apple"
-      ? "Apple"
-      : product.brand?.toLowerCase() === "samsung"
-      ? "Samsung"
-      : product.brand;
+    b.toLowerCase() === "apple" ? "Apple" :
+    b.toLowerCase() === "samsung" ? "Samsung" :
+    (b ? b.charAt(0).toUpperCase() + b.slice(1).toLowerCase() : "");
 
   const imgSrc = product.image
     ? (product.image.startsWith("/") ? product.image : `/import_imgs/${product.image}`)
@@ -52,10 +50,10 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
 
   return (
     <div className="group relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
-      {/* Badge Frete Grátis (bonita, com ícone) */}
+      {/* Badge Frete Grátis — pill mais bonita */}
       {product.freeShipping && (
         <div className="absolute left-3 top-3 z-10">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm ring-1 ring-emerald-700/20">
             <IconTruck className="h-3.5 w-3.5" />
             Frete Grátis
           </span>
@@ -82,15 +80,12 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
       <div className="mt-3 flex flex-1 flex-col">
         <div className="min-h-[54px]">
           <p className="text-xs text-neutral-500">{brandLabel}</p>
-          <Link
-            href={`/produto/${product.id}`}
-            className="line-clamp-2 text-[15px] font-medium text-neutral-900"
-          >
+          <Link href={`/produto/${product.id}`} className="line-clamp-2 text-[15px] font-medium text-neutral-900">
             {product.name}
           </Link>
         </div>
 
-        {/* Preços (paleta verde da marca) */}
+        {/* Preços (verde da marca) */}
         <div className="mt-3 space-y-1.5">
           <p className="text-xs text-neutral-600">A partir de</p>
           <div className="text-[22px] font-extrabold leading-none tracking-tight text-emerald-700">
@@ -100,10 +95,10 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
             </span>
           </div>
 
-          {/* Linha de parcelamento — alinhada/bem proporcionada */}
+          {/* Parcelamento alinhado */}
           <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-neutral-700">
             <IconCreditCard className="h-4 w-4 shrink-0 text-neutral-700" />
-            <span className="whitespace-normal">
+            <span>
               ou <span className="font-semibold">{br(cash)}</span> em até{" "}
               <span className="font-semibold">10x</span> de{" "}
               <span className="font-semibold">{br(installment)}</span>{" "}
@@ -112,7 +107,7 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
           </div>
         </div>
 
-        {/* Ações (botão na cor da marca) */}
+        {/* Ações (botão verde) */}
         <div className="mt-4 flex items-center gap-2">
           <Link
             href={`/produto/${product.id}`}
