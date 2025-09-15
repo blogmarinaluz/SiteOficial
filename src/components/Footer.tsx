@@ -4,8 +4,12 @@ import type { ReactNode } from "react";
 
 export default function Footer() {
   const year = new Date().getFullYear();
-  const wa = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "").replace(/\D/g, "");
-  const waHref = wa ? `https://wa.me/${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.` : "#";
+
+  // WhatsApp: usa ENV se tiver; senão usa o que você me passou
+  const waEnv = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "").replace(/\D/g, "");
+  const waFallback = "5599984905715";
+  const wa = waEnv || waFallback;
+  const waHref = `https://wa.me/${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.`;
 
   return (
     <footer className="mt-16 border-t border-zinc-200 bg-white">
@@ -14,21 +18,15 @@ export default function Footer() {
         <div className="container grid grid-cols-1 gap-3 py-3 sm:grid-cols-3">
           <div className="flex items-center gap-2 text-sm">
             <Check />
-            <span>
-              Até <strong>10x sem juros</strong> no cartão
-            </span>
+            <span>Até <strong>10x sem juros</strong> no cartão</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Check />
-            <span>
-              <strong>Frete Grátis</strong> em aparelhos selecionados
-            </span>
+            <span><strong>Frete Grátis</strong> em aparelhos selecionados</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Check />
-            <span>
-              Atendimento humano via <strong>WhatsApp</strong>
-            </span>
+            <span>Atendimento humano via <strong>WhatsApp</strong></span>
           </div>
         </div>
       </div>
@@ -65,26 +63,10 @@ export default function Footer() {
         <div>
           <h4 className="mb-3 text-sm font-semibold text-zinc-900">Institucional</h4>
           <ul className="space-y-2 text-sm text-zinc-700">
-            <li>
-              <Link href="#" className="hover:text-black">
-                Quem somos
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="hover:text-black">
-                Política de Privacidade
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="hover:text-black">
-                Termos de Uso
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="hover:text-black">
-                Trocas e Devoluções
-              </Link>
-            </li>
+            <li><Link href="/quem-somos" className="hover:text-black">Quem somos</Link></li>
+            <li><Link href="/politica-de-privacidade" className="hover:text-black">Política de Privacidade</Link></li>
+            <li><Link href="/termos-de-uso" className="hover:text-black">Termos de Uso</Link></li>
+            <li><Link href="/trocas-e-devolucoes" className="hover:text-black">Trocas e Devoluções</Link></li>
           </ul>
         </div>
 
@@ -100,8 +82,14 @@ export default function Footer() {
             </li>
             <li className="flex items-center gap-2">
               <MailIcon className="h-4 w-4" />
-              <a href="mailto:contato@seudominio.com" className="hover:text-black">
-                contato@seudominio.com
+              <a href="mailto:contato@proStore.com" className="hover:text-black">
+                contato@proStore.com
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <MailIcon className="h-4 w-4" />
+              <a href="mailto:suporte@proStore.com" className="hover:text-black">
+                suporte@proStore.com
               </a>
             </li>
             <li className="text-zinc-500">Seg–Sex, 9h às 18h</li>
@@ -112,18 +100,10 @@ export default function Footer() {
         <div>
           <h4 className="mb-3 text-sm font-semibold text-zinc-900">Siga a proStore</h4>
           <div className="flex items-center gap-2">
-            <Social href="#" label="Instagram">
-              <InstaIcon className="h-5 w-5" />
-            </Social>
-            <Social href="#" label="Facebook">
-              <FbIcon className="h-5 w-5" />
-            </Social>
-            <Social href="#" label="YouTube">
-              <YtIcon className="h-5 w-5" />
-            </Social>
-            <Social href={waHref} label="WhatsApp">
-              <WhatsIcon className="h-5 w-5" />
-            </Social>
+            <Social href="#" label="Instagram"><InstaIcon className="h-5 w-5" /></Social>
+            <Social href="#" label="Facebook"><FbIcon className="h-5 w-5" /></Social>
+            <Social href="#" label="YouTube"><YtIcon className="h-5 w-5" /></Social>
+            <Social href={waHref} label="WhatsApp"><WhatsIcon className="h-5 w-5" /></Social>
           </div>
 
           <div className="mt-6 rounded-lg border border-zinc-200 p-3">
@@ -152,15 +132,7 @@ function Badge({ children }: { children: ReactNode }) {
   );
 }
 
-function Social({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: ReactNode;
-}) {
+function Social({ href, label, children }: { href: string; label: string; children: ReactNode }) {
   return (
     <a
       href={href}
@@ -211,7 +183,7 @@ function MailIcon({ className = "" }: { className?: string }) {
 function InstaIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-      <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.8a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6z" />
+      <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.8a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6z" />
     </svg>
   );
 }
