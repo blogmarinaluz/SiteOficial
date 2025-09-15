@@ -1,59 +1,40 @@
 // src/app/categoria/[slug]/page.tsx
-import products from "@/data/products.json";
+import productsData from "@/data/products.json";
 import ProductCard from "@/components/ProductCard";
 
-type Product = {
-  id: string;
-  brand?: string;
-  name: string;
-  image?: string;
-  price: number;
-  freeShipping?: boolean;
-  featured?: boolean;
-  popular?: boolean;
-  bbb?: boolean;
-};
+export const revalidate = 60;
 
-function titleFromSlug(slug: string) {
-  const s = slug.replace(/-/g, " ").trim();
-  return `Linha ${s.charAt(0).toUpperCase() + s.slice(1)}`;
-}
+type Params = { slug: string };
+type P = any;
 
-export default function CategoriaPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const slug = (params.slug || "").toLowerCase();
+const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
+const brandLabel = (slug: string) =>
+  slug === "apple" ? "Apple" : slug === "samsung" ? "Samsung" : slug;
 
-  // filtro bem tolerante: brand, id e name
-  const list: Product[] = (products as Product[]).filter((p) => {
-    const brand = (p.brand || "").toLowerCase();
-    const id = (p.id || "").toLowerCase();
-    const name = (p.name || "").toLowerCase();
-    return (
-      brand === slug ||
-      id.startsWith(`${slug}_`) ||
-      name.includes(slug) // garante Samsung mesmo se brand vier diferente
-    );
-  });
+export default function CategoryPage({ params }: { params: Params }) {
+  const slug = norm(params.slug);
+
+  // filtra por marca (o JSON usa "apple" | "samsung")
+  const all: P[] = productsData as any[];
+  const list = all.filter((p) => norm(p.brand) === slug);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold">{titleFromSlug(slug)}</h1>
+    <main className="container py-8">
+      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+        {brandLabel(slug)}
+      </h1>
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border p-6 text-zinc-600">
-          Nenhum produto encontrado para{" "}
-          <b>{titleFromSlug(slug).replace("Linha ", "")}</b>.
-        </div>
+        <p className="mt-6 text-zinc-600">
+          Nenhum produto encontrado para esta categoria.
+        </p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((p) => (
-            <ProductCard key={p.id} p={p as any} />
+            <ProductCard key={String(p.id)} product={p as any} />
           ))}
         </div>
       )}
-    </div>
+    </main>
   );
 }
