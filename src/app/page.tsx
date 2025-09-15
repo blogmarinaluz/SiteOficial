@@ -203,6 +203,55 @@ export default function HomePage() {
           <ProductGrid products={destaqueSafe as any[]} />
         </div>
       </section>
+
+      {/* 6) Newsletter — verde/preto, clean */}
+      <section className="mt-12">
+        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-8 shadow-md ring-1 ring-emerald-900/20">
+          <div className="grid gap-6 md:grid-cols-[1.2fr,1fr] md:items-center">
+            <div>
+              <h3 className="text-2xl font-extrabold text-white">Inscreva-se na nossa Newsletter</h3>
+              <p className="mt-1 text-sm text-white/90">
+                Promoções exclusivas e novidades da <span className="font-semibold">proStore</span> direto no seu e-mail.
+              </p>
+            </div>
+
+            {/* Campos + botão */}
+            <form className="flex flex-col gap-3 sm:flex-row sm:items-center" action="#" noValidate>
+              <label className="sr-only" htmlFor="nl-name">Nome</label>
+              <input
+                id="nl-name"
+                type="text"
+                placeholder="Seu nome"
+                className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+                required
+              />
+
+              <label className="sr-only" htmlFor="nl-email">E-mail</label>
+              <input
+                id="nl-email"
+                type="email"
+                placeholder="Seu e-mail"
+                className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+                required
+              />
+
+              <button
+                type="button"
+                className="w-full sm:w-auto rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+              >
+                Cadastrar
+              </button>
+            </form>
+
+            <p className="md:col-span-2 text-[11px] leading-relaxed text-white/90">
+              *Ao clicar em cadastrar você autoriza a coleta e o tratamento dos dados conforme nossa
+              <a href="#" className="underline underline-offset-2"> Política de Privacidade</a>,
+              <a href="#" className="underline underline-offset-2"> Termos de Uso</a> e
+              <a href="#" className="underline underline-offset-2"> Política de Cookies</a>.
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
