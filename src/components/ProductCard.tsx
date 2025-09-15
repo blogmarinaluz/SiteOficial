@@ -29,6 +29,9 @@ export default function ProductCard({ product }: Props) {
   const promo = withCoupon(original); // 30% OFF
   const parcela = promo / 10;
 
+  // ↑ Só tamanho: deixo Samsung maior para compensar margens das imagens
+  const isSamsung = (product?.brand || "").toLowerCase() === "samsung";
+
   return (
     <div className="card relative overflow-hidden">
       {product.freeShipping && (
@@ -41,12 +44,16 @@ export default function ProductCard({ product }: Props) {
         {/* ====== SOMENTE TAMANHO PADRÃO DA IMAGEM ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-            {/* palco fixo para TODAS as imagens */}
-            <div className="h-[220px] w-full flex items-center justify-center">
+            {/* palco fixo (maior para todos) */}
+            <div className="h-[240px] w-full flex items-center justify-center">
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-[200px] w-auto max-w-[200px] object-contain"
+                className={
+                  isSamsung
+                    ? "h-[220px] max-w-[220px] w-auto object-contain"
+                    : "h-[200px] max-w-[200px] w-auto object-contain"
+                }
                 loading="lazy"
               />
             </div>
