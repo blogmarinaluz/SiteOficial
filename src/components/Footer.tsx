@@ -4,12 +4,10 @@ import type { ReactNode } from "react";
 
 export default function Footer() {
   const year = new Date().getFullYear();
-
-  // WhatsApp: usa ENV se tiver; senão usa o que você me passou
-  const waEnv = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "").replace(/\D/g, "");
-  const waFallback = "5599984905715";
-  const wa = waEnv || waFallback;
-  const waHref = `https://wa.me/${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.`;
+  const wa = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "").replace(/\D/g, "");
+  const waHref = wa
+    ? `https://wa.me/${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.`
+    : "#";
 
   return (
     <footer className="mt-16 border-t border-zinc-200 bg-white">
@@ -99,15 +97,34 @@ export default function Footer() {
         {/* redes sociais */}
         <div>
           <h4 className="mb-3 text-sm font-semibold text-zinc-900">Siga a proStore</h4>
-          <ul className="space-y-2 text-sm text-zinc-700">
-            <li><Link href="/quem-somos" className="hover:text-black">Quem somos</Link></li>
-            <li><Link href="/politica-de-privacidade" className="hover:text-black">Política de Privacidade</Link></li>
-            <li><Link href="/termos-de-uso" className="hover:text-black">Termos de Uso</Link></li>
-            <li><Link href="/trocas-e-devolucoes" className="hover:text-black">Trocas e Devoluções</Link></li>
-          </ul>
+          <div className="flex items-center gap-2">
+            <Social
+              href="https://www.instagram.com/useprostore/"
+              label="Instagram"
+            >
+              <InstaIcon className="h-5 w-5" />
+            </Social>
+
+            <Social
+              href="https://www.facebook.com/profile.php?id=61581137991518&locale=pt_BR"
+              label="Facebook"
+            >
+              <FbIcon className="h-5 w-5" />
+            </Social>
+
+            <Social href="#" label="X (Twitter)">
+              <XIcon className="h-5 w-5" />
+            </Social>
+
+            <Social href="#" label="TikTok">
+              <TiktokIcon className="h-5 w-5" />
+            </Social>
+          </div>
 
           <div className="mt-6 rounded-lg border border-zinc-200 p-3">
-            <p className="text-[11px] text-zinc-600">Site seguro • Certificado SSL ativo</p>
+            <p className="text-[11px] text-zinc-600">
+              Site seguro • Certificado SSL ativo
+            </p>
           </div>
         </div>
       </div>
@@ -132,7 +149,15 @@ function Badge({ children }: { children: ReactNode }) {
   );
 }
 
-function Social({ href, label, children }: { href: string; label: string; children: ReactNode }) {
+function Social({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <a
       href={href}
@@ -180,10 +205,11 @@ function MailIcon({ className = "" }: { className?: string }) {
   );
 }
 
+/* --- ícones sociais --- */
 function InstaIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-      <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.8a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6z" />
+      <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm6.5-.8a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6z" />
     </svg>
   );
 }
@@ -192,6 +218,22 @@ function FbIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
       <path d="M13 9h3V6h-3c-2 0-3.5 1.5-3.5 3.5V12H7v3h2.5v6H13v-6h2.6l.4-3H13v-1.5c0-.3.2-.5.5-.5z" />
+    </svg>
+  );
+}
+
+function XIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M4 4h4.6l4.5 6.3L18.8 4H22l-7 8.2L22 20h-4.6l-5-6.9L9.2 20H2l7.2-8.2L4 4z" />
+    </svg>
+  );
+}
+
+function TiktokIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M14 3h3.1c.3 1.7 1.5 3 3.1 3.4V9c-1.7 0-3.3-.6-4.6-1.7V14c0 3.3-2.7 6-6 6s-6-2.7-6-6 2.7-6 6-6c.5 0 1 .1 1.4.2V11c-.4-.2-.9-.3-1.4-.3-2 0-3.7 1.7-3.7 3.7S8.6 18 10.6 18s3.7-1.7 3.7-3.7V3z" />
     </svg>
   );
 }
