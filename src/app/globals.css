@@ -56,3 +56,27 @@ ul.bullets li:before{ content:'•'; position:absolute; left:0; }
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
+/* ===== Ajuste de tamanhos por seção (variáveis CSS) ===== */
+
+/* Padrão (Celulares em Oferta fica como está) */
+:root{
+  --card-stage-h: 240px;
+  --img-h-apple: 210px;
+  --img-h-samsung: 230px;
+  --img-scale-apple: 1;
+  --img-scale-samsung: 1.22;
+}
+
+/* BBB – só aumentar iPhone, Samsung permanece */
+.ctx-bbb{
+  --card-stage-h: 248px;       /* palco um pouco maior só nessa seção */
+  --img-h-apple: 236px;        /* iPhone maior (ficará do mesmo porte do que vc curtiu) */
+  --img-scale-apple: 1.06;     /* leve ajuste para compensar bordas no arquivo da imagem */
+}
+
+/* Destaque – iPhone maior; Samsung já aprovado no tamanho atual */
+.ctx-destaque{
+  --card-stage-h: 248px;
+  --img-h-apple: 236px;
+  --img-scale-apple: 1.06;
+}
