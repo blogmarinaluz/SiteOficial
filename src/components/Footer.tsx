@@ -99,12 +99,12 @@ export default function Footer() {
         {/* redes sociais */}
         <div>
           <h4 className="mb-3 text-sm font-semibold text-zinc-900">Siga a proStore</h4>
-          <div className="flex items-center gap-2">
-            <Social href="#" label="Instagram"><InstaIcon className="h-5 w-5" /></Social>
-            <Social href="#" label="Facebook"><FbIcon className="h-5 w-5" /></Social>
-            <Social href="#" label="YouTube"><YtIcon className="h-5 w-5" /></Social>
-            <Social href={waHref} label="WhatsApp"><WhatsIcon className="h-5 w-5" /></Social>
-          </div>
+          <ul className="space-y-2 text-sm text-zinc-700">
+            <li><Link href="/quem-somos" className="hover:text-black">Quem somos</Link></li>
+            <li><Link href="/politica-de-privacidade" className="hover:text-black">Política de Privacidade</Link></li>
+            <li><Link href="/termos-de-uso" className="hover:text-black">Termos de Uso</Link></li>
+            <li><Link href="/trocas-e-devolucoes" className="hover:text-black">Trocas e Devoluções</Link></li>
+          </ul>
 
           <div className="mt-6 rounded-lg border border-zinc-200 p-3">
             <p className="text-[11px] text-zinc-600">Site seguro • Certificado SSL ativo</p>
