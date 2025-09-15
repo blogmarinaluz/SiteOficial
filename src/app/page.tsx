@@ -112,21 +112,94 @@ export default function HomePage() {
         <Testimonials />
       </section>
 
-      {/* 3) Condição exclusiva */}
-      <section className="pt-12">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6">
-          <h3 className="text-lg font-semibold text-neutral-900">Condição exclusiva</h3>
-          <p className="mt-1 text-sm text-neutral-700">Boleto aprovado mesmo com score baixo.</p>
-          <div className="mt-4">
-            <Link
-              href="/analise-de-cadastro"
-              className="inline-flex items-center rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-600"
-            >
-              Análise de Boleto
-            </Link>
+      {/* CONDIÇÃO EXCLUSIVA (substitua aqui no page.tsx) */}
+<section aria-labelledby="exclusive-heading" className="mt-10">
+  <div className="mx-auto max-w-7xl rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 p-1 shadow-lg">
+    <div className="rounded-2xl bg-white/5 px-6 py-8 md:flex md:items-center md:gap-8 lg:py-10">
+      <div className="flex-1 text-white">
+        <div className="flex items-center gap-4">
+          <div className="rounded-lg bg-white/10 p-3">
+            <svg viewBox="0 0 24 24" className="h-8 w-8 text-white" aria-hidden="true">
+              <path d="M12 2 4 5v6c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V5l-8-3z" fill="currentColor" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/90">Condição exclusiva</p>
+            <h2 id="exclusive-heading" className="mt-2 text-2xl font-extrabold leading-tight">
+              Boleto aprovado mesmo com score baixo
+            </h2>
+            <p className="mt-1 text-sm text-white/90 max-w-xl">
+              Análise simples e liberação em até <strong>24h</strong>. Sem cartão. Atendimento humano
+              pelo WhatsApp para acompanhamento passo a passo.
+            </p>
           </div>
         </div>
-      </section>
+      </div>
+
+      <div className="mt-6 md:mt-0 md:w-[420px]">
+        <ul className="grid gap-3">
+          <li className="flex items-start gap-3 rounded-xl bg-white/10 px-3 py-2.5">
+            <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-white">Sem cartão</p>
+              <p className="mt-0.5 text-xs text-white/80">Processo feito por análise documental e score alternativo.</p>
+            </div>
+          </li>
+
+          <li className="flex items-start gap-3 rounded-xl bg-white/10 px-3 py-2.5">
+            <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-white">Aprovação rápida</p>
+              <p className="mt-0.5 text-xs text-white/80">Análise em até 24h com equipe pronta para validar documentos.</p>
+            </div>
+          </li>
+
+          <li className="flex items-start gap-3 rounded-xl bg-white/10 px-3 py-2.5">
+            <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true"><path d="M9.3 16.3 4.7 11.7l1.4-1.4 3.2 3.2 7.9-7.9 1.4 1.4z" fill="currentColor" /></svg>
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-white">Estoque imediato</p>
+              <p className="mt-0.5 text-xs text-white/80">Reservamos seu aparelho assim que a análise for aprovada.</p>
+            </div>
+          </li>
+        </ul>
+
+        <div className="mt-5 flex items-center gap-3">
+          <Link
+            href="/analise-de-cadastro"
+            className="inline-flex items-center gap-3 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm hover:shadow-md"
+            aria-label="Solicitar análise de boleto"
+          >
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
+                <path d="M12 2 2 7v5c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V7l-8-5z" fill="currentColor" />
+              </svg>
+            </span>
+            Solicitar pelo boleto
+          </Link>
+
+          <Link
+            href="/analise-de-cadastro"
+            className="text-sm font-medium text-white/90 hover:underline"
+            aria-label="Saiba mais sobre análise de boleto"
+          >
+            Saiba mais
+          </Link>
+        </div>
+
+        <p className="mt-3 text-xs text-white/80">
+          Clique em <strong>Solicitar pelo boleto</strong> para abrir a página de análise — o formulário coleta os
+          dados necessários para liberar o pagamento por boleto.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* 4) BBB — mais caros */}
       <section className="pt-12">
