@@ -199,28 +199,52 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6) Newsletter */}
-      <section className="pt-12">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-          <h3 className="text-lg font-semibold text-neutral-900">Receba ofertas primeiro</h3>
-          <p className="mt-1 text-sm text-neutral-600">
-            Assine nossa newsletter e fique por dentro das promoções.
-          </p>
-          <form className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <input
-              type="email"
-              required
-              placeholder="Seu e-mail"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm outline-none placeholder:text-neutral-400 focus:ring-2 focus:ring-emerald-500/30"
-            />
-            <button className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-              Assinar
-            </button>
-          </form>
-        </div>
-      </section>
+{/* NEWSLETTER — estilo profissional como no print */}
+<section className="mt-10">
+  <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-7 shadow-md">
+    <div className="text-center">
+      <h3 className="text-xl md:text-2xl font-extrabold text-white">
+        Inscreva-se na nossa Newsletter
+      </h3>
+      <p className="mt-1 text-sm text-white/90">
+        Fique por dentro das novidades e promoções exclusivas
+      </p>
+    </div>
 
-      <WhatsChat />
-    </main>
-  );
-}
+    {/* Campos + botão (linha no desktop, pilha no mobile) */}
+    <form className="mx-auto mt-4 flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:gap-3" action="#" noValidate>
+      <label className="sr-only" htmlFor="nl-name">Nome</label>
+      <input
+        id="nl-name"
+        type="text"
+        placeholder="Digite o seu nome"
+        className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+        required
+      />
+
+      <label className="sr-only" htmlFor="nl-email">E-mail</label>
+      <input
+        id="nl-email"
+        type="email"
+        placeholder="Digite o seu e-mail"
+        className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+        required
+      />
+
+      <button
+        type="button"
+        className="w-full sm:w-auto rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"
+      >
+        Cadastrar
+      </button>
+    </form>
+
+    {/* aviso legal enxuto (links podem ser atualizados depois) */}
+    <p className="mx-auto mt-3 max-w-4xl text-[11px] leading-relaxed text-white/90">
+      *Ao clicar em cadastrar você autoriza a coleta, armazenamento e tratamento de dados, de acordo com a
+      <a href="#" className="underline underline-offset-2"> Política de Privacidade</a>,
+      <a href="#" className="underline underline-offset-2"> Termos de Uso</a> e
+      <a href="#" className="underline underline-offset-2"> Política de Cookies</a>.
+    </p>
+  </div>
+</section>
