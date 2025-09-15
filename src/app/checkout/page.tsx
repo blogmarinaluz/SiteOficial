@@ -21,11 +21,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-/** ======= Ajuste este caminho se sua página de análise for diferente ======= */
+/** Ajuste se seu caminho de análise de boleto for outro */
 const BOLETO_ANALISE_PATH = "/analise-boleto";
-/** ======================================================================== */
 
-// ---------------- Frete (mesma lógica do produto) ----------------
+/* ========================= Frete / CEP ========================= */
 type Regiao = "N" | "NE" | "CO" | "SE" | "S";
 const UF_REGION: Record<string, Regiao> = {
   AC: "N", AM: "N", AP: "N", PA: "N", RO: "N", RR: "N", TO: "N",
@@ -48,18 +47,7 @@ const getRegiao = (uf?: string): Regiao => (uf && UF_REGION[uf]) || "SE";
 type Frete = { tipo: "SEDEX" | "ECONOMICO"; valor: number; prazo: string };
 type EnderecoViaCep = { logradouro?: string; bairro?: string; localidade?: string; uf?: string };
 
-function useFreteInicial(): { cep?: string; frete?: Frete } {
-  const [state, setState] = useState<{ cep?: string; frete?: Frete }>({});
-  useEffect(() => {
-    const cep = typeof window !== "undefined" ? window.localStorage.getItem("prostore:cep") || undefined : undefined;
-    const fs = typeof window !== "undefined" ? window.localStorage.getItem("prostore:frete_selected") : null;
-    const frete = fs ? (JSON.parse(fs) as Frete) : undefined;
-    setState({ cep, frete });
-  }, []);
-  return state;
-}
-
-// ---------------- Modal CEP ----------------
+/* ========================= Modal CEP ========================= */
 function CepModal({
   open,
   onClose,
@@ -77,8 +65,8 @@ function CepModal({
 
   useEffect(() => {
     if (!open) return;
-    const savedCep = localStorage.getItem("prostore:cep");
-    if (savedCep) setCep(savedCep);
+    const saved = localStorage.getItem("prostore:cep");
+    if (saved) setCep(saved);
   }, [open]);
 
   async function consultar() {
@@ -105,9 +93,16 @@ function CepModal({
         { tipo: "SEDEX", valor: FRETE_TABELA.SEDEX[reg], prazo: PRAZO_TABELA.SEDEX[reg] },
         { tipo: "ECONOMICO", valor: FRETE_TABELA.ECONOMICO[reg], prazo: PRAZO_TABELA.ECONOMICO[reg] },
       ];
-      setEndereco({ logradouro: data.logradouro, bairro: data.bairro, localidade: data.localidade, uf });
+      const end: EnderecoViaCep = {
+        logradouro: data.logradouro,
+        bairro: data.bairro,
+        localidade: data.localidade,
+        uf,
+      };
+      setEndereco(end);
       setOpcoes(op);
       localStorage.setItem("prostore:cep", raw);
+      localStorage.setItem("prostore:endereco", JSON.stringify(end)); // ✅ salva endereço também
     } catch {
       setErro("Falha ao consultar CEP. Tente novamente.");
     } finally {
@@ -176,7 +171,7 @@ function CepModal({
                   key={o.tipo}
                   onClick={() => {
                     const raw = normalizeCep(cep);
-                    localStorage.setItem("prostore:frete_selected", JSON.stringify(o));
+                    localStorage.setItem("prostore:frete_selected", JSON.stringify(o)); // ✅ persiste frete
                     onSelect({ cep: raw, endereco: endereco || {}, frete: o });
                     onClose();
                   }}
@@ -195,7 +190,7 @@ function CepModal({
   );
 }
 
-// ---------------- Página ----------------
+/* ========================= Página ========================= */
 type Payment = "PIX" | "CARTAO" | "BOLETO";
 
 export default function CheckoutPage() {
@@ -203,24 +198,95 @@ export default function CheckoutPage() {
   const items = (cart?.items as any[]) || [];
 
   const [cepModal, setCepModal] = useState(false);
-  const init = useFreteInicial();
-  const [cep, setCep] = useState<string | undefined>(init.cep);
-  const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
-  const [frete, setFrete] = useState<Frete | undefined>(init.frete);
+
+  // Estado de endereço (controlado)
+  const [cep, setCep] = useState<string | undefined>(undefined);
+  const [logradouro, setLogradouro] = useState("");
+  const [numero, setNumero] = useState("");
+  const [complemento, setComplemento] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [uf, setUf] = useState("");
+
+  const [frete, setFrete] = useState<Frete | undefined>(undefined);
   const [pay, setPay] = useState<Payment>("PIX");
 
+  // Carrega do localStorage ao abrir (CEP, endereço e frete)
+  useEffect(() => {
+    const cepSaved = localStorage.getItem("prostore:cep") || undefined;
+    const endSaved = localStorage.getItem("prostore:endereco");
+    const freteSaved = localStorage.getItem("prostore:frete_selected");
+
+    if (cepSaved) setCep(cepSaved);
+    if (endSaved) {
+      try {
+        const e = JSON.parse(endSaved) as EnderecoViaCep;
+        setLogradouro(e.logradouro || "");
+        setBairro(e.bairro || "");
+        setCidade(e.localidade || "");
+        setUf(e.uf || "");
+      } catch {}
+    }
+    if (freteSaved) {
+      try {
+        setFrete(JSON.parse(freteSaved) as Frete);
+      } catch {}
+    }
+  }, []);
+
+  // Se tem CEP, mas não tem endereço (ex. veio só da página de produto), busca ViaCEP
+  useEffect(() => {
+    async function hydrate() {
+      if (!cep || (logradouro && cidade && uf)) return;
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await res.json();
+        if (!data?.erro) {
+          setLogradouro(data.logradouro || "");
+          setBairro(data.bairro || "");
+          setCidade(data.localidade || "");
+          setUf(data.uf || "");
+          localStorage.setItem(
+            "prostore:endereco",
+            JSON.stringify({
+              logradouro: data.logradouro,
+              bairro: data.bairro,
+              localidade: data.localidade,
+              uf: data.uf,
+            })
+          );
+        }
+      } catch {}
+    }
+    hydrate();
+  }, [cep, logradouro, cidade, uf]);
+
+  // Sincroniza alterações manuais do cliente com o localStorage
+  useEffect(() => {
+    const payload: EnderecoViaCep = {
+      logradouro: logradouro || undefined,
+      bairro: bairro || undefined,
+      localidade: cidade || undefined,
+      uf: uf || undefined,
+    };
+    localStorage.setItem("prostore:endereco", JSON.stringify(payload));
+  }, [logradouro, bairro, cidade, uf]);
+
   const subtotal = useMemo(
-    () =>
-      items.reduce((acc, it) => acc + (it.price || 0) * (it.qty || it.quantity || 1), 0),
+    () => items.reduce((acc, it) => acc + (it.price || 0) * (it.qty || it.quantity || 1), 0),
     [items]
   );
-  const descontoPix = pay === "PIX" ? Math.round(subtotal * 0.30) : 0; // 30% OFF (mesma regra do site)
+  const descontoPix = pay === "PIX" ? Math.round(subtotal * 0.30) : 0; // 30% OFF
   const total = Math.max(0, subtotal - descontoPix) + (frete?.valor || 0);
 
   function onFreteSelect(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) {
     setCep(payload.cep);
-    setEndereco(payload.endereco);
     setFrete(payload.frete);
+    // Hidrata campos com o retorno do ViaCEP
+    setLogradouro(payload.endereco.logradouro || "");
+    setBairro(payload.endereco.bairro || "");
+    setCidade(payload.endereco.localidade || "");
+    setUf(payload.endereco.uf || "");
   }
 
   return (
@@ -237,9 +303,7 @@ export default function CheckoutPage() {
             <section className="rounded-2xl border bg-white">
               <header className="px-4 py-3 border-b font-medium">Seus itens</header>
               <div className="divide-y">
-                {items.length === 0 && (
-                  <div className="p-4 text-sm text-zinc-500">Seu carrinho está vazio.</div>
-                )}
+                {items.length === 0 && <div className="p-4 text-sm text-zinc-500">Seu carrinho está vazio.</div>}
 
                 {items.map((it) => (
                   <div key={it.id} className="p-4 flex items-center gap-3">
@@ -253,35 +317,27 @@ export default function CheckoutPage() {
                     <div className="flex-1">
                       <div className="text-sm font-medium leading-tight">{it.name}</div>
                       <div className="text-xs text-zinc-500">
-                        {it.color ? `Cor: ${it.color} • ` : ""}{it.storage ? `${it.storage} GB` : ""}
+                        {it.color ? `Cor: ${it.color} • ` : ""}
+                        {it.storage ? `${it.storage} GB • ` : ""}
+                        {it.qty ?? it.quantity ?? 1}x
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => cart?.decrement?.(it.id)}
-                        className="h-7 w-7 grid place-items-center rounded-md border hover:bg-zinc-50"
-                        aria-label="Diminuir"
-                      >
+                      <button onClick={() => cart?.decrement?.(it.id)} className="h-7 w-7 grid place-items-center rounded-md border hover:bg-zinc-50" aria-label="Diminuir">
                         <Minus className="h-4 w-4" />
                       </button>
                       <div className="w-6 text-center text-sm">{it.qty ?? it.quantity ?? 1}</div>
-                      <button
-                        onClick={() => cart?.increment?.(it.id)}
-                        className="h-7 w-7 grid place-items-center rounded-md border hover:bg-zinc-50"
-                        aria-label="Aumentar"
-                      >
+                      <button onClick={() => cart?.increment?.(it.id)} className="h-7 w-7 grid place-items-center rounded-md border hover:bg-zinc-50" aria-label="Aumentar">
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
 
-                    <div className="w-28 text-right text-sm font-medium">{br((it.price || 0) * (it.qty ?? it.quantity ?? 1))}</div>
+                    <div className="w-28 text-right text-sm font-medium">
+                      {br((it.price || 0) * (it.qty ?? it.quantity ?? 1))}
+                    </div>
 
-                    <button
-                      onClick={() => cart?.remove?.(it.id)}
-                      className="ml-2 text-zinc-400 hover:text-red-600"
-                      aria-label="Remover"
-                    >
+                    <button onClick={() => cart?.remove?.(it.id)} className="ml-2 text-zinc-400 hover:text-red-600" aria-label="Remover">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -290,10 +346,7 @@ export default function CheckoutPage() {
 
               {items.length > 0 && (
                 <div className="px-4 py-3 border-t flex items-center justify-between">
-                  <button
-                    onClick={() => cart?.clear?.()}
-                    className="text-sm text-zinc-600 hover:text-zinc-800"
-                  >
+                  <button onClick={() => cart?.clear?.()} className="text-sm text-zinc-600 hover:text-zinc-800">
                     Limpar carrinho
                   </button>
                 </div>
@@ -328,16 +381,14 @@ export default function CheckoutPage() {
                     <div className="mt-2 rounded-lg border bg-zinc-50 p-3 flex items-center justify-between">
                       <div className="text-xs md:text-sm text-zinc-700">
                         CEP <b>{cep}</b>
-                        {endereco?.localidade && (
-                          <> — {endereco.localidade}/{endereco.uf}</>
+                        {cidade && (
+                          <> — {cidade}/{uf}</>
                         )}
                         {frete ? (
-                          <>
-                            <div className="mt-1">
-                              {frete.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"} • {frete.prazo} •{" "}
-                              <b className="text-emerald-700">{br(frete.valor)}</b>
-                            </div>
-                          </>
+                          <div className="mt-1">
+                            {frete.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"} • {frete.prazo} •{" "}
+                            <b className="text-emerald-700">{br(frete.valor)}</b>
+                          </div>
                         ) : (
                           <div className="mt-1 text-amber-700">Selecione a opção de frete.</div>
                         )}
@@ -351,12 +402,12 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                <input className="input" placeholder="Endereço" />
-                <input className="input" placeholder="Número" inputMode="numeric" />
-                <input className="input" placeholder="Complemento" />
-                <input className="input" placeholder="Bairro" />
-                <input className="input" placeholder="Cidade" />
-                <input className="input" placeholder="UF" maxLength={2} />
+                <input className="input" placeholder="Endereço" value={logradouro} onChange={(e) => setLogradouro(e.target.value)} />
+                <input className="input" placeholder="Número" inputMode="numeric" value={numero} onChange={(e) => setNumero(e.target.value)} />
+                <input className="input" placeholder="Complemento" value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+                <input className="input" placeholder="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+                <input className="input" placeholder="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
+                <input className="input" placeholder="UF" maxLength={2} value={uf} onChange={(e) => setUf(e.target.value.toUpperCase())} />
               </div>
             </section>
 
@@ -364,25 +415,15 @@ export default function CheckoutPage() {
             <section className="rounded-2xl border bg-white">
               <header className="px-4 py-3 border-b font-medium">Pagamento</header>
 
-              {/* Abas simples */}
               <div className="p-4">
                 <div className="flex gap-2 mb-3">
-                  <button
-                    onClick={() => setPay("PIX")}
-                    className={`tab ${pay === "PIX" ? "tab-active" : ""}`}
-                  >
+                  <button onClick={() => setPay("PIX")} className={`tab ${pay === "PIX" ? "tab-active" : ""}`}>
                     <QrCode className="h-4 w-4 mr-2" /> PIX
                   </button>
-                  <button
-                    onClick={() => setPay("CARTAO")}
-                    className={`tab ${pay === "CARTAO" ? "tab-active" : ""}`}
-                  >
+                  <button onClick={() => setPay("CARTAO")} className={`tab ${pay === "CARTAO" ? "tab-active" : ""}`}>
                     <CreditCard className="h-4 w-4 mr-2" /> Cartão (até 10x)
                   </button>
-                  <button
-                    onClick={() => setPay("BOLETO")}
-                    className={`tab ${pay === "BOLETO" ? "tab-active" : ""}`}
-                  >
+                  <button onClick={() => setPay("BOLETO")} className={`tab ${pay === "BOLETO" ? "tab-active" : ""}`}>
                     <Receipt className="h-4 w-4 mr-2" /> Boleto
                   </button>
                 </div>
@@ -402,10 +443,7 @@ export default function CheckoutPage() {
                 {pay === "BOLETO" && (
                   <div className="note flex items-center justify-between gap-3">
                     <span>Emissão e análise de boleto realizados em ambiente seguro.</span>
-                    <Link
-                      href={BOLETO_ANALISE_PATH}
-                      className="rounded-lg bg-zinc-900 text-white px-3 py-2 text-sm hover:bg-black"
-                    >
+                    <Link href={BOLETO_ANALISE_PATH} className="rounded-lg bg-zinc-900 text-white px-3 py-2 text-sm hover:bg-black">
                       Ir para análise de boleto
                     </Link>
                   </div>
@@ -416,38 +454,23 @@ export default function CheckoutPage() {
             {/* Ações finais */}
             <div className="flex flex-wrap gap-3">
               <Link
-                href={`https://wa.me/55?text=Olá! Quero finalizar meu pedido. Total ${br(total)}.`}
+                href={`https://wa.me/55?text=Olá! Quero finalizar meu pedido. Total ${br(total)}. CEP ${cep || ""} • ${frete ? (frete.tipo === "ECONOMICO" ? "Econômico" : "SEDEX") + " " + br(frete.valor) : "Frete a calcular"}.`}
                 target="_blank"
                 className="btn-primary"
               >
                 Finalizar no WhatsApp
               </Link>
-              <button
-                onClick={() => cart?.clear?.()}
-                className="btn-secondary"
-              >
+              <button onClick={() => cart?.clear?.()} className="btn-secondary">
                 Limpar carrinho
               </button>
             </div>
 
-            {/* Selos de confiança */}
+            {/* Selos */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="trust">
-                <Shield className="h-4 w-4 text-emerald-600" />
-                180 dias de garantia
-              </div>
-              <div className="trust">
-                <FileText className="h-4 w-4 text-emerald-600" />
-                Nota Fiscal
-              </div>
-              <div className="trust">
-                <Truck className="h-4 w-4 text-emerald-600" />
-                Entrega para todo o Brasil
-              </div>
-              <div className="trust">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                Produto novo e original
-              </div>
+              <div className="trust"><Shield className="h-4 w-4 text-emerald-600" /> 180 dias de garantia</div>
+              <div className="trust"><FileText className="h-4 w-4 text-emerald-600" /> Nota Fiscal</div>
+              <div className="trust"><Truck className="h-4 w-4 text-emerald-600" /> Entrega para todo o Brasil</div>
+              <div className="trust"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Produto novo e original</div>
             </div>
           </div>
 
@@ -460,13 +483,15 @@ export default function CheckoutPage() {
                 {items.map((it) => (
                   <div key={it.id} className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-md overflow-hidden border bg-white">
-                      {it.image ? (
-                        <Image src={it.image} alt={it.name} width={40} height={40} className="h-full w-full object-contain" />
-                      ) : null}
+                      {it.image ? <Image src={it.image} alt={it.name} width={40} height={40} className="h-full w-full object-contain" /> : null}
                     </div>
                     <div className="flex-1 text-xs">
                       <div className="font-medium line-clamp-1">{it.name}</div>
-                      <div className="text-zinc-500">{it.color ? `${it.color} • ` : ""}{it.storage ? `${it.storage} GB • ` : ""}{it.qty ?? it.quantity ?? 1}x</div>
+                      <div className="text-zinc-500">
+                        {it.color ? `${it.color} • ` : ""}
+                        {it.storage ? `${it.storage} GB • ` : ""}
+                        {it.qty ?? it.quantity ?? 1}x
+                      </div>
                     </div>
                     <div className="text-sm font-medium">{br((it.price || 0) * (it.qty ?? it.quantity ?? 1))}</div>
                   </div>
@@ -501,7 +526,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* estilos utilitários locais */}
+      {/* utilitários */}
       <style jsx global>{`
         .input { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; }
         .input:focus { box-shadow: 0 0 0 2px rgba(16, 185, 129, .25); border-color: #10b981; }
