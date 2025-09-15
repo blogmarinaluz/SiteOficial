@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import products from "@/data/products.json";
-import specs from "@/data/specs.json";
 import { useCart } from "@/hooks/useCart";
 import { br, withCoupon } from "@/lib/format";
 
@@ -27,11 +26,19 @@ type SpecEntry = {
   caracteristicas: Record<string, string>;
 };
 
+// ======================================================
+// ESPECIFICAÇÕES (sem dependência externa)
+// Se já existir src/data/specs.json, troque por:
+//   import specs from "@/data/specs.json";
+//   const SPECS = specs as Record<string, SpecEntry>;
+const SPECS: Record<string, SpecEntry> = {};
+// ======================================================
+
 // --- utils ---
 function normalize(str: string) {
   return (str || "")
     .toLowerCase()
-    .normalize("NFD") // remove acentos
+    .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, "-");
 }
@@ -189,21 +196,20 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   function handleAdd() {
     if (!selected) return;
-    // adiciona a variante escolhida
+    // ✅ NÃO enviar quantity/qty: o hook controla isso internamente
     add({
-      ...selected,
       id: selected.id,
       name: selected.name,
       image: selected.image,
       price: selected.price,
       color: selected.color,
       storage: selected.storage,
-      quantity: 1,
+      freeShipping: selected.freeShipping,
     });
     alert("Produto adicionado ao carrinho!");
   }
 
-  const spec: SpecEntry | undefined = (specs as any)[base.model_key || ""];
+  const spec: SpecEntry | undefined = base.model_key ? (SPECS as any)[base.model_key] : undefined;
 
   return (
     <div className="container py-6 grid gap-8 md:grid-cols-2">
