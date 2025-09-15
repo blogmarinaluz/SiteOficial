@@ -29,6 +29,33 @@ const IconTruck = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+/* Normaliza qualquer valor de imagem vindo do JSON */
+function resolveImage(src?: string) {
+  if (!src) return "/import_imgs/placeholder.png";
+  let s = src.trim();
+
+  // remove 'public/' caso venha assim
+  s = s.replace(/^public\//, "");
+
+  // urls externas
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+
+  // já começa com '/' -> caminho absoluto dentro de /public
+  if (s.startsWith("/")) return s;
+
+  // já contém 'import_imgs' em qualquer posição
+  if (s.startsWith("import_imgs/")) return "/" + s;
+  const pos = s.indexOf("/import_imgs/");
+  if (pos !== -1) {
+    let cut = s.slice(pos);          // mantém a partir de '/import_imgs/...'
+    if (!cut.startsWith("/")) cut = "/" + cut;
+    return cut;
+  }
+
+  // nome simples de arquivo
+  return `/import_imgs/${s}`;
+}
+
 export default function ProductCard({ product: productProp, p: pProp }: Props) {
   const product = (productProp ?? pProp) as Product | undefined;
   const { add } = useCart();
@@ -44,13 +71,11 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
     b.toLowerCase() === "samsung" ? "Samsung" :
     (b ? b.charAt(0).toUpperCase() + b.slice(1).toLowerCase() : "");
 
-  const imgSrc = product.image
-    ? (product.image.startsWith("/") ? product.image : `/import_imgs/${product.image}`)
-    : "/import_imgs/placeholder.png";
+  const imgSrc = resolveImage(product.image);
 
   return (
     <div className="group relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
-      {/* Badge Frete Grátis — pill mais bonita */}
+      {/* Badge Frete Grátis — pill */}
       {product.freeShipping && (
         <div className="absolute left-3 top-3 z-10">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm ring-1 ring-emerald-700/20">
@@ -95,7 +120,7 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
             </span>
           </div>
 
-          {/* Parcelamento alinhado */}
+        {/* Parcelamento */}
           <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-neutral-700">
             <IconCreditCard className="h-4 w-4 shrink-0 text-neutral-700" />
             <span>
@@ -107,7 +132,7 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
           </div>
         </div>
 
-        {/* Ações (botão verde) */}
+        {/* Ações */}
         <div className="mt-4 flex items-center gap-2">
           <Link
             href={`/produto/${product.id}`}
