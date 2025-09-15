@@ -112,33 +112,36 @@ export default function HomePage() {
         <Testimonials />
       </section>
 
-      {/* CONDIÇÃO EXCLUSIVA - VERSÃO COMPACTA 2 */}
+      {/* CONDIÇÃO EXCLUSIVA - VERSÃO REFINADA (substituir a seção antiga) */}
 <section aria-labelledby="exclusive-heading" className="mt-8">
   <div className="mx-auto max-w-7xl rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 p-[1px] shadow-sm">
     <div className="rounded-lg bg-white/6 px-4 py-5 md:flex md:items-center md:gap-6 lg:py-6">
-      {/* left: icon + text (2/3) */}
-      <div className="flex-1 md:flex md:items-center">
-        <div className="flex items-start gap-3 md:gap-4">
-          <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-md bg-white/12 p-2">
-            <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" aria-hidden="true">
-              <path d="M12 2 4 5v6c0 5 3.8 9.7 8 11 4.2-1.3 8-6 8-11V5l-8-3z" fill="currentColor" />
-            </svg>
-          </div>
-
-          <div>
+      {/* left: texto com largura limitada (evita espaço morto) */}
+      <div className="flex-1">
+        <div className="md:flex md:items-start md:gap-4">
+          <div className="md:flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-white/90">Condição exclusiva</p>
-            <h2 id="exclusive-heading" className="mt-1 text-base font-extrabold leading-snug text-white">
+            <h2 id="exclusive-heading" className="mt-1 text-base font-extrabold leading-snug text-white max-w-xl">
               Boleto aprovado mesmo com score baixo
             </h2>
-            <p className="mt-1 text-sm text-white/90 max-w-xl">
-              Análise ágil e liberação em até <strong>24h</strong>. Sem necessidade de cartão — atendimento humano via WhatsApp.
+            <p className="mt-2 text-sm text-white/90 max-w-md">
+              Análise ágil e liberação em até <strong>24h</strong>. Sem necessidade de cartão — atendimento humano via WhatsApp para acompanhar o processo.
             </p>
+          </div>
+
+          {/* pequena ilustração/sombra para "preencher" o canto direito do bloco texto */}
+          <div className="hidden md:flex md:items-center md:justify-center md:w-40">
+            <svg viewBox="0 0 120 120" className="h-20 w-20 text-white/20" aria-hidden="true" fill="none">
+              <rect x="28" y="12" width="64" height="96" rx="10" stroke="currentColor" strokeOpacity="0.12" strokeWidth="6" />
+              <rect x="38" y="22" width="44" height="68" rx="6" stroke="currentColor" strokeOpacity="0.06" strokeWidth="3" />
+              <circle cx="60" cy="92" r="2" fill="currentColor" fillOpacity="0.12" />
+            </svg>
           </div>
         </div>
       </div>
 
-      {/* right: bullets + CTA (1/3) */}
-      <div className="mt-4 md:mt-0 md:w-1/3">
+      {/* right: bullets + CTA (compacto) */}
+      <div className="mt-4 md:mt-0 md:w-72">
         <ul className="grid gap-2">
           <li className="flex items-center gap-3 rounded-md bg-white/8 px-3 py-2">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white">
