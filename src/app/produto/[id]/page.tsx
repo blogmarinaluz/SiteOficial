@@ -150,14 +150,11 @@ const PRAZO_TABELA = {
   SEDEX: { SE: "2–4 dias úteis", S: "3–5 dias úteis", CO: "3–6 dias úteis", NE: "4–7 dias úteis", N: "5–9 dias úteis" },
   ECONOMICO: { SE: "4–7 dias úteis", S: "5–8 dias úteis", CO: "6–10 dias úteis", NE: "7–12 dias úteis", N: "10–15 dias úteis" },
 };
+const normalizeCep = (v: string) => (v || "").replace(/\D/g, "").slice(0, 8);
+const getRegiao = (uf?: string): Regiao => (uf && UF_REGION[uf]) || "SE";
 
-function getRegiao(uf: string | undefined): Regiao {
-  return (uf && UF_REGION[uf as keyof typeof UF_REGION]) || "SE";
-}
-
-function normalizeCep(v: string) {
-  return (v || "").replace(/\D/g, "").slice(0, 8);
-}
+type Frete = { tipo: "SEDEX" | "ECONOMICO"; valor: number; prazo: string };
+type EnderecoViaCep = { logradouro?: string; bairro?: string; localidade?: string; uf?: string };
 
 /* ---------------------- Modal de CEP ---------------------- */
 function CepModal({
@@ -172,8 +169,8 @@ function CepModal({
   const [cep, setCep] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [endereco, setEndereco] = useState<{ logradouro?: string; bairro?: string; localidade?: string; uf?: string } | null>(null);
-  const [opcoes, setOpcoes] = useState<{ tipo: "SEDEX" | "ECONOMICO"; valor: number; prazo: string }[] | null>(null);
+  const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
+  const [opcoes, setOpcoes] = useState<Frete[] | null>(null);
 
   // carrega do localStorage quando abre
   useEffect(() => {
@@ -202,9 +199,9 @@ function CepModal({
       }
       const uf = data.uf as string | undefined;
       const reg = getRegiao(uf);
-      const tabela = [
-        { tipo: "SEDEX" as const, valor: FRETE_TABELA.SEDEX[reg], prazo: PRAZO_TABELA.SEDEX[reg] },
-        { tipo: "ECONOMICO" as const, valor: FRETE_TABELA.ECONOMICO[reg], prazo: PRAZO_TABELA.ECONOMICO[reg] },
+      const tabela: Frete[] = [
+        { tipo: "SEDEX", valor: FRETE_TABELA.SEDEX[reg], prazo: PRAZO_TABELA.SEDEX[reg] },
+        { tipo: "ECONOMICO", valor: FRETE_TABELA.ECONOMICO[reg], prazo: PRAZO_TABELA.ECONOMICO[reg] },
       ];
       setEndereco({ logradouro: data.logradouro, bairro: data.bairro, localidade: data.localidade, uf });
       setOpcoes(tabela);
@@ -277,6 +274,10 @@ function CepModal({
                 <button
                   key={o.tipo}
                   onClick={() => {
+                    // ✅ salva o frete escolhido para o checkout
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem("prostore:frete_selected", JSON.stringify(o));
+                    }
                     onSelect?.(o);
                     onClose();
                   }}
@@ -295,11 +296,11 @@ function CepModal({
   );
 }
 
-/* ========================= SPEC DB (exemplo – substitua por src/data/specs.json depois) ========================= */
+/* ========================= SPEC DB (exemplo – troque por src/data/specs.json quando quiser) ========================= */
 const SPEC_DB: Record<string, SpecSheet> = {
   "iphone 14": {
     descricao:
-      "O iPhone 14 combina desempenho e eficiência com o chip A15 Bionic (GPU de 5 núcleos). A tela Super Retina XDR de 6,1\" entrega brilho alto e contraste profundo. O sistema de câmeras com estabilização por deslocamento de sensor registra fotos nítidas mesmo em baixa luz, e o modo Cinema grava vídeos em 4K. Tem 5G, Face ID, IP68 e compatibilidade MagSafe.",
+      "O iPhone 14 combina desempenho e eficiência com o chip A15 Bionic (GPU de 5 núcleos). A tela Super Retina XDR de 6,1\" oferece brilho alto e contraste profundo. O sistema de câmeras com estabilização por deslocamento de sensor captura fotos nítidas mesmo em pouca luz; o modo Cinema grava em 4K. Tem 5G, Face ID, IP68 e compatibilidade MagSafe.",
     caracteristicas: [
       { rotulo: "Tela", valor: 'Super Retina XDR OLED 6,1" (2532×1170), HDR' },
       { rotulo: "Processador", valor: "Apple A15 Bionic (GPU 5 núcleos)" },
@@ -317,8 +318,20 @@ const SPEC_DB: Record<string, SpecSheet> = {
 export default function ProductPage({ params }: { params: { id: string } }) {
   const { add } = useCart();
   const toast = useToast();
+
   const [cepOpen, setCepOpen] = useState(false);
-  const [freteSelecionado, setFreteSelecionado] = useState<{ tipo: "SEDEX" | "ECONOMICO"; valor: number; prazo: string } | null>(null);
+  const [freteSelecionado, setFreteSelecionado] = useState<Frete | null>(null);
+
+  // carrega frete salvo (se houver) ao abrir a página
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem("prostore:frete_selected");
+    if (raw) {
+      try {
+        setFreteSelecionado(JSON.parse(raw));
+      } catch {}
+    }
+  }, []);
 
   /* ---------- Produto base ---------- */
   const base = useMemo(() => {
@@ -425,11 +438,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   return (
     <>
       <Toast open={toast.open} msg={toast.msg} onClose={toast.hide} />
-      <CepModal
-        open={cepOpen}
-        onClose={() => setCepOpen(false)}
-        onSelect={(f) => setFreteSelecionado(f)}
-      />
 
       <div className="container grid lg:grid-cols-12 gap-8 py-8">
         {/* Coluna esquerda: Galeria + conteúdo */}
@@ -585,7 +593,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </div>
             )}
 
-            {/* Preço */}
+            {/* Preço + frete escolhido */}
             <div className="mt-5 space-y-1">
               <div className="text-[24px] md:text-[28px] font-semibold tracking-tight text-emerald-700">
                 {br(withCoupon(price))}{" "}
@@ -674,6 +682,19 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
+
+      {/* Modal de CEP (salva frete no localStorage ao selecionar) */}
+      <CepModal
+        open={cepOpen}
+        onClose={() => setCepOpen(false)}
+        onSelect={(f) => {
+          setFreteSelecionado(f);
+          // ✅ redundância: também salvo aqui (além do próprio modal) para garantir persistência
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("prostore:frete_selected", JSON.stringify(f));
+          }
+        }}
+      />
     </>
   );
 }
