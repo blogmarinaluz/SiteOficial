@@ -40,27 +40,27 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* ====== SOMENTE TAMANHO DA IMAGEM ====== */}
+        {/* ====== SOMENTE TAMANHO DA IMAGEM (padronizado para todas as seções) ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-            {/* palco fixo e com overflow-hidden pra podermos aplicar zoom */}
-            <div className="h-[240px] w-full flex items-center justify-center overflow-hidden">
+            {/* palco fixo e com overflow-hidden pra permitir um leve zoom nos Samsung */}
+            <div className="h-[248px] w-full flex items-center justify-center overflow-hidden">
               <img
                 src={product.image}
                 alt={product.name}
                 className={
                   isSamsung
-                    // zoom e altura maior só para Samsung (compensa as “bordas” dos arquivos)
-                    ? "h-[230px] max-w-none w-auto object-contain scale-[1.22]"
-                    // Apple (e demais) ficam no tamanho que você aprovou
-                    : "h-[210px] max-w-none w-auto object-contain"
+                    ? // Samsung: mais zoom para equilibrar o “peso visual” com os iPhones
+                      "h-[236px] w-auto max-w-none object-contain scale-[1.32]"
+                    : // Apple (e outros): altura padrão
+                      "h-[236px] w-auto max-w-none object-contain"
                 }
                 loading="lazy"
               />
             </div>
           </div>
         </div>
-        {/* ======================================== */}
+        {/* ======================================================================= */}
 
         <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
         <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 min-h-[40px]">
@@ -74,7 +74,7 @@ export default function ProductCard({ product }: Props) {
             <span className="font-normal text-zinc-700">no pix ou boleto</span>
           </div>
 
-        <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+          <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
             <svg
               viewBox="0 0 24 24"
               className="h-4 w-4"
