@@ -38,21 +38,29 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* Caixa da imagem — FUNDO BRANCO + borda suave */}
+        {/* Caixa da imagem — fundo branco + borda suave + tamanho PADRÃO */}
         <div className="mb-3">
-          <div className="flex h-40 w-full items-center justify-center rounded-xl bg-white ring-1 ring-zinc-200 p-3">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="h-36 w-auto object-contain transition-transform group-hover:scale-[1.02]"
-              loading="lazy"
-            />
+          <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-3">
+            {/* Mantém proporção idêntica em todos os cards */}
+            <div className="aspect-[4/3] w-full flex items-center justify-center">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="max-h-[150px] w-auto object-contain transition-transform group-hover:scale-[1.02]"
+                loading="lazy"
+              />
+            </div>
           </div>
         </div>
 
+        {/* Título */}
         <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
-        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900">{product.name}</h3>
+        {/* Altura mínima para uniformizar quebra em 1–2 linhas */}
+        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 min-h-[40px]">
+          {product.name}
+        </h3>
 
+        {/* Preços */}
         <div className="mt-2">
           <div className="text-[13px] text-zinc-500 line-through">{br(original)}</div>
           <div className="mt-0.5 text-[15px] font-extrabold text-emerald-700">
@@ -80,6 +88,7 @@ export default function ProductCard({ product }: Props) {
         </div>
       </Link>
 
+      {/* Ações na paleta da marca */}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Link
           href={`/produto/${product.id}`}
