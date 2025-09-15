@@ -38,29 +38,26 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* Caixa da imagem — fundo branco + borda suave + tamanho PADRÃO */}
+        {/* ====== SOMENTE TAMANHO PADRÃO DA IMAGEM ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-3">
-            {/* Mantém proporção idêntica em todos os cards */}
-            <div className="aspect-[4/3] w-full flex items-center justify-center">
+            <div className="h-[180px] w-full flex items-center justify-center">
               <img
                 src={product.image}
                 alt={product.name}
-                className="max-h-[150px] w-auto object-contain transition-transform group-hover:scale-[1.02]"
+                className="h-[160px] w-auto max-w-[150px] object-contain"
                 loading="lazy"
               />
             </div>
           </div>
         </div>
+        {/* ============================================== */}
 
-        {/* Título */}
         <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
-        {/* Altura mínima para uniformizar quebra em 1–2 linhas */}
         <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 min-h-[40px]">
           {product.name}
         </h3>
 
-        {/* Preços */}
         <div className="mt-2">
           <div className="text-[13px] text-zinc-500 line-through">{br(original)}</div>
           <div className="mt-0.5 text-[15px] font-extrabold text-emerald-700">
@@ -88,7 +85,6 @@ export default function ProductCard({ product }: Props) {
         </div>
       </Link>
 
-      {/* Ações na paleta da marca */}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Link
           href={`/produto/${product.id}`}
