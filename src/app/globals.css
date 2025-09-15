@@ -1,60 +1,58 @@
-@tailwind base; @tailwind components; @tailwind utilities;
-:root{--radius:1rem}
-body{@apply bg-white text-zinc-900}
-.container{@apply max-w-7xl mx-auto px-4}
-.btn{@apply inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium shadow-sm}
-.btn-primary{@apply btn bg-accent text-white hover:opacity-90}
-.btn-outline{@apply btn border border-zinc-300 hover:bg-zinc-50}
-.card{@apply rounded-2xl border border-zinc-200 p-4 shadow-sm bg-white}
-.badge{@apply text-xs px-2 py-1 rounded-full bg-zinc-100}
-.header{@apply sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-zinc-200 shadow-sm}
-.menu-link{@apply hover:text-accent}
-.pill{@apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs}
-.whatsapp-fab{position:fixed;right:16px;bottom:16px;z-index:60;border-radius:9999px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Base que você já tinha ===== */
+:root{ --radius:1rem; }
+
+body{ @apply bg-white text-zinc-900; }
+.container{ @apply max-w-7xl mx-auto px-4; }
+
+.btn{ @apply inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium shadow-sm; }
+.btn-primary{ @apply btn bg-accent text-white hover:opacity-90; }
+.btn-outline{ @apply btn border border-zinc-300 hover:bg-zinc-50; }
+
+.card{ @apply rounded-2xl border border-zinc-200 p-4 shadow-sm bg-white; }
+.badge{ @apply text-xs px-2 py-1 rounded-full bg-zinc-100; }
+
+.header{ @apply sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-zinc-200 shadow-sm; }
+.menu-link{ @apply hover:text-accent; }
+.pill{ @apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs; }
+
+.whatsapp-fab{
+  position:fixed; right:16px; bottom:16px; z-index:60;
+  border-radius:9999px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.2);
+}
+
 ul.bullets li{ @apply pl-5 relative; }
 ul.bullets li:before{ content:'•'; position:absolute; left:0; }
-      {/* 6) Newsletter */}
-      <section className="mt-10">
-        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-7 shadow-md">
-          <div className="text-center">
-            <h3 className="text-xl md:text-2xl font-extrabold text-white">
-              Inscreva-se na nossa Newsletter
-            </h3>
-            <p className="mt-1 text-sm text-white/90">
-              Fique por dentro das novidades e promoções exclusivas
-            </p>
-          </div>
 
-          <form className="mx-auto mt-4 flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:gap-3" action="#" noValidate>
-            <label className="sr-only" htmlFor="nl-name">Nome</label>
-            <input
-              id="nl-name"
-              type="text"
-              placeholder="Digite o seu nome"
-              className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
-              required
-            />
-            <label className="sr-only" htmlFor="nl-email">E-mail</label>
-            <input
-              id="nl-email"
-              type="email"
-              placeholder="Digite o seu e-mail"
-              className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
-              required
-            />
-            <button
-              type="button"
-              className="w-full sm:w-auto rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600"
-            >
-              Cadastrar
-            </button>
-          </form>
+/* ===== Paleta da marca (verde + preto) =====
+   Troque os HEX do verde se quiser outro tom exato.  */
+:root{
+  --brand:      #0EB57D;  /* verde principal */
+  --brand-700:  #0A8F63;  /* verde escuro (hover/CTA) */
 
-          <p className="mx-auto mt-3 max-w-4xl text-[11px] leading-relaxed text-white/90">
-            *Ao clicar em cadastrar você autoriza a coleta, armazenamento e tratamento de dados, de acordo com a
-            <a href="#" className="underline underline-offset-2"> Política de Privacidade</a>,
-            <a href="#" className="underline underline-offset-2"> Termos de Uso</a> e
-            <a href="#" className="underline underline-offset-2"> Política de Cookies</a>.
-          </p>
-        </div>
-      </section>
+  /* Newsletter em laranja (se quiser manter):
+     troque por verde também, se preferir tudo no verde. */
+  --accent:     #FF8C00;
+  --accent-700: #E07800;
+}
+
+/* ===== Helpers (não interferem no resto) ===== */
+.bg-brand-gradient{
+  background-image: linear-gradient(90deg, var(--brand) 0%, var(--brand-700) 100%);
+}
+.bg-accent-gradient{
+  background-image: linear-gradient(90deg, var(--accent) 0%, var(--accent-700) 100%);
+}
+
+.btn-brand{ @apply btn; background-color: var(--brand-700); color:#fff; }
+.btn-brand:hover{ filter: brightness(0.98); }
+
+.chip-glass{
+  background: rgba(255,255,255,.10);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
