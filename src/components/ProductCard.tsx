@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
 import { br, withCoupon } from "@/lib/format";
+import { useState } from "react";
 
 export type Product = {
   id: string;
@@ -43,22 +44,23 @@ function resolveImage(src?: string) {
   // já começa com '/' -> caminho absoluto dentro de /public
   if (s.startsWith("/")) return s;
 
-  // já contém 'import_imgs' em qualquer posição
+  // já contém 'import_imgs'
   if (s.startsWith("import_imgs/")) return "/" + s;
   const pos = s.indexOf("/import_imgs/");
   if (pos !== -1) {
-    let cut = s.slice(pos);          // mantém a partir de '/import_imgs/...'
+    let cut = s.slice(pos);
     if (!cut.startsWith("/")) cut = "/" + cut;
     return cut;
   }
 
-  // nome simples de arquivo
+  // nome simples de arquivo -> assume /import_imgs
   return `/import_imgs/${s}`;
 }
 
 export default function ProductCard({ product: productProp, p: pProp }: Props) {
   const product = (productProp ?? pProp) as Product | undefined;
   const { add } = useCart();
+  const [imgError, setImgError] = useState(false);
   if (!product) return null;
 
   const cash = withCoupon(product.price);
@@ -71,7 +73,9 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
     b.toLowerCase() === "samsung" ? "Samsung" :
     (b ? b.charAt(0).toUpperCase() + b.slice(1).toLowerCase() : "");
 
-  const imgSrc = resolveImage(product.image);
+  // Caminho da imagem + fallback
+  const rawSrc = resolveImage(product.image);
+  const src = imgError ? "/import_imgs/placeholder.png" : rawSrc;
 
   return (
     <div className="group relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
@@ -92,9 +96,11 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
       >
         <div className="relative h-44 w-full">
           <Image
-            src={imgSrc}
+            src={src}
             alt={product.name}
             fill
+            unoptimized   // <<< importante para .jfif funcionar
+            onError={() => setImgError(true)}
             className="object-contain p-3"
             sizes="(min-width:1024px) 260px, (min-width:768px) 33vw, 50vw"
           />
@@ -120,7 +126,7 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
             </span>
           </div>
 
-        {/* Parcelamento */}
+          {/* Parcelamento */}
           <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-neutral-700">
             <IconCreditCard className="h-4 w-4 shrink-0 text-neutral-700" />
             <span>
