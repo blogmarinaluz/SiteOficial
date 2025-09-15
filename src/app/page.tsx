@@ -9,23 +9,30 @@ export const revalidate = 60;
 
 type P = any;
 
-// --- helpers de seleção ---
-function byBrand(arr: P[], brand: string) {
-  const b = brand.toLowerCase();
-  return (arr || []).filter((p) => String(p?.brand || "").toLowerCase() === b);
-}
+// ---------- helpers ----------
+const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
+const isBrand = (p: P, target: "apple" | "samsung") => {
+  const b = norm(p?.brand);
+  const n = norm(`${p?.brand} ${p?.name}`); // também olha o nome
+  return b === target || n.includes(target);
+};
+const priceNum = (x: any) => {
+  const n = typeof x === "number" ? x : Number(String(x).replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
 function sortByPriceDesc(arr: P[]) {
-  return [...(arr || [])].sort((a, b) => (b?.price || 0) - (a?.price || 0));
+  return [...(arr || [])].sort((a, b) => priceNum(b?.price) - priceNum(a?.price));
 }
 function pickTop(arr: P[], n: number) {
   return (arr || []).slice(0, n);
 }
-function excludeById(arr: P[], usedIds: Set<string>) {
-  return (arr || []).filter((p) => !usedIds.has(String(p?.id)));
+function excludeById(arr: P[], used: Set<string>) {
+  return (arr || []).filter((p) => !used.has(String(p?.id)));
 }
 
+// ---------- página ----------
 export default function HomePage() {
-  // 1) Normaliza produtos + aplica frete grátis via flags.json (chave = nome do arquivo da imagem)
+  // 1) Normaliza produtos + aplica freeShipping via flags.json (chave = nome do arquivo da imagem)
   const flags = flagsData as Record<string, { freeShipping?: boolean }>;
   const all: P[] = (productsData as any[]).map((p: any) => {
     const file = String(p?.image || "").split("/").pop() || "";
@@ -33,22 +40,36 @@ export default function HomePage() {
     return { ...p, freeShipping };
   });
 
-  // 2) Em Oferta: só Samsung (8 itens)
-  const emOferta = pickTop(byBrand(all, "samsung"), 8);
+  // 2) Em Oferta: só Samsung (robusto) — 8 itens
+  let emOferta = (all || []).filter((p) => isBrand(p, "samsung"));
+  if (emOferta.length < 8) {
+    // fallback: completa com qualquer produto que contenha "samsung" no nome
+    const extra = (all || []).filter(
+      (p) => norm(`${p?.brand} ${p?.name}`).includes("samsung")
+    );
+    const ids = new Set(emOferta.map((p) => String(p.id)));
+    emOferta = [...emOferta, ...extra.filter((p) => !ids.has(String(p.id)))];
+  }
+  emOferta = pickTop(emOferta, 8);
+  if (emOferta.length === 0) {
+    // fallback final: mostra os primeiros 8 produtos para não ficar vazio
+    emOferta = pickTop(all, 8);
+  }
 
   // 3) BBB: mais caros (8), sem repetir os de Em Oferta
   const used1 = new Set<string>(emOferta.map((p) => String(p.id)));
   const bbb = pickTop(sortByPriceDesc(excludeById(all, used1)), 8);
 
-  // 4) Destaque: 2 Apple + 2 Samsung, sem repetir os anteriores
+  // 4) Destaque: 2 Apple + 2 Samsung, sem repetir anteriores
   const used2 = new Set<string>([...used1, ...bbb.map((p) => String(p.id))]);
   const restantes = excludeById(all, used2);
 
-  const doisApple = pickTop(sortByPriceDesc(byBrand(restantes, "apple")), 2);
-  const doisSamsung = pickTop(sortByPriceDesc(byBrand(restantes, "samsung")), 2);
-  let destaque = [...doisApple, ...doisSamsung];
+  let doisApple = restantes.filter((p) => isBrand(p, "apple"));
+  let doisSamsung = restantes.filter((p) => isBrand(p, "samsung"));
+  doisApple = pickTop(sortByPriceDesc(doisApple), 2);
+  doisSamsung = pickTop(sortByPriceDesc(doisSamsung), 2);
 
-  // fallback se faltar item de alguma marca
+  let destaque = [...doisApple, ...doisSamsung];
   if (destaque.length < 4) {
     const falta = 4 - destaque.length;
     const resto = excludeById(sortByPriceDesc(restantes), new Set(destaque.map((p) => String(p.id))));
@@ -98,7 +119,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4) OFERTAS DO DIA | BBB (grade 4x2) — mais caros */}
+      {/* 4) OFERTAS DO DIA | BBB — mais caros */}
       <section className="pt-12">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[22px] font-semibold text-neutral-900 tracking-tight">
@@ -110,7 +131,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5) OFERTAS EM DESTAQUE (4 itens) — 2 Apple + 2 Samsung */}
+      {/* 5) OFERTAS EM DESTAQUE — 2 Apple + 2 Samsung */}
       <section className="pt-12">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[22px] font-semibold text-neutral-900 tracking-tight">
@@ -145,7 +166,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* WhatsApp flutuante */}
       <WhatsChat />
     </main>
   );
