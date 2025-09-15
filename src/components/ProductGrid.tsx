@@ -1,28 +1,28 @@
-import ProductCard from "./ProductCard";
+import ProductCard, { Product } from "./ProductCard";
 
-export type Product = {
-  id: string;
-  brand: string;
-  name: string;
-  image?: string;
-  price: number;
-  freeShipping?: boolean;
-  [k: string]: any;
+type Props = {
+  products?: Product[];
+  items?: Product[];            // compat com código antigo
+  emptyMessage?: string;        // <— faltava tipar isso
+  className?: string;
 };
 
-type Props = { products?: Product[]; items?: Product[] };
+export default function ProductGrid({
+  products,
+  items,
+  emptyMessage = "Nenhum produto encontrado.",
+  className = "",
+}: Props) {
+  const list: Product[] = (products ?? items ?? []) as Product[];
 
-export default function ProductGrid({ products, items }: Props) {
-  const list = (products ?? items ?? []) as Product[];
-  if (!list.length) return null;
-
-  // Compat: qualquer assinatura de ProductCard
-  const Card: any = ProductCard;
+  if (!list || list.length === 0) {
+    return <p className="mt-6 text-zinc-600">{emptyMessage}</p>;
+  }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
+    <div className={`grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${className}`}>
       {list.map((p) => (
-        <Card key={p.id} product={p} p={p} />
+        <ProductCard key={String(p.id)} product={p} />
       ))}
     </div>
   );
