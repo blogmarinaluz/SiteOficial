@@ -27,7 +27,7 @@ export default function ProductCard({ product }: Props) {
 
   // preços
   const original = Number(product?.price) || 0;
-  const promo = withCoupon(original); // 30% OFF (sua função)
+  const promo = withCoupon(original); // 30% OFF
   const parcela = promo / 10;
 
   return (
@@ -40,14 +40,16 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* Imagem */}
-        <div className="mb-3 flex h-40 w-full items-center justify-center rounded-xl bg-white">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="h-36 w-auto object-contain transition-transform group-hover:scale-[1.02]"
-            loading="lazy"
-          />
+        {/* === Caixa da imagem (volta da "caixinha" suave) === */}
+        <div className="mb-3">
+          <div className="flex h-40 w-full items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200 p-3">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="h-36 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+              loading="lazy"
+            />
+          </div>
         </div>
 
         {/* Título */}
@@ -85,7 +87,7 @@ export default function ProductCard({ product }: Props) {
         </div>
       </Link>
 
-      {/* Ações – sem classes globais, 100% na sua paleta */}
+      {/* Ações – paleta da marca */}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Link
           href={`/produto/${product.id}`}
