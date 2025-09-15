@@ -181,7 +181,7 @@ export default function HomePage() {
       </section>
 
       {/* 4) BBB — mais caros */}
-      <section className="pt-12">
+      <section className="pt-12 ctx-bbb">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[22px] font-semibold text-neutral-900 tracking-tight">
             Ofertas do dia | BBB = Bom, Bonito e Barato
@@ -193,7 +193,7 @@ export default function HomePage() {
       </section>
 
       {/* 5) Destaque — 2 Apple + 2 Samsung */}
-      <section className="pt-12">
+      <section className="pt-12 ctx-destaque">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[22px] font-semibold text-neutral-900 tracking-tight">
             Ofertas em Destaque
