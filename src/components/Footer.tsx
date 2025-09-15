@@ -1,5 +1,6 @@
 // src/components/Footer.tsx
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -8,26 +9,32 @@ export default function Footer() {
 
   return (
     <footer className="mt-16 border-t border-zinc-200 bg-white">
-      {/* faixa de features - discreta e na paleta */}
+      {/* faixa de features */}
       <div className="bg-brand-gradient text-white">
-        <div className="container py-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="container grid grid-cols-1 gap-3 py-3 sm:grid-cols-3">
           <div className="flex items-center gap-2 text-sm">
             <Check />
-            <span>Até <strong>10x sem juros</strong> no cartão</span>
+            <span>
+              Até <strong>10x sem juros</strong> no cartão
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Check />
-            <span><strong>Frete Grátis</strong> em aparelhos selecionados</span>
+            <span>
+              <strong>Frete Grátis</strong> em aparelhos selecionados
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Check />
-            <span>Atendimento humano via <strong>WhatsApp</strong></span>
+            <span>
+              Atendimento humano via <strong>WhatsApp</strong>
+            </span>
           </div>
         </div>
       </div>
 
       {/* conteúdo principal */}
-      <div className="container py-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="container grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-4">
         {/* marca + pagamento */}
         <div>
           <div className="text-2xl font-extrabold leading-none">
@@ -39,7 +46,7 @@ export default function Footer() {
           </p>
 
           <div className="mt-5">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Formas de pagamento
             </p>
             <div className="mt-2 flex items-center gap-2 text-[12px] text-zinc-700">
@@ -58,10 +65,26 @@ export default function Footer() {
         <div>
           <h4 className="mb-3 text-sm font-semibold text-zinc-900">Institucional</h4>
           <ul className="space-y-2 text-sm text-zinc-700">
-            <li><Link href="#" className="hover:text-black">Quem somos</Link></li>
-            <li><Link href="#" className="hover:text-black">Política de Privacidade</Link></li>
-            <li><Link href="#" className="hover:text-black">Termos de Uso</Link></li>
-            <li><Link href="#" className="hover:text-black">Trocas e Devoluções</Link></li>
+            <li>
+              <Link href="#" className="hover:text-black">
+                Quem somos
+              </Link>
+            </li>
+            <li>
+              <Link href="#" className="hover:text-black">
+                Política de Privacidade
+              </Link>
+            </li>
+            <li>
+              <Link href="#" className="hover:text-black">
+                Termos de Uso
+              </Link>
+            </li>
+            <li>
+              <Link href="#" className="hover:text-black">
+                Trocas e Devoluções
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -89,35 +112,39 @@ export default function Footer() {
         <div>
           <h4 className="mb-3 text-sm font-semibold text-zinc-900">Siga a proStore</h4>
           <div className="flex items-center gap-2">
-            <Social href="#" label="Instagram"><InstaIcon className="h-5 w-5" /></Social>
-            <Social href="#" label="Facebook"><FbIcon className="h-5 w-5" /></Social>
-            <Social href="#" label="YouTube"><YtIcon className="h-5 w-5" /></Social>
-            <Social href={waHref} label="WhatsApp"><WhatsIcon className="h-5 w-5" /></Social>
+            <Social href="#" label="Instagram">
+              <InstaIcon className="h-5 w-5" />
+            </Social>
+            <Social href="#" label="Facebook">
+              <FbIcon className="h-5 w-5" />
+            </Social>
+            <Social href="#" label="YouTube">
+              <YtIcon className="h-5 w-5" />
+            </Social>
+            <Social href={waHref} label="WhatsApp">
+              <WhatsIcon className="h-5 w-5" />
+            </Social>
           </div>
 
           <div className="mt-6 rounded-lg border border-zinc-200 p-3">
-            <p className="text-[11px] text-zinc-600">
-              Site seguro • Certificado SSL ativo
-            </p>
+            <p className="text-[11px] text-zinc-600">Site seguro • Certificado SSL ativo</p>
           </div>
         </div>
       </div>
 
       {/* barra final */}
       <div className="border-t border-zinc-200">
-        <div className="container py-4 text-xs text-zinc-600 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="container flex flex-col gap-2 py-4 text-xs text-zinc-600 md:flex-row md:items-center md:justify-between">
           <p>© {year} proStore — Todos os direitos reservados.</p>
-          <p className="text-zinc-500">
-            CNPJ 00.000.000/0000-00 • Vendas para todo o Brasil
-          </p>
+          <p className="text-zinc-500">CNPJ 00.000.000/0000-00 • Vendas para todo o Brasil</p>
         </div>
       </div>
     </footer>
   );
 }
 
-/* ====== helpers (SVGs & mini components) ====== */
-function Badge({ children }: { children: React.ReactNode }) {
+/* ===== helpers (SVGs & mini components) ===== */
+function Badge({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2 py-0.5">
       {children}
@@ -132,7 +159,7 @@ function Social({
 }: {
   href: string;
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <a
@@ -169,6 +196,14 @@ function WhatsIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
       <path d="M12 2a10 10 0 0 0-8.7 15l-1 3.7 3.8-1A10 10 0 1 0 12 2zm0 2a8 8 0 0 1 6.8 12.3l.3.9-1 .3A8 8 0 1 1 12 4zm-3 3h.8c.2 0 .4.1.5.3l.7 1.6c.1.2 0 .5-.2.7l-.6.6a6.6 6.6 0 0 0 3.3 3.3l.6-.6c.2-.2.5-.3.7-.2l1.6.7c.2.1.3.3.3.5V15c0 .6-.5 1-1.1 1a9.2 9.2 0 0 1-4-1.4 9.1 9.1 0 0 1-3-3 9.2 9.2 0 0 1-1.4-4c0-.6.4-1.1 1-1.1z" />
+    </svg>
+  );
+}
+
+function MailIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm0 2v.3l8 5 8-5V8H4zm16 8V10l-8 5-8-5v6h16z" />
     </svg>
   );
 }
