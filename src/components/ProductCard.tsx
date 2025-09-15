@@ -42,11 +42,11 @@ export default function ProductCard({ product }: Props) {
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
             {/* palco fixo para TODAS as imagens */}
-            <div className="h-[200px] w-full flex items-center justify-center">
+            <div className="h-[220px] w-full flex items-center justify-center">
               <img
                 src={product.image}
                 alt={product.name}
-                className="max-h-[180px] max-w-[180px] w-auto h-auto object-contain"
+                className="h-[200px] w-auto max-w-[200px] object-contain"
                 loading="lazy"
               />
             </div>
@@ -66,7 +66,7 @@ export default function ProductCard({ product }: Props) {
             <span className="font-normal text-zinc-700">no pix ou boleto</span>
           </div>
 
-        <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+          <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
             <svg
               viewBox="0 0 24 24"
               className="h-4 w-4"
