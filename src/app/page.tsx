@@ -3,13 +3,12 @@ import ProductGrid from "@/components/ProductGrid";
 import Testimonials from "@/components/Testimonials";
 import WhatsChat from "@/components/WhatsChat";
 import productsData from "@/data/products.json";
-import flagsData from "@/data/flags.json";
 
 export const revalidate = 60;
 
 type P = any;
 
-// ---------- helpers ----------
+// ---------- utils ----------
 const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
 const isBrand = (p: P, target: "apple" | "samsung") => {
   const b = norm(p?.brand);
@@ -26,7 +25,6 @@ const pickTop = (arr: P[], n: number) => (arr || []).slice(0, n);
 const excludeById = (arr: P[], used: Set<string>) =>
   (arr || []).filter((p) => !used.has(String(p?.id)));
 
-// RNG determinístico pra escolher 20 ids sempre iguais em build
 function mulberry32(a: number) {
   return function () {
     let t = (a += 0x6d2b79f5);
@@ -35,10 +33,9 @@ function mulberry32(a: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function pickRandomIdsStable(arr: P[], n: number, seed = 1337) {
+function pickRandomIdsStable(arr: P[], n: number, seed = 202409) {
   const rng = mulberry32(seed);
-  const idx = arr.map((_, i) => i);
-  // Fisher-Yates com RNG estável
+  const idx = arr.map((_: any, i: number) => i);
   for (let i = idx.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [idx[i], idx[j]] = [idx[j], idx[i]];
@@ -47,56 +44,52 @@ function pickRandomIdsStable(arr: P[], n: number, seed = 1337) {
   return new Set(take.map((i) => String(arr[i]?.id)));
 }
 
+function interleave<A>(a: A[], b: A[], nEach: number) {
+  const out: A[] = [];
+  for (let i = 0; i < nEach; i++) {
+    if (a[i]) out.push(a[i]);
+    if (b[i]) out.push(b[i]);
+  }
+  return out;
+}
+
+// ---------- page ----------
 export default function HomePage() {
-  // 1) Normaliza produtos + aplica freeShipping
-  const flags = flagsData as Record<string, { freeShipping?: boolean }>;
+  // Base de produtos
   const raw: P[] = (productsData as any[]);
 
-  // escolha estável de 20 ids com frete grátis
-  const freeRandomIds = pickRandomIdsStable(raw, 20, 202409);
+  // === Frete Grátis: exatamente 20 aparelhos aleatórios no site inteiro ===
+  const FREE_COUNT = 20;
+  const freeIds = pickRandomIdsStable(raw, FREE_COUNT, 202409);
+  const all: P[] = raw.map((p) => ({ ...p, freeShipping: freeIds.has(String(p?.id)) }));
 
-  const all: P[] = raw.map((p: any) => {
-    const file = String(p?.image || "").split("/").pop() || "";
-    const byFlags = !!flags[file]?.freeShipping;
-    const byRandom = freeRandomIds.has(String(p?.id));
-    return { ...p, freeShipping: byFlags || byRandom };
-  });
-
-  // 2) Em Oferta: só Samsung (8 itens)
-  let emOferta = (all || []).filter((p) => isBrand(p, "samsung"));
+  // 1) CELULARES EM OFERTA: 4 Samsung + 4 Apple (intercalados)
+  const samsungs = pickTop(all.filter((p) => isBrand(p, "samsung")), 4);
+  const apples   = pickTop(all.filter((p) => isBrand(p, "apple")), 4);
+  let emOferta   = interleave(samsungs, apples, 4);
+  // fallback se faltar itens de alguma marca
   if (emOferta.length < 8) {
-    const ids = new Set(emOferta.map((p) => String(p.id)));
-    const extra = (all || []).filter(
-      (p) => norm(`${p?.brand} ${p?.name}`).includes("samsung") && !ids.has(String(p.id))
-    );
-    emOferta = [...emOferta, ...extra];
+    const falta = 8 - emOferta.length;
+    const usados = new Set<string>(emOferta.map((p) => String(p.id)));
+    const resto = excludeById(all, usados);
+    emOferta = [...emOferta, ...pickTop(resto, falta)];
   }
-  emOferta = pickTop(emOferta, 8);
-  if (emOferta.length === 0) emOferta = pickTop(all, 8);
 
-  // 3) BBB: mais caros (8), sem repetir os de Em Oferta
+  // 2) BBB: mais caros (8), sem repetir os de Em Oferta
   const used1 = new Set<string>(emOferta.map((p) => String(p.id)));
   const bbb = pickTop(sortByPriceDesc(excludeById(all, used1)), 8);
 
-  // 4) Destaque: 2 Apple + 2 Samsung, sem repetir anteriores
+  // 3) Destaque: 2 Apple + 2 Samsung, sem repetir os anteriores
   const used2 = new Set<string>([...used1, ...bbb.map((p) => String(p.id))]);
   const restantes = excludeById(all, used2);
-
-  let doisApple = restantes.filter((p) => isBrand(p, "apple"));
-  let doisSamsung = restantes.filter((p) => isBrand(p, "samsung"));
-  doisApple = pickTop(sortByPriceDesc(doisApple), 2);
-  doisSamsung = pickTop(sortByPriceDesc(doisSamsung), 2);
-
-  let destaque = [...doisApple, ...doisSamsung];
-  if (destaque.length < 4) {
-    const falta = 4 - destaque.length;
-    const resto = excludeById(sortByPriceDesc(restantes), new Set(destaque.map((p) => String(p.id))));
-    destaque = [...destaque, ...pickTop(resto, falta)];
-  }
+  const destaque = [
+    ...pickTop(sortByPriceDesc(restantes.filter((p) => isBrand(p, "apple"))), 2),
+    ...pickTop(sortByPriceDesc(restantes.filter((p) => isBrand(p, "samsung"))), 2),
+  ];
 
   return (
     <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
-      {/* 1) CELULARES EM OFERTA — só Samsung */}
+      {/* 1) CELULARES EM OFERTA — 4 Samsung + 4 Apple */}
       <section className="pt-6">
         <h2 className="text-[22px] font-semibold text-neutral-900 tracking-tight">
           Celulares em Oferta
