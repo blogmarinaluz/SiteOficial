@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import products from "@/data/products.json";
 import { useCart } from "@/hooks/useCart";
 import { br, withCoupon } from "@/lib/format";
+import { CheckCircle, Truck, Shield, FileText, Award } from "lucide-react";
 
 type Product = {
   id: string;
@@ -20,183 +21,44 @@ type Product = {
   freeShipping?: boolean;
 };
 
-type SpecEntry = {
-  name: string;
-  descricao: string;
-  caracteristicas: Record<string, string>;
-};
-
-// ======================================================
-// ESPECIFICAÇÕES (sem dependência externa)
-// Se já existir src/data/specs.json, troque por:
-//   import specs from "@/data/specs.json";
-//   const SPECS = specs as Record<string, SpecEntry>;
-const SPECS: Record<string, SpecEntry> = {};
-// ======================================================
-
-// --- utils ---
-function normalize(str: string) {
-  return (str || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, "-");
-}
-
-function candidatesFromParam(raw: string) {
-  const dec = decodeURIComponent(raw);
-  const noExt = dec.replace(/\.[a-z0-9]+$/i, "");
-  return Array.from(
-    new Set([dec, noExt, dec.replace(/-/g, "_"), dec.replace(/_/g, "-")])
-  );
-}
-
-// mapeamento simples UF -> região (para preço de frete)
-const UF_REGION: Record<string, "N" | "NE" | "CO" | "SE" | "S"> = {
-  AC: "N", AM: "N", AP: "N", PA: "N", RO: "N", RR: "N", TO: "N",
-  AL: "NE", BA: "NE", CE: "NE", MA: "NE", PB: "NE", PE: "NE", PI: "NE", RN: "NE", SE: "NE",
-  DF: "CO", GO: "CO", MT: "CO", MS: "CO",
-  ES: "SE", MG: "SE", RJ: "SE", SP: "SE",
-  PR: "S", RS: "S", SC: "S",
-};
-
-const FRETE_TABELA = {
-  SEDEX: { SE: 24.9, S: 29.9, CO: 34.9, NE: 39.9, N: 49.9 },
-  ECONOMICO: { SE: 14.9, S: 19.9, CO: 24.9, NE: 29.9, N: 39.9 },
-};
-const PRAZO_TABELA = {
-  SEDEX: { SE: "2–4 dias úteis", S: "3–5 dias úteis", CO: "3–6 dias úteis", NE: "4–7 dias úteis", N: "5–9 dias úteis" },
-  ECONOMICO: { SE: "4–7 dias úteis", S: "5–8 dias úteis", CO: "6–10 dias úteis", NE: "7–12 dias úteis", N: "10–15 dias úteis" },
-};
-
 export default function ProductPage({ params }: { params: { id: string } }) {
   const { add } = useCart();
 
-  // encontra produto base a partir do slug/ID que chegou pela rota
-  const base = useMemo<Product | undefined>(() => {
+  // busca produto base
+  const base = useMemo(() => {
     const list = products as Product[];
-    const cands = candidatesFromParam(params.id);
-
-    // 1) tenta por id direto (várias variações)
-    for (const cand of cands) {
-      const hit = list.find((i) => i.id === cand);
-      if (hit) return hit;
-    }
-    // 2) tenta sem extensão e por slug do nome
-    const bySlug = list.find((i) => {
-      const idNoExt = i.id.replace(/\.[a-z0-9]+$/i, "");
-      return (
-        cands.includes(idNoExt) ||
-        cands.includes(normalize(i.name)) ||
-        cands.includes(normalize(idNoExt))
-      );
-    });
-    return bySlug;
+    return list.find((p) => p.id.replace(/\.[a-z0-9]+$/i, "") === params.id) || list.find((p) => p.id === params.id);
   }, [params.id]);
 
-  // variantes por model_key (cores/armazenamento)
+  // variantes por model_key
   const variantes = useMemo<Product[]>(() => {
     if (!base?.model_key) return base ? [base] : [];
     return (products as Product[]).filter((p) => p.model_key === base.model_key);
   }, [base]);
 
-  const cores = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          variantes
-            .map((v) => (v.color || "").trim())
-            .filter(Boolean)
-        )
-      ),
-    [variantes]
-  );
+  const cores = useMemo(() => Array.from(new Set(variantes.map((v) => v.color).filter(Boolean))), [variantes]);
+  const storages = useMemo(() => Array.from(new Set(variantes.map((v) => String(v.storage || "")))).sort((a, b) => Number(a) - Number(b)), [variantes]);
 
-  const storages = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          variantes
-            .map((v) => String(v.storage || "").trim())
-            .filter(Boolean)
-        )
-      ).sort((a, b) => Number(a) - Number(b)),
-    [variantes]
-  );
+  const [cor, setCor] = useState(base?.color);
+  const [gb, setGb] = useState(base?.storage ? String(base.storage) : undefined);
 
-  const [cor, setCor] = useState<string | undefined>(base?.color);
-  const [gb, setGb] = useState<string | undefined>(base?.storage ? String(base.storage) : undefined);
+  const selected = useMemo(() => {
+    return variantes.find((v) => (!cor || v.color === cor) && (!gb || String(v.storage) === gb)) || base;
+  }, [variantes, cor, gb, base]);
 
-  // produto selecionado pela combinação cor + storage
-  const selected = useMemo<Product | undefined>(() => {
-    if (variantes.length === 0) return undefined;
-    let cand = variantes.find(
-      (v) => (!cor || v.color === cor) && (!gb || String(v.storage) === gb)
-    );
-    if (!cand) {
-      // fallback por cor
-      cand = variantes.find((v) => v.color === cor) || variantes[0];
-    }
-    return cand;
-  }, [variantes, cor, gb]);
-
-  // preço/parcelamento referentes ao selecionado
-  const price = selected?.price || base?.price || 0;
-  const parcela = useMemo(() => Math.ceil(price / 10), [price]);
-
-  // --- CEP & frete ---
-  const [cep, setCep] = useState("");
-  const [end, setEnd] = useState<{ logradouro?: string; bairro?: string; localidade?: string; uf?: keyof typeof UF_REGION } | null>(null);
-  const [frete, setFrete] = useState<{ tipo: "SEDEX" | "ECONOMICO"; valor: number; prazo: string }[] | null>(null);
-  const [cepStatus, setCepStatus] = useState<"idle" | "buscando" | "erro">("idle");
-
-  useEffect(() => {
-    const raw = (cep || "").replace(/\D/g, "");
-    if (raw.length !== 8) return;
-
-    let abort = false;
-    (async () => {
-      try {
-        setCepStatus("buscando");
-        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
-        const json = await res.json();
-        if (abort || json.erro) {
-          setCepStatus("erro");
-          setEnd(null);
-          setFrete(null);
-          return;
-        }
-        const uf: any = json.uf;
-        const reg = UF_REGION[uf] || "SE";
-        const tabela = [
-          { tipo: "SEDEX" as const, valor: FRETE_TABELA.SEDEX[reg], prazo: PRAZO_TABELA.SEDEX[reg] },
-          { tipo: "ECONOMICO" as const, valor: FRETE_TABELA.ECONOMICO[reg], prazo: PRAZO_TABELA.ECONOMICO[reg] },
-        ];
-        setEnd({ logradouro: json.logradouro, bairro: json.bairro, localidade: json.localidade, uf });
-        setFrete(tabela);
-        setCepStatus("idle");
-      } catch {
-        setCepStatus("erro");
-      }
-    })();
-
-    return () => { abort = true; };
-  }, [cep]);
+  const price = selected?.price || 0;
+  const parcela = Math.ceil(price / 10);
 
   if (!base) {
     return (
-      <div className="container py-8">
-        <div className="rounded-2xl border p-6">
-          <h1 className="text-xl font-bold mb-2">Produto não encontrado</h1>
-          <Link href="/" className="btn-primary inline-block">Voltar para a Home</Link>
-        </div>
+      <div className="container py-12">
+        <h1 className="text-xl font-bold">Produto não encontrado</h1>
       </div>
     );
   }
 
   function handleAdd() {
     if (!selected) return;
-    // ✅ NÃO enviar quantity/qty: o hook controla isso internamente
     add({
       id: selected.id,
       name: selected.name,
@@ -209,60 +71,68 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     alert("Produto adicionado ao carrinho!");
   }
 
-  const spec: SpecEntry | undefined = base.model_key ? (SPECS as any)[base.model_key] : undefined;
-
   return (
-    <div className="container py-6 grid gap-8 md:grid-cols-2">
-      {/* imagem */}
-      <div className="rounded-2xl border p-4 flex items-center justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={selected?.image || base.image || "/placeholder.svg"}
-          alt={base.name}
-          className="max-h-[420px] w-auto object-contain"
-        />
+    <div className="container grid lg:grid-cols-12 gap-8 py-8">
+      {/* Galeria */}
+      <div className="lg:col-span-7">
+        <div className="rounded-2xl border flex items-center justify-center p-6 bg-white">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={selected?.image || base.image || "/placeholder.svg"} alt={base.name} className="max-h-[480px] object-contain" />
+        </div>
+
+        {/* descrição e características */}
+        <div className="mt-8 space-y-6">
+          <details className="rounded-lg border p-4" open>
+            <summary className="font-semibold cursor-pointer">Descrição do produto</summary>
+            <p className="text-sm text-zinc-700 mt-2">
+              Produto {base.name}, totalmente novo, homologado pela Anatel e com nota fiscal. Descrição detalhada pode ser inserida aqui conforme fabricante.
+            </p>
+          </details>
+
+          <details className="rounded-lg border p-4">
+            <summary className="font-semibold cursor-pointer">Características técnicas</summary>
+            <ul className="text-sm text-zinc-700 mt-2 space-y-1">
+              <li>Memória interna: {storages.join(" / ")} GB</li>
+              <li>Processador: Exemplo</li>
+              <li>Câmera: Exemplo</li>
+              <li>Tela: Exemplo</li>
+            </ul>
+          </details>
+        </div>
       </div>
 
-      {/* infos */}
-      <div>
-        {base.tag ? (
-          <div className="inline-flex items-center gap-2 font-semibold bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-            {base.tag}
-          </div>
-        ) : null}
+      {/* Lateral com preço e ações */}
+      <div className="lg:col-span-5 space-y-6">
+        <div className="rounded-2xl border p-6 bg-white shadow-sm sticky top-20">
+          <h1 className="text-2xl font-bold">{base.name}</h1>
 
-        <h1 className="text-2xl md:text-3xl font-extrabold mt-2">{base.name}</h1>
-
-        {/* seletores */}
-        <div className="mt-4 space-y-4">
+          {/* seleção cor */}
           {cores.length > 0 && (
-            <div>
-              <div className="text-sm text-zinc-600 mb-1">Cor</div>
-              <div className="flex flex-wrap gap-2">
+            <div className="mt-4">
+              <div className="text-sm text-zinc-600 mb-1">Cor:</div>
+              <div className="flex gap-2">
                 {cores.map((c) => (
                   <button
                     key={c}
                     onClick={() => setCor(c)}
-                    className={`px-3 py-1 rounded-full border text-sm ${cor === c ? "border-emerald-600 bg-emerald-50" : "border-zinc-300 hover:bg-zinc-50"}`}
-                    aria-pressed={cor === c}
-                  >
-                    {c}
-                  </button>
+                    className={`h-8 w-8 rounded-full border-2 ${cor === c ? "border-emerald-600" : "border-zinc-300"}`}
+                    style={{ backgroundColor: c?.toLowerCase() }}
+                  />
                 ))}
               </div>
             </div>
           )}
 
+          {/* seleção armazenamento */}
           {storages.length > 0 && (
-            <div>
-              <div className="text-sm text-zinc-600 mb-1">Armazenamento</div>
-              <div className="flex flex-wrap gap-2">
+            <div className="mt-4">
+              <div className="text-sm text-zinc-600 mb-1">Capacidade:</div>
+              <div className="flex gap-2">
                 {storages.map((s) => (
                   <button
                     key={s}
                     onClick={() => setGb(s)}
-                    className={`px-3 py-1 rounded-full border text-sm ${gb === s ? "border-emerald-600 bg-emerald-50" : "border-zinc-300 hover:bg-zinc-50"}`}
-                    aria-pressed={gb === s}
+                    className={`px-3 py-1 text-sm rounded-md border ${gb === s ? "border-emerald-600 bg-emerald-50" : "border-zinc-300 hover:bg-zinc-50"}`}
                   >
                     {s} GB
                   </button>
@@ -270,93 +140,32 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           )}
-        </div>
 
-        {/* preços */}
-        <div className="space-y-1 pt-4">
-          <div className="text-3xl font-extrabold">{br(withCoupon(price))} no PIX</div>
-          <div className="text-zinc-500">
-            Ou <b>{br(price)}</b> em até <b>10x de {br(parcela)} <span className="text-emerald-600">sem juros</span></b>
-          </div>
-          {selected?.freeShipping ? (
-            <div className="text-emerald-600 text-sm font-medium">Frete: Grátis</div>
-          ) : null}
-        </div>
-
-        {/* ações */}
-        <div className="flex gap-3 pt-3">
-          <button className="btn-primary" onClick={handleAdd}>Adicionar ao carrinho</button>
-          <Link href="/carrinho" className="btn-outline">Ver carrinho</Link>
-        </div>
-
-        {/* CEP & frete */}
-        <div className="mt-6 rounded-2xl border p-4">
-          <div className="font-semibold mb-2">Receba em seu endereço</div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              inputMode="numeric"
-              placeholder="Digite seu CEP"
-              className="flex-1 rounded-lg border px-3 py-2"
-              value={cep}
-              onChange={(e) => setCep(e.target.value)}
-              maxLength={9}
-            />
-            <button className="btn-outline" onClick={() => setCep(cep)}>Consultar entrega</button>
-          </div>
-          {cepStatus === "buscando" && <div className="text-sm text-zinc-500 mt-2">Consultando CEP...</div>}
-          {cepStatus === "erro" && <div className="text-sm text-red-600 mt-2">Não foi possível consultar o CEP.</div>}
-          {end && (
-            <div className="text-sm text-zinc-700 mt-3">
-              Entrega para: <b>{[end.logradouro, end.bairro].filter(Boolean).join(" - ")}</b> — {end.localidade}/{end.uf}
-            </div>
-          )}
-          {frete && (
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {frete.map((f) => (
-                <div key={f.tipo} className="rounded-lg border p-3">
-                  <div className="font-semibold">{f.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"}</div>
-                  <div className="text-sm text-zinc-600">{f.prazo}</div>
-                  <div className="text-lg font-bold mt-1">{br(f.valor)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* descrição / especificações */}
-        <div className="mt-6 space-y-3">
-          <div className="rounded-2xl border p-4">
-            <div className="font-semibold mb-1">Descrição do produto</div>
-            <p className="text-sm text-zinc-700">
-              {spec?.descricao || "Informações detalhadas em breve."}
-            </p>
+          {/* preço */}
+          <div className="mt-6 space-y-1">
+            <div className="text-3xl font-extrabold text-emerald-700">{br(withCoupon(price))} no PIX</div>
+            <div className="text-sm text-zinc-500">Ou {br(price)} em até 10x de {br(parcela)} sem juros</div>
+            <div className="text-xs text-red-600">Economize {br(price * 0.15)} no PIX</div>
           </div>
 
-          <div className="rounded-2xl border p-4">
-            <div className="font-semibold mb-2">Características técnicas</div>
-            <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              {spec?.caracteristicas
-                ? Object.entries(spec.caracteristicas).map(([k, v]) => (
-                    <div key={k} className="flex">
-                      <dt className="w-40 text-zinc-500">{k}</dt>
-                      <dd className="flex-1 font-medium">{v}</dd>
-                    </div>
-                  ))
-                : <div className="text-zinc-500">Especificações conforme o fabricante.</div>}
-            </dl>
+          {/* ações */}
+          <div className="mt-6 flex flex-col gap-3">
+            <button onClick={handleAdd} className="w-full bg-emerald-600 text-white font-semibold py-3 rounded-lg hover:bg-emerald-700">
+              Adicionar ao carrinho
+            </button>
+            <Link href="/checkout" className="w-full text-center bg-orange-500 text-white font-semibold py-3 rounded-lg hover:bg-orange-600">
+              Comprar
+            </Link>
           </div>
-        </div>
 
-        {/* informações importantes */}
-        <div className="mt-6 rounded-2xl border p-4 space-y-2 text-sm">
-          <div><b>Produto vendido e entregue por proStore</b></div>
-          <div>180 dias de garantia</div>
-          <div>Homologado pela Anatel</div>
-          <div>Produto novo e original com Nota Fiscal</div>
-        </div>
-
-        <div className="text-xs text-zinc-500 pt-4">
-          * Desconto de 30% aplicado no carrinho automaticamente. Pagamento finalizado no WhatsApp.
+          {/* infos rápidas */}
+          <div className="mt-6 space-y-3 text-sm text-zinc-700">
+            <div className="flex items-center gap-2"><Truck className="h-4 w-4 text-emerald-600" /> Receba em seu endereço – <button className="text-emerald-600 underline">Consultar entrega</button></div>
+            <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-emerald-600" /> 180 dias de garantia</div>
+            <div className="flex items-center gap-2"><Award className="h-4 w-4 text-emerald-600" /> Homologado pela Anatel</div>
+            <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-600" /> Produto novo e original com Nota Fiscal</div>
+            <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Vendido e entregue por proStore</div>
+          </div>
         </div>
       </div>
     </div>
