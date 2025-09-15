@@ -18,16 +18,22 @@ export type Product = {
 /** Compat: aceita 'product' (novo) OU 'p' (antigo) */
 type Props = { product?: Product; p?: Product };
 
-const IconCard = (props: React.SVGProps<SVGSVGElement>) => (
+/* Ícones (SVGs leves, sem libs) */
+const IconCreditCard = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-    <path d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6Zm2 0h14v3H5V6Zm0 5h5a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2Zm9 4h5a1 1 0 1 1 0 2h-5a1 1 0 0 1 0-2Z" fill="currentColor"/>
+    <path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm16 2H4v3h16V7Zm-9 7H5a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2Z" fill="currentColor"/>
+  </svg>
+);
+
+const IconTruck = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <path d="M3 6a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3h2.59A2 2 0 0 1 19 10l2 3v4a2 2 0 0 1-2 2h-1a2.5 2.5 0 1 1-5 0H9a2.5 2.5 0 1 1-5 0H3a2 2 0 0 1-2-2V6Zm2 0v11h.17A2.5 2.5 0 0 1 7 18.5a2.5 2.5 0 0 1 4.83.5h2.34a2.5 2.5 0 0 1 4.83-.5H20v-2h-3a1 1 0 0 1-1-1V8H5ZM20 12.76 18.92 11H16v2h4Z" fill="currentColor"/>
   </svg>
 );
 
 export default function ProductCard({ product: productProp, p: pProp }: Props) {
   const product = (productProp ?? pProp) as Product | undefined;
   const { add } = useCart();
-
   if (!product) return null;
 
   const cash = withCoupon(product.price);   // 30% OFF (pix/boleto)
@@ -45,11 +51,14 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
     : "/import_imgs/placeholder.png";
 
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
-      {/* Badge Frete Grátis */}
+    <div className="group relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+      {/* Badge Frete Grátis (bonita, com ícone) */}
       {product.freeShipping && (
-        <div className="absolute left-3 top-3 z-10 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-          Frete Grátis
+        <div className="absolute left-3 top-3 z-10">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+            <IconTruck className="h-3.5 w-3.5" />
+            Frete Grátis
+          </span>
         </div>
       )}
 
@@ -58,7 +67,7 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
         href={`/produto/${product.id}`}
         className="relative flex items-center justify-center rounded-xl border border-neutral-100 bg-neutral-50/60"
       >
-        <div className="relative h-40 w-full md:h-44">
+        <div className="relative h-44 w-full">
           <Image
             src={imgSrc}
             alt={product.name}
@@ -81,26 +90,29 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
           </Link>
         </div>
 
-        {/* Preços */}
-        <div className="mt-3">
+        {/* Preços (paleta verde da marca) */}
+        <div className="mt-3 space-y-1.5">
           <p className="text-xs text-neutral-600">A partir de</p>
-          <div className="mt-0.5 text-xl font-extrabold text-orange-600">
+          <div className="text-[22px] font-extrabold leading-none tracking-tight text-emerald-700">
             {br(cash)}{" "}
-            <span className="text-[13px] font-semibold text-neutral-700">
+            <span className="align-middle text-[12px] font-semibold text-neutral-700">
               no pix ou boleto
             </span>
           </div>
 
-          <div className="mt-2 flex items-center gap-1.5 text-sm">
-            <IconCard className="h-4 w-4 text-neutral-700" />
-            <span className="text-neutral-700">
-              ou {br(cash)} em até <span className="font-semibold">10x</span> de{" "}
-              {br(installment)} <span className="font-semibold">sem juros</span>
+          {/* Linha de parcelamento — alinhada/bem proporcionada */}
+          <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-neutral-700">
+            <IconCreditCard className="h-4 w-4 shrink-0 text-neutral-700" />
+            <span className="whitespace-normal">
+              ou <span className="font-semibold">{br(cash)}</span> em até{" "}
+              <span className="font-semibold">10x</span> de{" "}
+              <span className="font-semibold">{br(installment)}</span>{" "}
+              <span className="font-semibold">sem juros</span>
             </span>
           </div>
         </div>
 
-        {/* Ações */}
+        {/* Ações (botão na cor da marca) */}
         <div className="mt-4 flex items-center gap-2">
           <Link
             href={`/produto/${product.id}`}
@@ -109,8 +121,8 @@ export default function ProductCard({ product: productProp, p: pProp }: Props) {
             Ver produto
           </Link>
           <button
-            onClick={() => add(product as any, 1)} // <<< passa qty como 2º argumento (API do seu hook)
-            className="inline-flex flex-1 items-center justify-center rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+            onClick={() => add(product as any, 1)}
+            className="inline-flex flex-1 items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
           >
             Adicionar
           </button>
