@@ -1,28 +1,32 @@
-import ProductCard from "@/components/ProductCard";
-import products from "@/data/products.json";
+// src/app/mais-buscados/page.tsx
+import productsData from "@/data/products.json";
+import ProductGrid from "@/components/ProductGrid";
 
-const POPULAR = ["iphone 14", "iphone 13", "s21 fe", "s22"];
+export const revalidate = 60;
 
-function mark(p: any) {
-  const name = `${p.brand} ${p.name}`.toLowerCase();
-  const popular = POPULAR.some(t => name.includes(t));
-  const freeShipping = popular;
-  return { ...p, freeShipping, __popular: popular };
-}
+type P = any;
+
+const toNumber = (v: any) =>
+  typeof v === "number" ? v : Number(String(v ?? "").replace(/[^\d.-]/g, ""));
 
 export default function MaisBuscadosPage() {
-  const list = (products as any[]).map(mark).filter(p => p.__popular);
+  const all: P[] = productsData as any[];
+
+  // Heurística simples para "mais buscados": ordena pelos mais caros (tende a ser o que a galera procura)
+  // e pega os 12 primeiros. Ajustamos fácil depois se você quiser outra lógica.
+  const list: P[] = [...all].sort((a, b) => toNumber(b?.price) - toNumber(a?.price)).slice(0, 12);
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-extrabold mb-6">Mais buscados</h1>
+    <main className="container py-8">
+      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+        Mais buscados
+      </h1>
+
       {list.length === 0 ? (
-        <div className="border rounded-2xl p-6 text-sm text-zinc-600">
-          Nenhum produto encontrado.
-        </div>
+        <p className="mt-6 text-zinc-600">Nenhum produto encontrado.</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {list.map((p) => <ProductCard key={p.id} p={p} />)}
+        <div className="mt-6">
+          <ProductGrid products={list as any[]} />
         </div>
       )}
     </main>
