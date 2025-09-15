@@ -1,139 +1,120 @@
-"use client";
-
 import Link from "next/link";
-import Image from "next/image";
-import { useCart } from "@/hooks/useCart";
 import { br, withCoupon } from "@/lib/format";
-import { useState } from "react";
+import { useCart } from "@/hooks/useCart";
 
-export type Product = {
+type Product = {
   id: string;
   brand: string;
   name: string;
-  image?: string;
+  image: string;
   price: number;
   freeShipping?: boolean;
-  [k: string]: any;
+  storage?: string;
+  color?: string;
 };
 
-type Props = { product?: Product; p?: Product };
-
-const IconCreditCard = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-    <path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm16 2H4v3h16V7Zm-9 7H5a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2Z" fill="currentColor"/>
-  </svg>
-);
-const IconTruck = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-    <path d="M3 6a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3h2.59A2 2 0 0 1 19 10l2 3v4a2 2 0 0 1-2 2h-1a2.5 2.5 0 1 1-5 0H9a2.5 2.5 0 1 1-5 0H3a2 2 0 0 1-2-2V6Zm2 0v11h.17A2.5 2.5 0 0 1 7 18.5a2.5 2.5 0 0 1 4.83.5h2.34a2.5 2.5 0 0 1 4.83-.5H20v-2h-3a1 1 0 0 1-1-1V8H5ZM20 12.76 18.92 11H16v2h4Z" fill="currentColor"/>
-  </svg>
-);
-
-/* resolve imagem (cobre .jfif / caminhos variados) */
-function resolveImage(src?: string) {
-  if (!src) return "/import_imgs/placeholder.png";
-  let s = src.trim().replace(/^public\//, "");
-  if (s.startsWith("http://") || s.startsWith("https://")) return s;
-  if (s.startsWith("/")) return s;
-  if (s.startsWith("import_imgs/")) return `/${s}`;
-  const pos = s.indexOf("/import_imgs/");
-  if (pos !== -1) {
-    let cut = s.slice(pos);
-    if (!cut.startsWith("/")) cut = "/" + cut;
-    return cut;
-  }
-  return `/import_imgs/${s}`;
-}
-
-export default function ProductCard({ product: productProp, p: pProp }: Props) {
-  const product = (productProp ?? pProp) as Product | undefined;
+export default function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
-  const [imgError, setImgError] = useState(false);
-  if (!product) return null;
 
-  const cash = withCoupon(product.price);
-  const installment = cash / 10;
+  const original = Number(product?.price || 0);
+  const promo = withCoupon(original); // 30% OFF (função já existe no seu projeto)
+  const per = promo / 10;
 
-  const b = String(product.brand ?? "");
-  const brandLabel =
-    b.toLowerCase() === "apple" ? "Apple" :
-    b.toLowerCase() === "samsung" ? "Samsung" :
-    (b ? b.charAt(0).toUpperCase() + b.slice(1).toLowerCase() : "");
-
-  const src = imgError ? "/import_imgs/placeholder.png" : resolveImage(product.image);
+  const brandCap =
+    product?.brand ? product.brand.charAt(0).toUpperCase() + product.brand.slice(1).toLowerCase() : "";
 
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
-      {product.freeShipping && (
-        <div className="absolute left-3 top-3 z-10">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm ring-1 ring-emerald-700/20">
-            <IconTruck className="h-3.5 w-3.5" />
+    <div className="card h-full">
+      {/* imagem + badge frete */}
+      <div className="relative">
+        {product.freeShipping && (
+          <span className="absolute left-2 top-2 z-10 inline-flex items-center rounded-full bg-green-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
             Frete Grátis
           </span>
-        </div>
-      )}
+        )}
 
-      {/* imagem: fundo BRANCO para ficar do mesmo tom do card */}
-      <Link
-        href={`/produto/${product.id}`}
-        className="relative flex items-center justify-center rounded-xl border border-neutral-100 bg-white"
-      >
-        <div className="relative h-44 w-full">
-          <Image
-            src={src}
-            alt={product.name}
-            fill
-            unoptimized
-            onError={() => setImgError(true)}
-            className="object-contain p-4"
-            sizes="(min-width:1024px) 260px, (min-width:768px) 33vw, 50vw"
-          />
-        </div>
-      </Link>
-
-      <div className="mt-3 flex flex-1 flex-col">
-        <div className="min-h-[54px]">
-          <p className="text-xs text-neutral-500">{brandLabel}</p>
-          <Link href={`/produto/${product.id}`} className="line-clamp-2 text-[15px] font-medium text-neutral-900">
-            {product.name}
-          </Link>
-        </div>
-
-        <div className="mt-3 space-y-1.5">
-          <p className="text-xs text-neutral-600">A partir de</p>
-          <div className="text-[22px] font-extrabold leading-none tracking-tight text-emerald-700">
-            {br(cash)}{" "}
-            <span className="align-middle text-[12px] font-semibold text-neutral-700">
-              no pix ou boleto
-            </span>
+        <Link href={`/produto/${product.id}`} className="block">
+          <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-xl bg-zinc-50">
+            {/* Usar <img> evita precisar configurar domains do next/image */}
+            <img
+              src={product.image}
+              alt={product.name}
+              className="h-full w-full object-contain"
+              loading="lazy"
+            />
           </div>
+        </Link>
+      </div>
 
-          <div className="mt-1 flex items-center gap-2 text-sm leading-5 text-neutral-700">
-            <IconCreditCard className="h-4 w-4 shrink-0 text-neutral-700" />
-            <span>
-              ou <span className="font-semibold">{br(cash)}</span> em até{" "}
-              <span className="font-semibold">10x</span> de{" "}
-              <span className="font-semibold">{br(installment)}</span>{" "}
-              <span className="font-semibold">sem juros</span>
-            </span>
-          </div>
+      {/* título */}
+      <div className="mt-3">
+        <p className="text-xs text-zinc-500">{brandCap}</p>
+        <Link
+          href={`/produto/${product.id}`}
+          className="line-clamp-2 text-sm font-semibold text-zinc-900"
+          title={product.name}
+        >
+          {product.name}
+        </Link>
+      </div>
+
+      {/* preços */}
+      <div className="mt-2">
+        {/* linha riscado + promocional */}
+        <div className="flex items-baseline gap-2">
+          <span className="text-xs text-zinc-500 line-through">{br(original)}</span>
+          <span
+            className="text-lg font-extrabold"
+            style={{ color: "var(--brand-700)" }}
+            aria-label="Preço com 30% de desconto"
+          >
+            {br(promo)}
+          </span>
         </div>
 
-        <div className="mt-4 flex items-center gap-2">
-          <Link
-            href={`/produto/${product.id}`}
-            className="inline-flex items-center justify-center rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-          >
-            Ver produto
-          </Link>
-          <button
-            onClick={() => add(product as any, 1)}
-            className="inline-flex flex-1 items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          >
-            Adicionar
-          </button>
-        </div>
+        {/* a partir de / pix-boleto */}
+        <p className="mt-1 text-xs text-zinc-600">A partir de</p>
+        <p className="text-sm font-semibold text-zinc-800">
+          {br(promo)} <span className="font-normal text-zinc-600">no pix ou boleto</span>
+        </p>
+
+        {/* linha do cartão */}
+        <p className="mt-1 flex items-center gap-2 text-xs text-zinc-600">
+          <CardIcon className="h-4 w-4" />
+          <span>
+            ou <strong>{br(promo)}</strong> em até{" "}
+            <strong>10x de {br(per)}</strong> sem juros
+          </span>
+        </p>
+      </div>
+
+      {/* ações */}
+      <div className="mt-3 flex gap-2">
+        <Link
+          href={`/produto/${product.id}`}
+          className="inline-flex flex-1 items-center justify-center rounded-xl border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          Ver produto
+        </Link>
+
+        <button
+          onClick={() => add(product, 1)}
+          className="inline-flex flex-1 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold text-white shadow-sm hover:shadow"
+          style={{ backgroundColor: "var(--brand-700)" }}
+        >
+          Adicionar
+        </button>
       </div>
     </div>
+  );
+}
+
+/* ícone simples de cartão */
+function CardIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <rect x="4" y="9" width="16" height="2" fill="#fff" />
+    </svg>
   );
 }
