@@ -12,7 +12,7 @@ const toNumber = (v: any) =>
 export default function OfertasPage() {
   const all: P[] = productsData as any[];
 
-  // "Ofertas do dia": sua estratégia é mostrar os mais caros (30% OFF impacta mais)
+  // "Ofertas do dia": ordena pelos mais caros (30% OFF impacta mais)
   const list: P[] = [...all]
     .filter((p) => toNumber(p?.price) > 0)
     .sort((a, b) => toNumber(b?.price) - toNumber(a?.price));
