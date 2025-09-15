@@ -1,120 +1,108 @@
-import Link from "next/link";
-import { br, withCoupon } from "@/lib/format";
-import { useCart } from "@/hooks/useCart";
+"use client";
 
-type Product = {
+import Link from "next/link";
+import { useCart } from "@/hooks/useCart";
+import { br, withCoupon } from "@/lib/format";
+
+export type Product = {
   id: string;
-  brand: string;
+  brand: "apple" | "samsung" | string;
   name: string;
   image: string;
   price: number;
   freeShipping?: boolean;
-  storage?: string;
-  color?: string;
 };
 
-export default function ProductCard({ product }: { product: Product }) {
+function capBrand(brand: string) {
+  const b = (brand || "").toLowerCase();
+  if (b === "apple") return "Apple";
+  if (b === "samsung") return "Samsung";
+  return brand?.charAt(0).toUpperCase() + brand?.slice(1);
+}
+
+type Props = {
+  product: Product;
+};
+
+export default function ProductCard({ product }: Props) {
   const { add } = useCart();
 
-  const original = Number(product?.price || 0);
-  const promo = withCoupon(original); // 30% OFF (função já existe no seu projeto)
-  const per = promo / 10;
-
-  const brandCap =
-    product?.brand ? product.brand.charAt(0).toUpperCase() + product.brand.slice(1).toLowerCase() : "";
+  // Preços
+  const original = Number(product?.price) || 0;
+  const promo = withCoupon(original); // 30% OFF (sua função)
+  const parcela = promo / 10;
 
   return (
-    <div className="card h-full">
-      {/* imagem + badge frete */}
-      <div className="relative">
-        {product.freeShipping && (
-          <span className="absolute left-2 top-2 z-10 inline-flex items-center rounded-full bg-green-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-            Frete Grátis
-          </span>
-        )}
+    <div className="card relative overflow-hidden">
+      {/* selo frete grátis (quando houver) */}
+      {product.freeShipping && (
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm ring-1 ring-emerald-700/30">
+          Frete grátis
+        </span>
+      )}
 
-        <Link href={`/produto/${product.id}`} className="block">
-          <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-xl bg-zinc-50">
-            {/* Usar <img> evita precisar configurar domains do next/image */}
-            <img
-              src={product.image}
-              alt={product.name}
-              className="h-full w-full object-contain"
-              loading="lazy"
-            />
-          </div>
-        </Link>
-      </div>
-
-      {/* título */}
-      <div className="mt-3">
-        <p className="text-xs text-zinc-500">{brandCap}</p>
-        <Link
-          href={`/produto/${product.id}`}
-          className="line-clamp-2 text-sm font-semibold text-zinc-900"
-          title={product.name}
-        >
-          {product.name}
-        </Link>
-      </div>
-
-      {/* preços */}
-      <div className="mt-2">
-        {/* linha riscado + promocional */}
-        <div className="flex items-baseline gap-2">
-          <span className="text-xs text-zinc-500 line-through">{br(original)}</span>
-          <span
-            className="text-lg font-extrabold"
-            style={{ color: "var(--brand-700)" }}
-            aria-label="Preço com 30% de desconto"
-          >
-            {br(promo)}
-          </span>
+      <Link href={`/produto/${product.id}`} className="group block">
+        {/* imagem */}
+        <div className="mb-3 flex h-40 w-full items-center justify-center rounded-xl bg-white">
+          {/* manter fundo branco p/ todas as imagens ficarem limpas no card */}
+          <img
+            src={product.image}
+            alt={product.name}
+            className="h-36 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+            loading="lazy"
+          />
         </div>
 
-        {/* a partir de / pix-boleto */}
-        <p className="mt-1 text-xs text-zinc-600">A partir de</p>
-        <p className="text-sm font-semibold text-zinc-800">
-          {br(promo)} <span className="font-normal text-zinc-600">no pix ou boleto</span>
-        </p>
+        {/* nome/brand */}
+        <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
+        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900">
+          {product.name}
+        </h3>
 
-        {/* linha do cartão */}
-        <p className="mt-1 flex items-center gap-2 text-xs text-zinc-600">
-          <CardIcon className="h-4 w-4" />
-          <span>
-            ou <strong>{br(promo)}</strong> em até{" "}
-            <strong>10x de {br(per)}</strong> sem juros
-          </span>
-        </p>
-      </div>
+        {/* preços */}
+        <div className="mt-2">
+          <div className="text-[13px] text-zinc-500 line-through">{br(original)}</div>
+          <div className="mt-0.5 text-[15px] font-extrabold text-emerald-700">
+            A partir de {br(promo)} <span className="font-normal text-zinc-700">no pix ou boleto</span>
+          </div>
+
+          {/* cartão + parcelamento */}
+          <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+            {/* ícone de cartão clean */}
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            >
+              <rect x="2.5" y="5" width="19" height="14" rx="2.2" />
+              <path d="M2.5 9.5h19" />
+            </svg>
+            <span>
+              ou {br(promo)} em até{" "}
+              <strong className="font-semibold">10x de {br(parcela)}</strong> sem juros
+            </span>
+          </div>
+        </div>
+      </Link>
 
       {/* ações */}
       <div className="mt-3 flex gap-2">
         <Link
           href={`/produto/${product.id}`}
-          className="inline-flex flex-1 items-center justify-center rounded-xl border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          className="btn btn-outline flex-1"
         >
-          Ver produto
+          Ver detalhes
         </Link>
-
         <button
-          onClick={() => add(product, 1)}
-          className="inline-flex flex-1 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold text-white shadow-sm hover:shadow"
-          style={{ backgroundColor: "var(--brand-700)" }}
+          onClick={() => add(product, 1)} // API: add(item, qty?)
+          className="btn btn-primary flex-1 bg-emerald-600 text-white hover:opacity-95"
         >
           Adicionar
         </button>
       </div>
     </div>
-  );
-}
-
-/* ícone simples de cartão */
-function CardIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <rect x="4" y="9" width="16" height="2" fill="#fff" />
-    </svg>
   );
 }
