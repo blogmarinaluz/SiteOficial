@@ -179,9 +179,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6) Newsletter */}
-      <section className="mt-10">
-  <div className="mx-auto max-w-[1100px] rounded-2xl px-6 py-7 shadow-md bg-accent-gradient">
+      {/* NEWSLETTER — verde da marca */}
+<section className="mt-10">
+  <div className="mx-auto max-w-[1100px] rounded-2xl px-6 py-7 shadow-md bg-brand-gradient">
     <div className="text-center">
       <h3 className="text-xl md:text-2xl font-extrabold text-white">
         Inscreva-se na nossa Newsletter
@@ -191,7 +191,11 @@ export default function HomePage() {
       </p>
     </div>
 
-    <form className="mx-auto mt-4 flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:gap-3" action="#" noValidate>
+    <form
+      className="mx-auto mt-4 flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:gap-3"
+      action="#"
+      noValidate
+    >
       <label className="sr-only" htmlFor="nl-name">Nome</label>
       <input
         id="nl-name"
@@ -200,6 +204,7 @@ export default function HomePage() {
         className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
         required
       />
+
       <label className="sr-only" htmlFor="nl-email">E-mail</label>
       <input
         id="nl-email"
@@ -208,9 +213,11 @@ export default function HomePage() {
         className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
         required
       />
+
       <button
         type="button"
-        className="btn-brand w-full sm:w-auto px-5 py-2.5 text-sm"
+        className="w-full sm:w-auto rounded-xl px-5 py-2.5 text-sm font-semibold shadow-sm transition hover:shadow-md bg-white"
+        style={{ color: "var(--brand-700)" }}
       >
         Cadastrar
       </button>
