@@ -40,27 +40,34 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* ====== SOMENTE TAMANHO DA IMAGEM ====== */}
+        {/* ====== IMAGEM (tamanho controlado por variáveis CSS) ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-            {/* palco fixo e com overflow-hidden pra podermos aplicar zoom */}
-            <div className="h-[240px] w-full flex items-center justify-center overflow-hidden">
+            {/* palco fixo; por padrão 240px (pode ser sobrescrito por seção) */}
+            <div
+              className="w-full flex items-center justify-center overflow-hidden"
+              style={{ height: "var(--card-stage-h, 240px)" }}
+            >
               <img
                 src={product.image}
                 alt={product.name}
-                className={
-                  isSamsung
-                    // zoom e altura maior só para Samsung (compensa as “bordas” dos arquivos)
-                    ? "h-[230px] max-w-none w-auto object-contain scale-[1.22]"
-                    // Apple (e demais) ficam no tamanho que você aprovou
-                    : "h-[210px] max-w-none w-auto object-contain"
-                }
+                style={{
+                  height: isSamsung
+                    ? "var(--img-h-samsung, 230px)" // Samsung (padrão bom que vc aprovou)
+                    : "var(--img-h-apple, 210px)",  // Apple (padrão bom que vc aprovou)
+                  width: "auto",
+                  maxWidth: "none",
+                  objectFit: "contain",
+                  transform: isSamsung
+                    ? "scale(var(--img-scale-samsung, 1.22))"
+                    : "scale(var(--img-scale-apple, 1))",
+                }}
                 loading="lazy"
               />
             </div>
           </div>
         </div>
-        {/* ======================================== */}
+        {/* ========================================================== */}
 
         <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
         <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 min-h-[40px]">
@@ -74,7 +81,7 @@ export default function ProductCard({ product }: Props) {
             <span className="font-normal text-zinc-700">no pix ou boleto</span>
           </div>
 
-        <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+          <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
             <svg
               viewBox="0 0 24 24"
               className="h-4 w-4"
