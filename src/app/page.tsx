@@ -2,12 +2,14 @@ import Link from "next/link";
 import ProductGrid from "@/components/ProductGrid";
 import Testimonials from "@/components/Testimonials";
 import WhatsChat from "@/components/WhatsChat";
-import { catalog } from "@/lib/catalog";
+import productsData from "@/data/products.json";
+import flagsData from "@/data/flags.json";
 
 export const revalidate = 60;
 
 type P = any;
 
+// --- helpers de seleção ---
 function byBrand(arr: P[], brand: string) {
   const b = brand.toLowerCase();
   return (arr || []).filter((p) => String(p?.brand || "").toLowerCase() === b);
@@ -23,16 +25,22 @@ function excludeById(arr: P[], usedIds: Set<string>) {
 }
 
 export default function HomePage() {
-  const all = (catalog as P[]);
+  // 1) Normaliza produtos + aplica frete grátis via flags.json (chave = nome do arquivo da imagem)
+  const flags = flagsData as Record<string, { freeShipping?: boolean }>;
+  const all: P[] = (productsData as any[]).map((p: any) => {
+    const file = String(p?.image || "").split("/").pop() || "";
+    const freeShipping = !!flags[file]?.freeShipping;
+    return { ...p, freeShipping };
+  });
 
-  // 1) Em Oferta: só Samsung (8 itens)
+  // 2) Em Oferta: só Samsung (8 itens)
   const emOferta = pickTop(byBrand(all, "samsung"), 8);
 
-  // 2) BBB: mais caros (8), sem repetir os de Em Oferta
+  // 3) BBB: mais caros (8), sem repetir os de Em Oferta
   const used1 = new Set<string>(emOferta.map((p) => String(p.id)));
   const bbb = pickTop(sortByPriceDesc(excludeById(all, used1)), 8);
 
-  // 3) Destaque: 2 Apple + 2 Samsung, sem repetir os anteriores
+  // 4) Destaque: 2 Apple + 2 Samsung, sem repetir os anteriores
   const used2 = new Set<string>([...used1, ...bbb.map((p) => String(p.id))]);
   const restantes = excludeById(all, used2);
 
