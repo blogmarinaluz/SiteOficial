@@ -25,14 +25,12 @@ type Props = { product: Product };
 export default function ProductCard({ product }: Props) {
   const { add } = useCart();
 
-  // preços
   const original = Number(product?.price) || 0;
   const promo = withCoupon(original); // 30% OFF
   const parcela = promo / 10;
 
   return (
     <div className="card relative overflow-hidden">
-      {/* Selo frete grátis */}
       {product.freeShipping && (
         <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm ring-1 ring-emerald-700/30">
           Frete grátis
@@ -40,9 +38,9 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* === Caixa da imagem (volta da "caixinha" suave) === */}
+        {/* Caixa da imagem — FUNDO BRANCO + borda suave */}
         <div className="mb-3">
-          <div className="flex h-40 w-full items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200 p-3">
+          <div className="flex h-40 w-full items-center justify-center rounded-xl bg-white ring-1 ring-zinc-200 p-3">
             <img
               src={product.image}
               alt={product.name}
@@ -52,13 +50,9 @@ export default function ProductCard({ product }: Props) {
           </div>
         </div>
 
-        {/* Título */}
         <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
-        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900">
-          {product.name}
-        </h3>
+        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900">{product.name}</h3>
 
-        {/* Preços */}
         <div className="mt-2">
           <div className="text-[13px] text-zinc-500 line-through">{br(original)}</div>
           <div className="mt-0.5 text-[15px] font-extrabold text-emerald-700">
@@ -66,7 +60,6 @@ export default function ProductCard({ product }: Props) {
             <span className="font-normal text-zinc-700">no pix ou boleto</span>
           </div>
 
-          {/* Cartão + parcelamento */}
           <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
             <svg
               viewBox="0 0 24 24"
@@ -87,7 +80,6 @@ export default function ProductCard({ product }: Props) {
         </div>
       </Link>
 
-      {/* Ações – paleta da marca */}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Link
           href={`/produto/${product.id}`}
