@@ -29,7 +29,6 @@ export default function ProductCard({ product }: Props) {
   const promo = withCoupon(original); // 30% OFF
   const parcela = promo / 10;
 
-  // ↑ Só tamanho: deixo Samsung maior para compensar margens das imagens
   const isSamsung = (product?.brand || "").toLowerCase() === "samsung";
 
   return (
@@ -41,17 +40,19 @@ export default function ProductCard({ product }: Props) {
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* ====== SOMENTE TAMANHO PADRÃO DA IMAGEM ====== */}
+        {/* ====== SOMENTE TAMANHO DA IMAGEM ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-            {/* palco fixo (maior para todos) */}
+            {/* palco fixo (mesma altura pra todos os cards) */}
             <div className="h-[240px] w-full flex items-center justify-center">
               <img
                 src={product.image}
                 alt={product.name}
                 className={
                   isSamsung
-                    ? "h-[220px] max-w-[220px] w-auto object-contain"
+                    // Samsung BEM maior pra compensar as bordas dos arquivos
+                    ? "h-[236px] max-w-[236px] w-auto object-contain"
+                    // Apple e demais mantêm o tamanho que você já curtiu
                     : "h-[200px] max-w-[200px] w-auto object-contain"
                 }
                 loading="lazy"
@@ -59,7 +60,7 @@ export default function ProductCard({ product }: Props) {
             </div>
           </div>
         </div>
-        {/* ============================================== */}
+        {/* ======================================== */}
 
         <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
         <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 min-h-[40px]">
