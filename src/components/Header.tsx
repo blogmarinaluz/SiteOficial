@@ -3,7 +3,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
+import productsData from "@/data/products.json";
 import {
   Menu,
   X,
@@ -15,9 +17,24 @@ import {
   ShieldCheck,
   Percent,
   Truck,
+  Search,
 } from "lucide-react";
 
-/* ===== Tipos (para consulta de pedido no modal) ===== */
+/* ================== Utils ================== */
+const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
+const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
+function fmt(n: number) {
+  return Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+}
+
+/* ================== Tipos ================== */
+type Product = {
+  id: string;
+  name: string;
+  brand?: string;
+  image?: string;
+  price?: number;
+};
 type Order = {
   code: string;
   items: Array<{ name: string; qty: number; price: number; total: number }>;
@@ -27,11 +44,7 @@ type Order = {
   createdAt: string;
 };
 
-function fmt(n: number) {
-  return Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
-}
-
-/* ===== Modal “Minha conta” (sem login) ===== */
+/* ================== Modal “Minha conta” ================== */
 function AccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<Order | null>(null);
@@ -133,7 +146,7 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
               <ChevronRight className="h-4 w-4" />
             </a>
             <p className="mt-1 text-xs text-zinc-500">
-              Dica: salve seu número de WhatsApp em <b>/checkout?admin=1</b>.
+              Dica: salve seu número do WhatsApp em <b>/checkout?admin=1</b>.
             </p>
           </div>
         </div>
@@ -142,19 +155,100 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
-/* ===== Header ===== */
+/* ================== Busca ================== */
+function SearchModal({
+  open,
+  onClose,
+  list,
+}: {
+  open: boolean;
+  onClose: () => void;
+  list: Product[];
+}) {
+  const router = useRouter();
+  const [q, setQ] = useState("");
+
+  const results = useMemo(() => {
+    if (!q) return [];
+    const term = norm(q);
+    return list
+      .filter((p) => norm(p.name).includes(term) || norm(p.brand).includes(term))
+      .slice(0, 12);
+  }, [q, list]);
+
+  function go(p: Product) {
+    onClose();
+    const id = idNoExt(p.id);
+    router.push(`/produto/${id}`);
+  }
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80]">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute left-1/2 top-[12%] w-[92vw] max-w-2xl -translate-x-1/2 rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200">
+        <div className="flex items-center gap-2 border-b p-3">
+          <Search className="h-5 w-5 text-zinc-500" />
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar iPhone, Samsung…"
+            className="flex-1 bg-transparent outline-none text-sm"
+          />
+          <button onClick={onClose} className="rounded p-1 hover:bg-zinc-100" aria-label="Fechar">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-auto p-2">
+          {results.length === 0 ? (
+            <div className="px-3 py-6 text-sm text-zinc-500">Digite para buscar produtos…</div>
+          ) : (
+            <ul className="divide-y">
+              {results.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-zinc-50 cursor-pointer"
+                  onClick={() => go(p)}
+                >
+                  <span className="truncate text-sm">{p.name}</span>
+                  <span className="text-xs text-zinc-500">
+                    {p.price ? fmt(Number(p.price)) : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================== Header ================== */
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const { items } = useCart();
   const count = useMemo(() => (items ?? []).reduce((a, i) => a + (i.qty || 0), 0), [items]);
+
+  // lista de produtos para busca (nome/brand/preço)
+  const productList = useMemo(() => productsData as Product[], []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setOpen(false);
         setShowAccount(false);
+        setShowSearch(false);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowSearch(true);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -163,7 +257,7 @@ export default function Header() {
 
   return (
     <>
-      {/* --- faixa superior com informações (desktop e scroll-x no mobile) --- */}
+      {/* Faixa superior com benefícios */}
       <div className="w-full bg-zinc-50 border-b border-zinc-200 text-[12px] text-zinc-700">
         <div className="mx-auto max-w-[1100px] px-4 py-1">
           <div className="hidden sm:flex items-center gap-4">
@@ -200,7 +294,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* --- barra principal --- */}
+      {/* Barra principal */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200">
         <div className="mx-auto max-w-[1100px] px-4 py-3 flex items-center gap-3">
           {/* menu mobile */}
@@ -217,8 +311,20 @@ export default function Header() {
             pro<span className="text-emerald-600">Store</span>
           </Link>
 
-          {/* grow */}
-          <div className="flex-1" />
+          {/* Busca (desktop) */}
+          <div className="hidden md:flex flex-1 items-center">
+            <button
+              onClick={() => setShowSearch(true)}
+              className="group flex w-full items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+              title="Buscar (Ctrl/Cmd + K)"
+            >
+              <Search className="h-4 w-4 text-zinc-500 group-hover:text-zinc-700" />
+              <span className="text-zinc-600">Buscar produtos…</span>
+              <span className="ml-auto hidden lg:inline rounded border px-1.5 text-[11px] text-zinc-500">
+                Ctrl/⌘ + K
+              </span>
+            </button>
+          </div>
 
           {/* links desktop */}
           <nav className="hidden lg:flex items-center gap-2">
@@ -270,8 +376,15 @@ export default function Header() {
             </Link>
           </nav>
 
-          {/* ações mobile (à direita) */}
-          <div className="lg:hidden flex items-center gap-2">
+          {/* ações mobile (direita) */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={() => setShowSearch(true)}
+              className="rounded-xl border border-zinc-300 bg-white p-2 text-zinc-800 hover:bg-zinc-50"
+              title="Buscar"
+            >
+              <Search className="h-5 w-5" />
+            </button>
             <Link
               href="/carrinho"
               className="relative rounded-xl border border-zinc-300 bg-white p-2 text-zinc-800 hover:bg-zinc-50"
@@ -317,8 +430,9 @@ export default function Header() {
         )}
       </header>
 
-      {/* modal “Minha conta” */}
+      {/* modais */}
       <AccountModal open={showAccount} onClose={() => setShowAccount(false)} />
+      <SearchModal open={showSearch} onClose={() => setShowSearch(false)} list={productList} />
     </>
   );
 }
