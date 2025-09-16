@@ -28,7 +28,6 @@ const fmt = (n: number) =>
 type Product = { id: string; name: string; brand?: string; price?: number };
 
 /* ========= extração de MODELOS diretamente do catálogo ========= */
-/** iPhone 14, iPhone 14 Plus, iPhone 15 Pro Max, iPhone SE (2022)… */
 function appleModelLabel(name: string): string | null {
   const m =
     name.match(/iPhone\s+(SE(?:\s*\(\d{4}\))?|\d{2}(?:\s?(?:Plus|Pro|Pro Max))?)/i)?.[0] ||
@@ -36,19 +35,22 @@ function appleModelLabel(name: string): string | null {
   return m ? m.replace(/\s+/g, " ").trim() : null;
 }
 
-/** Galaxy/Samsung A|S|Z …  — aceita "Samsung A14", "Samsung Galaxy A14", "Galaxy A14" */
+/** Aceita: "Samsung A14", "Samsung Galaxy A14", "Galaxy A14", "Galaxy Z Flip 5" */
 function samsungModelLabel(name: string): string | null {
   const txt = name.replace(/\s+/g, " ").trim();
 
-  // Z Flip / Z Fold (com ou sem número)
+  // Z Flip / Fold
   const z = txt.match(/(?:Samsung\s+)?(?:Galaxy\s+)?Z\s+(Flip|Fold)\s*\d{0,2}/i)?.[0];
   if (z) {
-    // Garante prefixo "Galaxy"
-    const normZ = z.replace(/^\s*Samsung\s+/i, "").replace(/^\s*(Galaxy\s+)?/i, "Galaxy ");
-    return normZ.replace(/\s+/g, " ").trim();
+    const normZ = z
+      .replace(/^\s*Samsung\s+/i, "")
+      .replace(/^\s*(Galaxy\s+)?/i, "Galaxy ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return normZ;
   }
 
-  // Séries A e S com número (aceita 1 ou 2 dígitos com opcional zero à esquerda)
+  // Séries A / S (com opção zero à esquerda)
   const as = txt.match(/(?:Samsung\s+)?(?:Galaxy\s+)?(A|S)\s*0?\d{1,3}/i)?.[0];
   if (as) {
     const m = as.match(/(A|S)\s*0?(\d{1,3})/i);
@@ -62,10 +64,16 @@ function samsungModelLabel(name: string): string | null {
   return null;
 }
 
+/* === FIX CRÍTICO: classifica usando brand **e** name e tolera 'samsumg' === */
 function productBrand(p: Product): "apple" | "samsung" | "other" {
-  const b = norm(p.brand || p.name);
-  if (b.includes("apple") || b.includes("iphone")) return "apple";
-  if (b.includes("samsung") || b.includes("galaxy")) return "samsung";
+  const combo = norm(`${p.brand ?? ""} ${p.name ?? ""}`);
+  if (combo.includes("apple") || combo.includes("iphone")) return "apple";
+  if (
+    combo.includes("samsung") ||
+    combo.includes("galaxy") ||
+    combo.includes("samsumg") // tolera o typo presente no catálogo
+  )
+    return "samsung";
   return "other";
 }
 
@@ -74,7 +82,7 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
   const [code, setCode] = useState("");
   const [result, setResult] = useState<any | null>(null);
 
-  const WA_NUMBER = "5599984905715"; // fixo (pedido do cliente)
+  const WA_NUMBER = "5599984905715"; // fixo
 
   function buscar() {
     try {
@@ -179,7 +187,7 @@ export default function Header() {
     [items]
   );
 
-  // controla o modal "Entrar" via estado (sem DOM hack)
+  // controla o modal "Entrar" via estado
   const [accountOpen, setAccountOpen] = useState(false);
 
   // catálogo em memória
@@ -191,7 +199,6 @@ export default function Header() {
       const label = appleModelLabel(p.name || "");
       if (label) set.add(label);
     });
-    // ordena por número/variante
     return Array.from(set).sort((a, b) => {
       const an = Number(a.match(/\d{2,4}/)?.[0] || 0);
       const bn = Number(b.match(/\d{2,4}/)?.[0] || 0);
@@ -210,7 +217,6 @@ export default function Header() {
       const label = samsungModelLabel(p.name || "");
       if (label) set.add(label);
     });
-    // ordena por família e número
     return Array.from(set).sort((a, b) => {
       const family = (s: string) =>
         norm(s).includes("z flip")
@@ -340,7 +346,7 @@ export default function Header() {
         </div>
 
         {/* segunda linha + dropdowns alimentados pelo CATÁLOGO */}
-        <div className="hidden md:block border-t border-zinc-200">
+        <div className="hidden md:block border-top border-zinc-200">
           <div className="mx-auto max-w-[1100px] px-4">
             <ul className="relative flex items-center gap-6 text-[14px] py-2 text-zinc-700">
               {/* iPhone */}
@@ -409,21 +415,21 @@ export default function Header() {
                 )}
               </li>
 
-              {/* âncoras: links diretos com hash (funciona na home e fora dela) */}
+              {/* âncoras com <a> nativo para garantir scroll */}
               <li>
-                <Link href="/#mais-buscados" className="hover:text-zinc-900">
+                <a href="/#mais-buscados" className="hover:text-zinc-900">
                   Mais buscados
-                </Link>
+                </a>
               </li>
               <li>
-                <Link href="/#bbb" className="hover:text-zinc-900">
+                <a href="/#bbb" className="hover:text-zinc-900">
                   BBB do dia
-                </Link>
+                </a>
               </li>
               <li>
-                <Link href="/#destaques" className="hover:text-zinc-900">
+                <a href="/#destaques" className="hover:text-zinc-900">
                   Ofertas em destaque
-                </Link>
+                </a>
               </li>
 
               <li className="ml-auto">
