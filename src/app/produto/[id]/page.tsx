@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import productsData from "@/data/products.json";
 import { useCart } from "@/hooks/useCart";
@@ -18,7 +19,6 @@ import {
   CreditCard,
   Loader2,
 } from "lucide-react";
-import MobileCarousel from "@/components/MobileCarousel";
 
 /* ========================= UTILS & TIPOS ========================= */
 
@@ -63,6 +63,19 @@ const COLORS: Record<string, string> = {
   "gold": "#f59e0b",
   "roxo": "#6d28d9",
   "purple": "#6d28d9",
+};
+
+type Product = {
+  id: string;
+  model_key?: string;
+  model?: string;
+  brand: string;
+  name: string;
+  storage: string;
+  color?: string;
+  price: number;
+  image: string;
+  images?: string[];
 };
 
 /* ========================= SEO LITE (LOCAL) ========================= */
@@ -151,6 +164,49 @@ function ProductSEO({
   );
 }
 
+/* === utils de imagem === */
+function isJfif(src: string) {
+  return /\.jfif$/i.test(src || "");
+}
+
+function best(img?: string) {
+  if (!img) return "/placeholder.svg";
+  return img.startsWith("/") ? img : `/${img}`;
+}
+
+/* === tolera brand com erro "samsumg" === */
+function productBrand(p: Product): "apple" | "samsung" | "other" {
+  const b = norm(`${p.brand || ""} ${p.name || ""}`);
+  if (b.includes("apple") || b.includes("iphone")) return "apple";
+  if (b.includes("samsung") || b.includes("galaxy") || b.includes("samsumg")) return "samsung";
+  return "other";
+}
+
+/* ========= modal ========= */
+function Accordion({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-xl border bg-white">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-4 py-3 flex items-center justify-between"
+      >
+        <span className="font-medium">{title}</span>
+        <ChevronRight className={`h-4 w-4 transition ${open ? "rotate-90" : ""}`} />
+      </button>
+      {open ? <div className="px-4 pb-4 text-sm text-neutral-700">{children}</div> : null}
+    </div>
+  );
+}
+
 /* =================== Página Produto =================== */
 export default function ProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -158,15 +214,15 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   /* ---------- Resolve produto base e variações ---------- */
   const all = (productsData as any[]) || [];
-  const product = useMemo(() => {
+  const product = useMemo<Product | null>(() => {
     const byId = all.find((p) => idNoExt(p.id) === idNoExt(params.id));
     return byId || null;
   }, [all, params.id]);
 
-  const siblings = useMemo(() => {
+  const siblings = useMemo<Product[]>(() => {
     if (!product) return [];
     const key = (product as any).model_key || (product as any).model || "";
-    return all.filter((p) => (p.model_key || p.model) === key);
+    return all.filter((p) => (p.model_key || p.model) === key) as Product[];
   }, [all, product]);
 
   const storages = useMemo(
@@ -199,20 +255,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         norm(s.color) === norm(selectedColor) && parseStorage(s) === selectedStorage && s.image
     );
     const byColorOnly = siblings.find((s) => norm(s.color) === norm(selectedColor) && s.image);
-    return byColor?.image || byColorOnly?.image || product.images?.[0] || product.image || "/placeholder.svg";
+    return best(byColor?.image || byColorOnly?.image || product.images?.[0] || product.image);
   }, [siblings, selectedColor, selectedStorage, product]);
-  const mobileImages = useMemo(() => {
-    if (!product) return selectedImage ? [selectedImage] : [];
-    const base = (productsData as any[])
-      .filter((p) => (p as any).model_key === (product as any).model_key)
-      .map((p) => (p.image?.startsWith("/") ? p.image : `/${p.image}`))
-      .filter(Boolean);
-    const sel = selectedImage
-      ? (selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`)
-      : null;
-    const unique = new Set<string>([...(sel ? [sel] : []), ...base]);
-    return Array.from(unique);
-  }, [product, selectedImage]);
 
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
@@ -258,7 +302,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   if (!product) {
     return (
       <main className="container py-8">
-        <p className="text-zinc-600">Produto não encontrado.</p>
+        <p className="text-neutral-600">Produto não encontrado.</p>
       </main>
     );
   }
@@ -266,10 +310,28 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const promo = withCoupon(selectedPrice, 0.3);
   const parcela = Math.ceil(promo / 10);
 
+  /* ========= thumbnails (desktop) ========= */
+  const thumbs = useMemo(() => {
+    const list = [
+      product.image,
+      ...(product.images || []),
+      ...siblings
+        .filter((s) => s.color && parseStorage(s) === selectedStorage)
+        .map((s) => s.image),
+    ]
+      .filter(Boolean)
+      .map(best);
+
+    return Array.from(new Set(list));
+  }, [product, siblings, selectedStorage]);
+
+  const [thumbIdx, setThumbIdx] = useState(0);
+  const thumbSrc = thumbs[thumbIdx] || selectedImage;
+
   return (
     <>
       {/* Breadcrumb */}
-      <nav className="text-sm text-zinc-600">
+      <nav className="text-sm text-neutral-600">
         <ol className="flex items-center gap-1">
           <li>
             <Link href="/" className="hover:underline">
@@ -287,7 +349,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           <li>
             <ChevronRight className="h-4 w-4" />
           </li>
-          <li className="text-zinc-900">
+          <li className="text-neutral-900">
             {product.name} {selectedStorage} GB
           </li>
         </ol>
@@ -305,32 +367,41 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
       {/* GRID PRINCIPAL */}
       <section className="mt-4 lg:grid lg:grid-cols-2 lg:gap-8">
-        {/* Imagem principal */}
-        {/* MOBILE: carrossel (apenas em telas < sm) */}
-        <div className="sm:hidden">
-          <MobileCarousel images={mobileImages} />
-        </div>
+        {/* Imagem principal (desktop com thumbs à esquerda) */}
+        <div>
+          <div className="grid grid-cols-[72px_1fr] gap-3">
+            {/* thumbs */}
+            <div className="flex flex-col gap-2">
+              {thumbs.map((src, i) => (
+                <button
+                  key={i}
+                  onClick={() => setThumbIdx(i)}
+                  className={`rounded-xl border p-1 ${i === thumbIdx ? "border-neutral-900" : ""}`}
+                >
+                  <div className="h-16 w-16 grid place-items-center rounded-lg bg-white ring-1 ring-neutral-200 overflow-hidden">
+                    <Image src={src} alt={`thumb-${i}`} width={64} height={64} className="object-contain" unoptimized={isJfif(src)} />
+                  </div>
+                </button>
+              ))}
+            </div>
 
-        {/* DESKTOP: imagem estática (como você já tinha) */}
-        <div className="hidden sm:block">
-          <div className="rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
-            <div className="flex items-center justify-center rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-              <div
-                className="w-full flex items-center justify-center overflow-hidden"
-                style={{ height: "var(--prod-stage-h, 420px)" }}
-              >
-                <img
-                  src={selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`}
-                  alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
-                  style={{
-                    height: "var(--prod-img-h, 380px)",
-                    width: "auto",
-                    maxWidth: "none",
-                    objectFit: "contain",
-                  }}
-                  loading="eager"
-                  decoding="async"
-                />
+            {/* imagem grande */}
+            <div className="rounded-2xl border bg-white p-3">
+              <div className="flex items-center justify-center rounded-xl bg-white ring-1 ring-neutral-200 p-2">
+                <div
+                  className="w-full flex items-center justify-center overflow-hidden"
+                  style={{ height: "var(--prod-stage-h, 420px)" }}
+                >
+                  <Image
+                    src={thumbSrc}
+                    alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
+                    width={420}
+                    height={380}
+                    className="object-contain"
+                    unoptimized={isJfif(thumbSrc)}
+                    sizes="(min-width: 1024px) 420px, 100vw"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -338,18 +409,18 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
         {/* Conteúdo */}
         <div className="lg:col-span-1">
-          <h1 className="text-xl md:text-2xl font-semibold text-zinc-900">
+          <h1 className="text-xl md:text-2xl font-semibold text-neutral-900">
             {product.name} {selectedStorage} GB
           </h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-neutral-600">
             Escolha a capacidade e a cor disponíveis para o melhor preço.
           </p>
 
           {/* Preço */}
           <div className="mt-4 rounded-2xl border bg-white p-4">
-            <div className="text-sm text-zinc-600">à vista no boleto/PIX</div>
+            <div className="text-sm text-neutral-600">à vista no boleto/PIX</div>
             <div className="text-2xl font-semibold text-emerald-700">{fmt(promo)}</div>
-            <div className="mt-1 text-sm text-zinc-700">
+            <div className="mt-1 text-sm text-neutral-700">
               ou em até <b>10x de {fmt(parcela)}</b> sem juros
             </div>
           </div>
@@ -365,7 +436,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     key={s}
                     onClick={() => setSelectedStorage(s)}
                     className={`rounded-xl border px-3 py-1.5 text-sm font-medium ${
-                      active ? "border-zinc-900 bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50"
+                      active ? "border-neutral-900 bg-neutral-900 text-white" : "bg-white hover:bg-neutral-50"
                     }`}
                   >
                     {s} GB
@@ -388,8 +459,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                       onClick={() => setSelectedColor(label)}
                       className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium ${
                         active
-                          ? "border-zinc-900 bg-zinc-900 text-white"
-                          : "bg-white hover:bg-zinc-50"
+                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          : "bg-white hover:bg-neutral-50"
                       }`}
                       title={label}
                     >
@@ -407,10 +478,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           ) : null}
 
           {/* Ações */}
-          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+          <div className="mt-5 flex gap-3">
             <button
               onClick={addToCart}
-              className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 font-semibold shadow-sm"
+              className="inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 font-semibold shadow-sm"
             >
               <ShoppingCart className="h-5 w-5" />
               Adicionar ao carrinho
@@ -420,7 +491,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 addToCart();
                 router.push("/checkout");
               }}
-              className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl bg-zinc-900 hover:bg-black text-white px-5 py-3 font-semibold shadow-sm"
+              className="inline-flex items-center justify-center rounded-xl bg-neutral-900 hover:bg-black text-white px-5 py-3 font-semibold shadow-sm"
             >
               <CreditCard className="h-5 w-5" />
               Comprar
@@ -429,17 +500,17 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
           {/* Entrega / CEP */}
           <div className="mt-5 rounded-2xl border bg-white p-4">
-            <div className="flex items-center gap-2 text-zinc-800">
+            <div className="flex items-center gap-2 text-neutral-800">
               <Truck className="h-5 w-5" />
               <b>Entrega</b>
             </div>
 
             {frete ? (
-              <div className="mt-2 text-sm text-zinc-700">
+              <div className="mt-2 text-sm text-neutral-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <div>{frete.titulo}</div>
-                    <div className="text-zinc-500">{frete.prazo}</div>
+                    <div className="text-neutral-500">{frete.prazo}</div>
                   </div>
                   <div className="font-semibold">{fmt(frete.preco)}</div>
                 </div>
@@ -449,7 +520,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </div>
             ) : (
               <div className="mt-2">
-                <button onClick={() => setCepModal(true)} className="btn-secondary">
+                <button onClick={() => setCepModal(true)} className="btn-outline">
                   Calcular frete
                 </button>
               </div>
@@ -458,15 +529,15 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
           {/* Garantias/benefícios */}
           <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <li className="rounded-xl border bg-white p-3 text-sm text-zinc-700 flex items-start gap-2">
+            <li className="rounded-xl border bg-white p-3 text-sm text-neutral-700 flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
               Produto revisado e testado
             </li>
-            <li className="rounded-xl border bg-white p-3 text-sm text-zinc-700 flex items-start gap-2">
+            <li className="rounded-xl border bg-white p-3 text-sm text-neutral-700 flex items-start gap-2">
               <Shield className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
               Garantia de 90 dias
             </li>
-            <li className="rounded-xl border bg-white p-3 text-sm text-zinc-700 flex items-start gap-2">
+            <li className="rounded-xl border bg-white p-3 text-sm text-neutral-700 flex items-start gap-2">
               <FileText className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
               Nota fiscal
             </li>
@@ -479,17 +550,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         <DescriptionAndSpecs modelKey={product.model_key || product.model} />
       </section>
 
-      {/* ===== estilos locais (apenas ajustes de altura no mobile) ===== */}
+      {/* ===== estilos locais (altura base) ===== */}
       <style jsx global>{`
         :root {
           --prod-stage-h: 420px;
           --prod-img-h: 380px;
-        }
-        @media (max-width: 640px) {
-          :root {
-            --prod-stage-h: 300px;
-            --prod-img-h: 260px;
-          }
         }
       `}</style>
 
@@ -498,6 +563,24 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         open={cepModal}
         onClose={() => setCepModal(false)}
         onSelect={onFrete}
+      />
+
+      {/* script pequeno para reabrir modal (progressive enhancement) */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function(){
+              function openModal(){ var btn=document.getElementById('modal-open'); if(!btn) return; btn.click(); }
+              var btn;
+              function mount(){
+                btn = document.getElementById('modal-open');
+                if(btn){ btn.addEventListener('click', openModal); }
+              }
+              document.addEventListener('DOMContentLoaded', mount);
+              mount();
+            })();
+          `,
+        }}
       />
     </>
   );
@@ -537,7 +620,7 @@ function CepModal({
       setLoading(true);
       await safeDelay(350);
 
-      const fake: EnderecoViaCep = {
+      const fake = {
         cep: raw.replace(/(\d{5})(\d{3})/, "$1-$2"),
         logradouro: "Rua Exemplo",
         bairro: "Centro",
@@ -558,13 +641,13 @@ function CepModal({
   return (
     <div className="fixed inset-0 z-[90]">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200">
+      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl ring-1 ring-neutral-200">
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <div className="flex items-center gap-2 text-zinc-800">
+          <div className="flex items-center gap-2 text-neutral-800">
             <Truck className="h-5 w-5" />
             <b>Calcular frete</b>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-zinc-100" aria-label="Fechar">
+          <button onClick={onClose} className="rounded p-1 hover:bg-neutral-100" aria-label="Fechar">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -578,7 +661,7 @@ function CepModal({
               className="input w-full"
               maxLength={9}
             />
-            <button onClick={consultar} className="btn-secondary whitespace-nowrap">
+            <button onClick={consultar} className="btn-outline whitespace-nowrap">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calcular"}
             </button>
           </div>
