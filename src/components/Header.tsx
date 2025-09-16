@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
 import productsData from "@/data/products.json";
@@ -20,13 +20,14 @@ const norm = (v: unknown) =>
     .trim();
 
 const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
+
 const fmt = (n: number) =>
   Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
 /* ========= tipos ========= */
 type Product = { id: string; name: string; brand?: string; price?: number };
 
-/* ========= modelos do catálogo ========= */
+/* ========= extração de MODELOS diretamente do catálogo ========= */
 function appleModelLabel(name: string): string | null {
   const m =
     name.match(/iPhone\s+(SE(?:\s*\(\d{4}\))?|\d{2}(?:\s?(?:Plus|Pro|Pro Max))?)/i)?.[0] ||
@@ -34,11 +35,14 @@ function appleModelLabel(name: string): string | null {
   return m ? m.replace(/\s+/g, " ").trim() : null;
 }
 
+/** Galaxy A14, Galaxy A07, Galaxy S21, Galaxy Z Flip, Galaxy Z Fold… */
 function samsungModelLabel(name: string): string | null {
-  const z = name.match(/Galaxy\s+Z\s+(Flip|Fold)(?:\s*\d{0,2})?/i)?.[0];
-  if (z) return z.replace(/\s+/g, " ").trim();
+  const s1 = name.match(/Galaxy\s+Z\s+(Flip|Fold)(?:\s*\d{0,2})?/i)?.[0];
+  if (s1) return s1.replace(/\s+/g, " ").trim();
+
   const s2 = name.match(/Galaxy\s+(A|S)\s*0?\d{1,3}/i)?.[0];
   if (s2) {
+    // normaliza A7 -> A07
     return s2
       .replace(/(Galaxy\s+[AS]\s*)(\d{1})(?!\d)/i, (_a, p1, p2) => `${p1}0${p2}`)
       .replace(/\s+/g, " ")
@@ -47,7 +51,7 @@ function samsungModelLabel(name: string): string | null {
   return null;
 }
 
-/* === tolera brand com erro "samsumg" === */
+/* === tolera brand com erro ("samsumg") === */
 function productBrand(p: Product): "apple" | "samsung" | "other" {
   const b = norm(`${p.brand || ""} ${p.name || ""}`);
   if (b.includes("apple") || b.includes("iphone")) return "apple";
@@ -55,11 +59,12 @@ function productBrand(p: Product): "apple" | "samsung" | "other" {
   return "other";
 }
 
-/* ========= modal ========= */
+/* ========= modal “Minha conta” ========= */
 function AccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<any | null>(null);
-  const WA_NUMBER = "5599984905715";
+
+  const WA_NUMBER = "5599984905715"; // fixo (pedido do cliente)
 
   function buscar() {
     try {
@@ -119,7 +124,9 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
                 <ul className="mt-2 space-y-1">
                   {result.items.map((it: any, i: number) => (
                     <li key={i} className="flex items-center justify-between">
-                      <span className="truncate">{it.qty}x {it.name}</span>
+                      <span className="truncate">
+                        {it.qty}x {it.name}
+                      </span>
                       <span className="font-medium">{fmt(it.total)}</span>
                     </li>
                   ))}
@@ -162,6 +169,7 @@ export default function Header() {
     [items]
   );
 
+  // catálogo em memória
   const catalog = useMemo(() => productsData as Product[], []);
   const appleModels = useMemo(() => {
     const set = new Set<string>();
@@ -170,6 +178,7 @@ export default function Header() {
       const label = appleModelLabel(p.name || "");
       if (label) set.add(label);
     });
+    // ordena por número/variante
     return Array.from(set).sort((a, b) => {
       const an = Number(a.match(/\d{2,4}/)?.[0] || 0);
       const bn = Number(b.match(/\d{2,4}/)?.[0] || 0);
@@ -188,12 +197,18 @@ export default function Header() {
       const label = samsungModelLabel(p.name || "");
       if (label) set.add(label);
     });
+    // ordena por família (A,S, Z Flip/Fold) e número
     return Array.from(set).sort((a, b) => {
       const family = (s: string) =>
-        norm(s).includes("z flip") ? "Z1" :
-        norm(s).includes("z fold") ? "Z2" :
-        norm(s).includes("galaxy s") ? "S" : "A";
-      const fa = family(a), fb = family(b);
+        norm(s).includes("z flip")
+          ? "Z1"
+          : norm(s).includes("z fold")
+          ? "Z2"
+          : norm(s).includes("galaxy s")
+          ? "S"
+          : "A";
+      const fa = family(a),
+        fb = family(b);
       if (fa !== fb) return fa.localeCompare(fb);
       const an = Number(a.match(/\d{1,3}/)?.[0] || 0);
       const bn = Number(b.match(/\d{1,3}/)?.[0] || 0);
@@ -201,7 +216,7 @@ export default function Header() {
     });
   }, [catalog]);
 
-  // busca (mantém fluxo antigo)
+  // busca
   const [q, setQ] = useState("");
   function submitSearch(e?: React.FormEvent) {
     if (e) e.preventDefault();
@@ -214,15 +229,51 @@ export default function Header() {
     else router.push(`/ofertas`);
   }
 
-  // dropdowns desktop
+  // dropdowns desktop (com atraso no fechar)
   const [openDrop, setOpenDrop] = useState<"apple" | "samsung" | null>(null);
+  const closeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearClose = () => {
+    if (closeRef.current) {
+      clearTimeout(closeRef.current);
+      closeRef.current = null;
+    }
+  };
+  const openMenu = (k: "apple" | "samsung") => {
+    clearClose();
+    setOpenDrop(k);
+  };
+  const delayedClose = (k: "apple" | "samsung") => {
+    clearClose();
+    closeRef.current = setTimeout(() => {
+      setOpenDrop((v) => (v === k ? null : v));
+    }, 180); // ~0.18s para não sumir na transição
+  };
 
-  // (mantido, mas os links de âncora abaixo NÃO cancelam o comportamento padrão)
-  function scrollToOnHome(_hash: string) {}
+  // scroll anchor helper (para os itens de 2ª linha)
+  function scrollToOnHome(hash: string) {
+    const go = () => {
+      const el = document.getElementById(hash.replace("#", ""));
+      const header = document.getElementById("site-header");
+      const offset = (header?.offsetHeight ?? 90) + 12;
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+    };
+    if (pathname !== "/") {
+      router.push(`/${hash}`);
+      setTimeout(go, 60);
+    } else {
+      go();
+    }
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpenDrop(null);
+      if (e.key === "Escape") {
+        clearClose();
+        setOpenDrop(null);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -249,12 +300,17 @@ export default function Header() {
       </div>
 
       {/* barra principal */}
-      <header id="site-header" className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200">
+      <header
+        id="site-header"
+        className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200"
+      >
         <div className="mx-auto max-w-[1100px] px-4 py-3 flex items-center gap-3">
+          {/* menu mobile */}
           <button className="lg:hidden rounded-lg p-2 hover:bg-zinc-100" aria-label="Menu">
             <Menu className="h-5 w-5" />
           </button>
 
+          {/* logo */}
           <Link href="/" className="font-extrabold tracking-tight text-zinc-900">
             pro<span className="text-emerald-600">Store</span>
           </Link>
@@ -278,6 +334,7 @@ export default function Header() {
             </div>
           </form>
 
+          {/* ações (desktop) */}
           <nav className="hidden lg:flex items-center gap-2">
             <button
               onClick={() => (document.getElementById("modal-open") as HTMLButtonElement)?.click()}
@@ -313,28 +370,40 @@ export default function Header() {
           </nav>
         </div>
 
-        {/* linha 2 */}
+        {/* segunda linha + dropdowns alimentados pelo CATÁLOGO */}
         <div className="hidden md:block border-t border-zinc-200">
           <div className="mx-auto max-w-[1100px] px-4">
             <ul className="relative flex items-center gap-6 text-[14px] py-2 text-zinc-700">
               {/* iPhone */}
               <li
                 className="relative"
-                onMouseEnter={() => setOpenDrop("apple")}
-                onMouseLeave={() => setOpenDrop((v) => (v === "apple" ? null : v))}
+                onMouseEnter={() => openMenu("apple")}
+                onMouseLeave={() => delayedClose("apple")}
               >
                 <button className="inline-flex items-center gap-1 hover:text-zinc-900">
                   iPhone <ChevronDown className="h-3.5 w-3.5" />
                 </button>
-                {openDrop === "apple" && (
-                  <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
+
+                {openDrop === "apple" && appleModels.length > 0 && (
+                  <div
+                    className="absolute left-0 top-full mt-2 z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl"
+                    onMouseEnter={clearClose}
+                    onMouseLeave={() => delayedClose("apple")}
+                  >
                     <div className="grid grid-cols-2 gap-2">
                       {appleModels.slice(0, 12).map((label) => (
-                        <Link key={label} href={`/ofertas?brand=apple&model=${encodeURIComponent(label)}`} className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100">
+                        <Link
+                          key={label}
+                          href={`/ofertas?brand=apple&model=${encodeURIComponent(label)}`}
+                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                        >
                           {label}
                         </Link>
                       ))}
-                      <Link href="/ofertas?brand=apple" className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50">
+                      <Link
+                        href="/ofertas?brand=apple"
+                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
+                      >
                         Ver todos os iPhones
                       </Link>
                     </div>
@@ -345,21 +414,33 @@ export default function Header() {
               {/* Samsung */}
               <li
                 className="relative"
-                onMouseEnter={() => setOpenDrop("samsung")}
-                onMouseLeave={() => setOpenDrop((v) => (v === "samsung" ? null : v))}
+                onMouseEnter={() => openMenu("samsung")}
+                onMouseLeave={() => delayedClose("samsung")}
               >
                 <button className="inline-flex items-center gap-1 hover:text-zinc-900">
                   Samsung <ChevronDown className="h-3.5 w-3.5" />
                 </button>
-                {openDrop === "samsung" && (
-                  <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
+
+                {openDrop === "samsung" && samsungModels.length > 0 && (
+                  <div
+                    className="absolute left-0 top-full mt-2 z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl"
+                    onMouseEnter={clearClose}
+                    onMouseLeave={() => delayedClose("samsung")}
+                  >
                     <div className="grid grid-cols-2 gap-2">
                       {samsungModels.slice(0, 14).map((label) => (
-                        <Link key={label} href={`/ofertas?brand=samsung&model=${encodeURIComponent(label)}`} className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100">
+                        <Link
+                          key={label}
+                          href={`/ofertas?brand=samsung&model=${encodeURIComponent(label)}`}
+                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                        >
                           {label}
                         </Link>
                       ))}
-                      <Link href="/ofertas?brand=samsung" className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50">
+                      <Link
+                        href="/ofertas?brand=samsung"
+                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
+                      >
                         Ver todos Samsung
                       </Link>
                     </div>
@@ -367,13 +448,48 @@ export default function Header() {
                 )}
               </li>
 
-              {/* Âncoras — sem onClick, sem preventDefault */}
-              <li><a className="hover:text-zinc-900" href="/#mais-buscados">Mais buscados</a></li>
-              <li><a className="hover:text-zinc-900" href="/#bbb">BBB do dia</a></li>
-              <li><a className="hover:text-zinc-900" href="/#destaques">Ofertas em destaque</a></li>
+              {/* âncoras da home */}
+              <li>
+                <a
+                  className="hover:text-zinc-900"
+                  href="/#mais-buscados"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToOnHome("#mais-buscados");
+                  }}
+                >
+                  Mais buscados
+                </a>
+              </li>
+              <li>
+                <a
+                  className="hover:text-zinc-900"
+                  href="/#bbb"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToOnHome("#bbb");
+                  }}
+                >
+                  BBB do dia
+                </a>
+              </li>
+              <li>
+                <a
+                  className="hover:text-zinc-900"
+                  href="/#destaques"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToOnHome("#destaques");
+                  }}
+                >
+                  Ofertas em destaque
+                </a>
+              </li>
 
               <li className="ml-auto">
-                <Link href="/checkout" className="hover:text-zinc-900">Checkout</Link>
+                <Link href="/checkout" className="hover:text-zinc-900">
+                  Checkout
+                </Link>
               </li>
             </ul>
           </div>
@@ -381,13 +497,22 @@ export default function Header() {
       </header>
 
       {/* modal (fora do header para não cortar o overlay) */}
-      <AccountModal open={false} onClose={() => {}} />
+      <AccountModal
+        open={false /* abre clicando no botão acima (id=modal-open) */}
+        onClose={() => {}}
+      />
+      {/* usamos o botão para abrir o modal controlado (sem estado global) */}
       <script
         dangerouslySetInnerHTML={{
           __html: `
             (function() {
-              var btn;
+              var modal, btn;
               function openModal(){
+                if(!modal){
+                  var container = document.createElement('div');
+                  container.id = 'account-modal-root';
+                  document.body.appendChild(container);
+                }
                 window.dispatchEvent(new CustomEvent('open-account-modal'));
               }
               function mount(){
