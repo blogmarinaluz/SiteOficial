@@ -80,3 +80,9 @@ ul.bullets li:before{ content:'•'; position:absolute; left:0; }
   --img-h-apple: 236px;
   --img-scale-apple: 1.06;
 }
+/* ===== Só 2 colunas no MOBILE, sem tocar no desktop ===== */
+@media (max-width: 640px) {
+  .two-cols-mobile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
