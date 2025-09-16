@@ -14,11 +14,9 @@ import {
   Minus,
   Trash2,
   Check,
-  ChevronRight,
 } from "lucide-react";
 
 /* ====================== Helpers imagem ====================== */
-// normaliza caminho para sempre começar com "/"
 function normalizeSrc(src?: string): string {
   if (!src) return "/";
   return src.startsWith("/") ? src : `/${src}`;
@@ -55,6 +53,21 @@ type Frete = {
   valor: number;
 };
 
+type Order = {
+  code: string;
+  items: Array<{
+    id: string;
+    name: string;
+    qty: number;
+    price: number;
+    total: number;
+  }>;
+  subtotal: number;
+  discount: number;
+  total: number;
+  createdAt: string; // ISO
+};
+
 /* ====================== UI util ====================== */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -69,24 +82,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 /* ====================== Pagamentos (mesmo conteúdo) ====================== */
 const pagamentos = [
-  {
-    id: "pix",
-    label: "Pix à vista (recomendado)",
-    desc: "Confirmação imediata e 30% OFF",
-    icon: QrCode,
-  },
-  {
-    id: "boleto",
-    label: "Boleto à vista",
-    desc: "Compensação em até 2 dias úteis e 30% OFF",
-    icon: Receipt,
-  },
-  {
-    id: "cartao",
-    label: "Cartão de crédito",
-    desc: "Em até 10x sem juros",
-    icon: CreditCard,
-  },
+  { id: "pix", label: "Pix à vista (recomendado)", desc: "Confirmação imediata e 30% OFF", icon: QrCode },
+  { id: "boleto", label: "Boleto à vista", desc: "Compensação em até 2 dias úteis e 30% OFF", icon: Receipt },
+  { id: "cartao", label: "Cartão de crédito", desc: "Em até 10x sem juros", icon: CreditCard },
 ];
 
 /* ====================== Item da lista (memo) ====================== */
@@ -141,7 +139,9 @@ const CartItemRow = memo(function CartItemRow({
           className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
           aria-label="Diminuir"
         >
-          <Minus className="h-4 w-4" />
+          <Plus className="hidden" />
+          <span className="sr-only">Diminuir</span>
+          −
         </button>
         <span className="w-6 text-center text-sm font-medium">{it.qty}</span>
         <button
@@ -149,7 +149,7 @@ const CartItemRow = memo(function CartItemRow({
           className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
           aria-label="Aumentar"
         >
-          <Plus className="h-4 w-4" />
+          +
         </button>
 
         <button
@@ -172,7 +172,6 @@ const CartItemRow = memo(function CartItemRow({
 /* ====================== CEP / Frete (fake) ====================== */
 function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [cep, setCep] = useState("");
-  const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
   const [opcoes, setOpcoes] = useState<Frete[] | null>(null);
@@ -183,42 +182,29 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
     if (saved) setCep(saved);
   }, [open]);
 
-  async function consultar() {
-    try {
-      setLoading(true);
-      setErro(null);
-
-      const v = cep.replace(/\D/g, "");
-      if (v.length !== 8) {
-        setErro("CEP inválido");
-        setEndereco(null);
-        setOpcoes(null);
-        return;
-      }
-
-      // simulação offline
-      const fake: EnderecoViaCep = {
-        cep: v.replace(/(\d{5})(\d{3})/, "$1-$2"),
-        logradouro: "Rua Exemplo",
-        bairro: "Centro",
-        localidade: "Cidade",
-        uf: "SP",
-      };
-      setEndereco(fake);
-
-      const opts: Frete[] = [
-        { tipo: "economico", prazo: "5 a 8 dias úteis", valor: 29.9 },
-        { tipo: "expresso", prazo: "2 a 4 dias úteis", valor: 49.9 },
-        { tipo: "retira", prazo: "Retire amanhã", valor: 0 },
-      ];
-      setOpcoes(opts);
-
-      localStorage.setItem("prostore:cep", v);
-    } catch (e) {
-      setErro("Não foi possível calcular o frete agora.");
-    } finally {
-      setLoading(false);
+  function consultar() {
+    setErro(null);
+    const v = (cep || "").replace(/\D/g, "");
+    if (v.length !== 8) {
+      setErro("CEP inválido");
+      setEndereco(null);
+      setOpcoes(null);
+      return;
     }
+    const fake: EnderecoViaCep = {
+      cep: v.replace(/(\d{5})(\d{3})/, "$1-$2"),
+      logradouro: "Rua Exemplo",
+      bairro: "Centro",
+      localidade: "Cidade",
+      uf: "SP",
+    };
+    setEndereco(fake);
+    setOpcoes([
+      { tipo: "economico", prazo: "5 a 8 dias úteis", valor: 29.9 },
+      { tipo: "expresso", prazo: "2 a 4 dias úteis", valor: 49.9 },
+      { tipo: "retira", prazo: "Retire amanhã", valor: 0 },
+    ]);
+    localStorage.setItem("prostore:cep", v);
   }
 
   return (
@@ -263,35 +249,166 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
 export default function CheckoutPage() {
   const { items, increase, decrease, remove, clear } = useCart();
 
-  // ====== callbacks estáveis (evitam re-render de itens) ======
+  // ===== Admin (oculto ao público) =====
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [waNumber, setWaNumber] = useState<string>("");
+
+  useEffect(() => {
+    try {
+      const isLocal = window.location.hostname === "localhost";
+      const isAdminParam = new URLSearchParams(window.location.search).has("admin");
+      setShowAdmin(isLocal || isAdminParam);
+
+      const savedWa = localStorage.getItem("prostore:wa");
+      if (savedWa) setWaNumber(savedWa);
+    } catch {}
+  }, []);
+
+  // ===== callbacks estáveis =====
   const onDec = useCallback((id: string) => decrease(id), [decrease]);
   const onInc = useCallback((id: string) => increase(id), [increase]);
   const onRemove = useCallback((id: string) => remove(id), [remove]);
   const onClear = useCallback(() => clear(), [clear]);
 
-  // ====== derivados memorizados ======
-  const count = useMemo(
-    () => (items ?? []).reduce((acc, i) => acc + (i.qty || 0), 0),
-    [items]
-  );
-
+  // ===== derivados =====
   const subtotal = useMemo(
-    () =>
-      (items ?? []).reduce((acc, i) => {
-        const p = Number(i.price || 0);
-        const q = Number(i.qty || 0);
-        return acc + p * q;
-      }, 0),
+    () => (items ?? []).reduce((acc, i) => acc + (Number(i.price || 0) * Number(i.qty || 0)), 0),
     [items]
   );
-
   const desconto = useMemo(() => subtotal * 0.3, [subtotal]); // 30% OFF
   const total = useMemo(() => subtotal - desconto, [subtotal, desconto]);
-
   const allFreeShipping = useMemo(
     () => (items ?? []).length > 0 && (items ?? []).every((i) => !!i.freeShipping),
     [items]
   );
+
+  // ===== pedido via WhatsApp =====
+  function generateOrderCode(): string {
+    const dt = new Date();
+    const pad2 = (n: number) => String(n).padStart(2, "0");
+    const date = `${dt.getFullYear()}${pad2(dt.getMonth() + 1)}${pad2(dt.getDate())}`;
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `PS-${date}-${rand}`;
+  }
+
+  function saveOrderLocal(order: Order) {
+    const key = "prostore:orders";
+    let arr: Order[] = [];
+    try {
+      arr = JSON.parse(localStorage.getItem(key) || "[]");
+    } catch {
+      arr = [];
+    }
+    arr.push(order);
+    localStorage.setItem(key, JSON.stringify(arr));
+    localStorage.setItem("prostore:lastOrder", JSON.stringify(order));
+  }
+
+  function formatCurrency(n: number) {
+    return Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+  }
+
+  function buildWhatsappUrl(order: Order): string {
+    const lines: string[] = [];
+    lines.push("📦 *Novo pedido*");
+    lines.push(`Código: *${order.code}*`);
+    lines.push("");
+    lines.push("*Itens:*");
+    order.items.forEach((it) => {
+      lines.push(`• ${it.qty}x ${it.name} — ${formatCurrency(it.price)} (subtotal ${formatCurrency(it.total)})`);
+    });
+    lines.push("");
+    lines.push(`Subtotal: ${formatCurrency(order.subtotal)}`);
+    lines.push(`Cupom (30% OFF): - ${formatCurrency(order.discount)}`);
+    lines.push(`*Total:* ${formatCurrency(order.total)}`);
+    const text = encodeURIComponent(lines.join("\n"));
+
+    // número salvo (somente dígitos, com DDI, ex: 55DDDNUMERO)
+    const raw = (waNumber || "").replace(/\D/g, "");
+    if (raw) return `https://wa.me/${raw}?text=${text}`;
+    return `https://wa.me/?text=${text}`;
+  }
+
+  function finalizarPedido() {
+    if (!items || items.length === 0) return;
+
+    const code = generateOrderCode();
+    const order: Order = {
+      code,
+      items: items.map((i) => ({
+        id: i.id,
+        name: i.name,
+        qty: i.qty,
+        price: Number(i.price || 0),
+        total: Number(i.price || 0) * Number(i.qty || 0),
+      })),
+      subtotal,
+      discount: desconto,
+      total,
+      createdAt: new Date().toISOString(),
+    };
+
+    // salva na base local
+    try {
+      saveOrderLocal(order);
+    } catch {}
+
+    // abre WhatsApp
+    const url = buildWhatsappUrl(order);
+    window.open(url, "_blank", "noopener,noreferrer");
+
+    // opcional: manter itens no carrinho para conferência. Se quiser limpar, descomente:
+    // clear();
+  }
+
+  // ===== Admin: ver pedidos / exportar / salvar número WA =====
+  const [orders, setOrders] = useState<Order[]>([]);
+  useEffect(() => {
+    if (!showAdmin) return;
+    try {
+      const arr = JSON.parse(localStorage.getItem("prostore:orders") || "[]");
+      setOrders(Array.isArray(arr) ? arr : []);
+    } catch {
+      setOrders([]);
+    }
+  }, [showAdmin]);
+
+  function exportOrdersCsv() {
+    try {
+      const header = ["code", "createdAt", "name", "qty", "price", "itemTotal", "subtotal", "discount", "total"];
+      const rows: string[][] = [];
+      orders.forEach((o) => {
+        o.items.forEach((it) => {
+          rows.push([
+            o.code,
+            o.createdAt,
+            it.name,
+            String(it.qty),
+            String(it.price).replace(".", ","),
+            String(it.total).replace(".", ","),
+            String(o.subtotal).replace(".", ","),
+            String(o.discount).replace(".", ","),
+            String(o.total).replace(".", ","),
+          ]);
+        });
+      });
+      const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pedidos-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {}
+  }
+
+  function saveWaNumber() {
+    const onlyDigits = (waNumber || "").replace(/\D/g, "");
+    localStorage.setItem("prostore:wa", onlyDigits);
+    setWaNumber(onlyDigits);
+    alert("Número do WhatsApp salvo!");
+  }
 
   return (
     <>
@@ -334,6 +451,62 @@ export default function CheckoutPage() {
               ))}
             </div>
           </Section>
+
+          {/* Painel Admin local/privado */}
+          {showAdmin && (
+            <Section title="Admin (visível só em localhost ou ?admin=1)">
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="text-neutral-700">WhatsApp (DDI+DDD+Número):</label>
+                  <input
+                    value={waNumber}
+                    onChange={(e) => setWaNumber(e.target.value)}
+                    placeholder="5599984905715"
+                    className="input w-56"
+                  />
+                  <button onClick={saveWaNumber} className="btn-primary">Salvar número</button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={exportOrdersCsv} className="btn-secondary">Exportar pedidos (CSV)</button>
+                  <button
+                    onClick={() => { localStorage.removeItem("prostore:orders"); setOrders([]); }}
+                    className="rounded-lg border border-neutral-200 bg-white px-3 py-2 font-medium hover:bg-neutral-50"
+                  >
+                    Limpar base local
+                  </button>
+                </div>
+
+                <div className="mt-2 max-h-64 overflow-auto rounded border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-neutral-50 text-neutral-700">
+                      <tr>
+                        <th className="p-2 text-left">Código</th>
+                        <th className="p-2 text-left">Data</th>
+                        <th className="p-2 text-left">Itens</th>
+                        <th className="p-2 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.slice().reverse().map((o) => (
+                        <tr key={o.code} className="border-t">
+                          <td className="p-2 font-medium">{o.code}</td>
+                          <td className="p-2">{new Date(o.createdAt).toLocaleString()}</td>
+                          <td className="p-2">
+                            {o.items.map((it) => `${it.qty}x ${it.name}`).join(" • ")}
+                          </td>
+                          <td className="p-2 text-right font-semibold">{br(o.total)}</td>
+                        </tr>
+                      ))}
+                      {orders.length === 0 && (
+                        <tr><td className="p-2 text-neutral-500" colSpan={4}>Sem pedidos salvos ainda.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Section>
+          )}
         </div>
 
         {/* COLUNA DIREITA */}
@@ -362,10 +535,7 @@ export default function CheckoutPage() {
                         <div className="flex-1 text-xs">
                           <div className="truncate">{it.name}</div>
                           <div className="text-neutral-500">
-                            {it.qty}x •{" "}
-                            {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                              (it.price || 0)
-                            )}
+                            {it.qty}x • {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((it.price || 0))}
                           </div>
                         </div>
                         <div className="text-sm font-semibold">
@@ -387,10 +557,7 @@ export default function CheckoutPage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-neutral-600">Cupom (30% OFF)</span>
                 <span className="font-medium text-emerald-700">
-                  −{" "}
-                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                    desconto
-                  )}
+                  − {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(desconto)}
                 </span>
               </div>
 
@@ -420,12 +587,12 @@ export default function CheckoutPage() {
                   >
                     Ver carrinho
                   </Link>
-                  <Link
-                    href="/checkout"
+                  <button
+                    onClick={finalizarPedido}
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 whitespace-nowrap"
                   >
                     Finalizar
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
