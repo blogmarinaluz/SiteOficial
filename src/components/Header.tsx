@@ -36,19 +36,29 @@ function appleModelLabel(name: string): string | null {
   return m ? m.replace(/\s+/g, " ").trim() : null;
 }
 
-/** Galaxy A14, Galaxy A07, Galaxy S21, Galaxy Z Flip, Galaxy Z Fold… */
+/** Galaxy/Samsung A|S|Z …  — aceita "Samsung A14", "Samsung Galaxy A14", "Galaxy A14" */
 function samsungModelLabel(name: string): string | null {
-  const s1 = name.match(/Galaxy\s+Z\s+(Flip|Fold)(?:\s*\d{0,2})?/i)?.[0];
-  if (s1) return s1.replace(/\s+/g, " ").trim();
+  const txt = name.replace(/\s+/g, " ").trim();
 
-  const s2 = name.match(/Galaxy\s+(A|S)\s*0?\d{1,3}/i)?.[0];
-  if (s2) {
-    // normaliza A7 -> A07
-    return s2
-      .replace(/(Galaxy\s+[AS]\s*)(\d{1})(?!\d)/i, (_a, p1, p2) => `${p1}0${p2}`)
-      .replace(/\s+/g, " ")
-      .trim();
+  // Z Flip / Z Fold (com ou sem número)
+  const z = txt.match(/(?:Samsung\s+)?(?:Galaxy\s+)?Z\s+(Flip|Fold)\s*\d{0,2}/i)?.[0];
+  if (z) {
+    // Garante prefixo "Galaxy"
+    const normZ = z.replace(/^\s*Samsung\s+/i, "").replace(/^\s*(Galaxy\s+)?/i, "Galaxy ");
+    return normZ.replace(/\s+/g, " ").trim();
   }
+
+  // Séries A e S com número (aceita 1 ou 2 dígitos com opcional zero à esquerda)
+  const as = txt.match(/(?:Samsung\s+)?(?:Galaxy\s+)?(A|S)\s*0?\d{1,3}/i)?.[0];
+  if (as) {
+    const m = as.match(/(A|S)\s*0?(\d{1,3})/i);
+    if (m) {
+      const serie = m[1].toUpperCase();
+      const num = m[2].padStart(2, "0"); // A7 -> A07
+      return `Galaxy ${serie}${num}`;
+    }
+  }
+
   return null;
 }
 
@@ -200,7 +210,7 @@ export default function Header() {
       const label = samsungModelLabel(p.name || "");
       if (label) set.add(label);
     });
-    // ordena por família (A,S, Z Flip/Fold) e número
+    // ordena por família e número
     return Array.from(set).sort((a, b) => {
       const family = (s: string) =>
         norm(s).includes("z flip")
@@ -231,30 +241,9 @@ export default function Header() {
   // dropdowns desktop
   const [openDrop, setOpenDrop] = useState<"apple" | "samsung" | null>(null);
 
-  // scroll anchor helper (para os itens de 2ª linha)
-  function scrollToOnHome(hash: string) {
-    const go = () => {
-      const el = document.getElementById(hash.replace("#", ""));
-      const header = document.getElementById("site-header");
-      const offset = (header?.offsetHeight ?? 90) + 12;
-      if (el) {
-        const top = el.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top, behavior: "smooth" });
-      }
-    };
-    if (pathname !== "/") {
-      router.push(`/${hash}`);
-      setTimeout(go, 60);
-    } else {
-      go();
-    }
-  }
-
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setOpenDrop(null);
-      }
+      if (e.key === "Escape") setOpenDrop(null);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -420,42 +409,21 @@ export default function Header() {
                 )}
               </li>
 
-              {/* âncoras da home */}
+              {/* âncoras: links diretos com hash (funciona na home e fora dela) */}
               <li>
-                <a
-                  className="hover:text-zinc-900"
-                  href="/#mais-buscados"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToOnHome("#mais-buscados");
-                  }}
-                >
+                <Link href="/#mais-buscados" className="hover:text-zinc-900">
                   Mais buscados
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  className="hover:text-zinc-900"
-                  href="/#bbb"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToOnHome("#bbb");
-                  }}
-                >
+                <Link href="/#bbb" className="hover:text-zinc-900">
                   BBB do dia
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  className="hover:text-zinc-900"
-                  href="/#destaques"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToOnHome("#destaques");
-                  }}
-                >
+                <Link href="/#destaques" className="hover:text-zinc-900">
                   Ofertas em destaque
-                </a>
+                </Link>
               </li>
 
               <li className="ml-auto">
