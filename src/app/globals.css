@@ -12,6 +12,8 @@ body{ @apply bg-white text-zinc-900; }
 .btn-primary{ @apply btn bg-accent text-white hover:opacity-90; }
 .btn-outline{ @apply btn border border-zinc-300 hover:bg-zinc-50; }
 
+/* (restante do seu CSS global original permanece aqui) */
+
 .card{ @apply rounded-2xl border border-zinc-200 p-4 shadow-sm bg-white; }
 .badge{ @apply text-xs px-2 py-1 rounded-full bg-zinc-100; }
 
