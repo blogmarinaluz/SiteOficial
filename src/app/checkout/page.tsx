@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
-import { br, withCoupon } from "@/lib/format";
+import { br } from "@/lib/format";
 import {
   Truck,
   CreditCard,
@@ -17,7 +17,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-// ---- helpers para caminho de imagem (não alteram layout/tamanho) ----
+/* ====================== Helpers imagem ====================== */
+// normaliza caminho para sempre começar com "/"
 function normalizeSrc(src?: string): string {
   if (!src) return "/";
   return src.startsWith("/") ? src : `/${src}`;
@@ -25,6 +26,18 @@ function normalizeSrc(src?: string): string {
 function isJfif(src: string): boolean {
   return /\.jfif($|\?|\#)/i.test(src);
 }
+
+/* ====================== Tipos ====================== */
+type CartItem = {
+  id: string;
+  name: string;
+  image?: string;
+  price?: number;
+  freeShipping?: boolean;
+  qty: number;
+  color?: string;
+  storage?: string | number;
+};
 
 type EnderecoViaCep = {
   cep: string;
@@ -38,11 +51,23 @@ type EnderecoViaCep = {
 
 type Frete = {
   tipo: "expresso" | "economico" | "retira";
-  prazo: string; // ex: "3 a 5 dias úteis"
-  valor: number; // em reais
+  prazo: string;
+  valor: number;
 };
 
-// Simulação de opções de pagamento
+/* ====================== UI util ====================== */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-neutral-200 bg-white">
+      <div className="border-b border-neutral-200 px-5 py-4">
+        <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
+/* ====================== Pagamentos (mesmo conteúdo) ====================== */
 const pagamentos = [
   {
     id: "pix",
@@ -64,28 +89,98 @@ const pagamentos = [
   },
 ];
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/* ====================== Item da lista (memo) ====================== */
+const CartItemRow = memo(function CartItemRow({
+  it,
+  onDec,
+  onInc,
+  onRemove,
+}: {
+  it: CartItem;
+  onDec: (id: string) => void;
+  onInc: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const src = normalizeSrc(it.image);
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white">
-      <div className="border-b border-neutral-200 px-5 py-4">
-        <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
+    <li className="flex items-center gap-3 py-3">
+      <div className="h-12 w-12 rounded-lg overflow-hidden border bg-white">
+        {it.image ? (
+          <Image
+            src={src}
+            alt={it.name}
+            width={48}
+            height={48}
+            className="h-full w-full object-contain"
+            unoptimized={isJfif(src)}
+            sizes="48px"
+          />
+        ) : (
+          <div className="h-full w-full grid place-items-center text-xs text-neutral-400">
+            Sem imagem
+          </div>
+        )}
       </div>
-      <div className="p-5">{children}</div>
-    </section>
+
+      <div className="flex-1 min-w-0">
+        <Link href={`/produto/${it.id}`} className="block text-sm font-medium hover:underline">
+          {it.name}
+        </Link>
+        <div className="mt-0.5 text-xs text-neutral-500 whitespace-nowrap overflow-hidden text-ellipsis">
+          {it.color ? <>Cor: {it.color}</> : null}
+          {it.color && it.storage ? " • " : null}
+          {it.storage ? <> {String(it.storage)} GB</> : null}
+          {" • "}
+          {it.qty}x
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onDec(it.id)}
+          className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+          aria-label="Diminuir"
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+        <span className="w-6 text-center text-sm font-medium">{it.qty}</span>
+        <button
+          onClick={() => onInc(it.id)}
+          className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+          aria-label="Aumentar"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+
+        <button
+          onClick={() => onRemove(it.id)}
+          className="ml-2 rounded p-1.5 text-neutral-500 hover:bg-neutral-100"
+          aria-label="Remover item"
+          title="Remover item"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="ml-3 w-[120px] text-right text-sm font-semibold">
+        {br((it.price || 0) * (it.qty || 0))}
+      </div>
+    </li>
   );
-}
+});
 
+/* ====================== Página ====================== */
 export default function CheckoutPage() {
-  const {
-    items,
-    increase,
-    decrease,
-    remove,
-    clear,
-  } = useCart();
-
+  const { items, increase, decrease, remove, clear } = useCart();
   const [tab, setTab] = useState<"entrega" | "pagamento">("entrega");
 
+  // ====== callbacks estáveis (evitam re-render de itens) ======
+  const onDec = useCallback((id: string) => decrease(id), [decrease]);
+  const onInc = useCallback((id: string) => increase(id), [increase]);
+  const onRemove = useCallback((id: string) => remove(id), [remove]);
+  const onClear = useCallback(() => clear(), [clear]);
+
+  // ====== derivados memorizados ======
   const count = useMemo(
     () => (items ?? []).reduce((acc, i) => acc + (i.qty || 0), 0),
     [items]
@@ -101,32 +196,16 @@ export default function CheckoutPage() {
     [items]
   );
 
-  const desconto = subtotal * 0.3;
-  const total = subtotal - desconto;
+  const desconto = useMemo(() => subtotal * 0.3, [subtotal]); // 30% OFF
+  const total = useMemo(() => subtotal - desconto, [subtotal, desconto]);
 
   const allFreeShipping = useMemo(
     () => (items ?? []).length > 0 && (items ?? []).every((i) => !!i.freeShipping),
     [items]
   );
 
-  // --- CEP / frete simulado (mantido igual ao seu) ---
-  type EnderecoViaCep = {
-    cep: string;
-    logradouro: string;
-    complemento?: string;
-    bairro: string;
-    localidade: string;
-    uf: string;
-    ddd?: string;
-  };
-
-  function FreteForm({
-    open,
-    onClose,
-  }: {
-    open: boolean;
-    onClose: () => void;
-  }) {
+  /* ===== CEP / frete fake (idêntico ao anterior) ===== */
+  function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
     const [cep, setCep] = useState("");
     const [loading, setLoading] = useState(false);
     const [erro, setErro] = useState<string | null>(null);
@@ -222,69 +301,13 @@ export default function CheckoutPage() {
             {items && items.length > 0 ? (
               <ul className="divide-y divide-neutral-200">
                 {items.map((it) => (
-                  <li key={it.id} className="flex items-center gap-3 py-3">
-                    <div className="h-12 w-12 rounded-lg overflow-hidden border bg-white">
-                      {it.image ? (
-                        <Image
-                          src={normalizeSrc(it.image)}
-                          alt={it.name}
-                          width={48}
-                          height={48}
-                          className="h-full w-full object-contain"
-                          unoptimized={isJfif(normalizeSrc(it.image))}
-                          sizes="48px"
-                        />
-                      ) : (
-                        <div className="h-full w-full grid place-items-center text-xs text-neutral-400">
-                          Sem imagem
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <Link href={`/produto/${it.id}`} className="block text-sm font-medium hover:underline">
-                        {it.name}
-                      </Link>
-                      <div className="mt-0.5 text-xs text-neutral-500">
-                        {it.color ? <>Cor: {it.color}</> : null}
-                        {it.color && (it as any).storage ? " • " : null}
-                        {(it as any).storage ? <> {String((it as any).storage)} GB</> : null}
-                        {" • "}
-                        {it.qty}x
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => decrease(it.id)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-                        aria-label="Diminuir"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-6 text-center text-sm font-medium">{it.qty}</span>
-                      <button
-                        onClick={() => increase(it.id)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-                        aria-label="Aumentar"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-
-                      <button
-                        onClick={() => remove(it.id)}
-                        className="ml-2 rounded p-1.5 text-neutral-500 hover:bg-neutral-100"
-                        aria-label="Remover item"
-                        title="Remover item"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <div className="ml-3 w-[120px] text-right text-sm font-semibold">
-                      {br((it.price || 0) * (it.qty || 0))}
-                    </div>
-                  </li>
+                  <CartItemRow
+                    key={it.id}
+                    it={it as CartItem}
+                    onDec={onDec}
+                    onInc={onInc}
+                    onRemove={onRemove}
+                  />
                 ))}
               </ul>
             ) : (
@@ -318,100 +341,29 @@ export default function CheckoutPage() {
             <div className="space-y-3">
               {items && items.length > 0 ? (
                 <ul className="space-y-2">
-                  {items.map((it) => (
-                    <li key={it.id} className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-md overflow-hidden border bg-white">
-                        {it.image ? (
-                          <Image
-                            src={normalizeSrc(it.image)}
-                            alt={it.name}
-                            width={40}
-                            height={40}
-                            className="h-full w-full object-contain"
-                            unoptimized={isJfif(normalizeSrc(it.image))}
-                            sizes="40px"
-                          />
-                        ) : null}
-                      </div>
-                      <div className="flex-1 text-xs">
-                        <div className="truncate">{it.name}</div>
-                        <div className="text-neutral-500">
-                          {it.qty}x •{" "}
-                          {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                            (it.price || 0)
-                          )}
+                  {items.map((it) => {
+                    const src = normalizeSrc(it.image);
+                    return (
+                      <li key={it.id} className="flex items-center gap-2">
+                        <div className="h-10 w-10 rounded-md overflow-hidden border bg-white">
+                          {it.image ? (
+                            <Image
+                              src={src}
+                              alt={it.name}
+                              width={40}
+                              height={40}
+                              className="h-full w-full object-contain"
+                              unoptimized={isJfif(src)}
+                              sizes="40px"
+                            />
+                          ) : null}
                         </div>
-                      </div>
-                      <div className="text-sm font-semibold">
-                        {br((it.price || 0) * (it.qty || 0))}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-600">Subtotal</span>
-                <span className="font-medium text-neutral-900">
-                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(subtotal)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-600">Cupom (30% OFF)</span>
-                <span className="font-medium text-emerald-700">
-                  −{" "}
-                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                    desconto
-                  )}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-base font-semibold">
-                <span>Total</span>
-                <span>
-                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)}
-                </span>
-              </div>
-
-              {allFreeShipping && (
-                <div className="text-xs font-medium text-emerald-700">Frete grátis</div>
-              )}
-
-              <div className="pt-2">
-                <Link href="/analise-boleto" className="btn-primary w-full inline-flex items-center justify-center gap-2">
-                  Finalizar pedido
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-          </Section>
-
-          <div className="note">
-            <div className="trust">
-              <Check className="h-4 w-4 text-emerald-600" />
-              <span>Ambiente seguro</span>
-            </div>
-            <p className="mt-2 text-sm">
-              Seus dados são protegidos e utilizados somente para processar seu pedido.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* estilos locais do checkout (mantidos) */}
-      <style jsx global>{`
-        .input { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; }
-        .input:focus { box-shadow: 0 0 0 2px rgba(16, 185, 129, .25); border-color: #10b981; }
-        .tab { display:flex; align-items:center; padding:8px 12px; gap:10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; }
-        .tab-active { border-color:#10b981; box-shadow:0 0 0 2px rgba(16,185,129,.12) inset; }
-        .btn-primary { background:#10b981; color:#fff; padding:12px 16px; border-radius:10px; font-weight:600; }
-        .btn-primary:hover { background:#0e9f6e; }
-        .btn-secondary { background:#111827; color:#fff; padding:12px 16px; border-radius:10px; font-weight:500; }
-        .btn-secondary:hover { background:#000; }
-        .note { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px; font-size:13px; color:#374151; }
-        .trust { display:flex; align-items:center; gap:8px; font-weight:500; color:#111827; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; background:#fff; }
-      `}</style>
-    </>
-  );
-}
+                        <div className="flex-1 text-xs">
+                          <div className="truncate">{it.name}</div>
+                          <div className="text-neutral-500">
+                            {it.qty}x •{" "}
+                            {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                              (it.price || 0)
+                            )}
+                          </div>
+                        </div>
