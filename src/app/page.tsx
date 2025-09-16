@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import Testimonials from "@/components/Testimonials";
 import productsData from "@/data/products.json";
@@ -91,7 +91,7 @@ export default function Page() {
   const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
-    // Só mostra o botão de exportar no localhost ou com ?admin=1
+    // Botão de exportação só aparece no localhost ou com ?admin=1
     try {
       const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost";
       const isAdminParam =
@@ -164,38 +164,51 @@ export default function Page() {
 
   return (
     <main className="space-y-10">
-      {/* 1) Hero simples (inalterado) */}
+      {/* 1) Hero — visual premium e discreto */}
       <section className="mx-auto max-w-[1100px] px-4">
-        <div className="rounded-2xl bg-gradient-to-r from-black to-zinc-900 px-6 py-8 text-white shadow-md ring-1 ring-zinc-800">
-          <div className="grid gap-5 md:grid-cols-[1.4fr,1fr] md:items-center">
+        <div className="relative overflow-hidden rounded-3xl ring-1 ring-zinc-800/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black shadow-lg">
+          {/* Brilho radial suave em verde (somente estética) */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_300px_at_15%_15%,rgba(16,185,129,0.14),transparent)]" />
+          <div className="relative grid gap-6 md:grid-cols-[1.35fr,1fr] md:items-center px-6 py-8">
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight">
+              <h1 className="text-3xl md:text-[34px] font-extrabold tracking-tight text-white">
                 Apple & Samsung com 30% OFF
               </h1>
-              <p className="mt-1 text-sm text-white/80">
+              <p className="mt-2 text-[15px] text-white/80">
                 Pague no PIX ou Boleto (30% OFF). Até 10x sem juros no cartão.
               </p>
-              <div className="mt-4 flex gap-2">
+              <div className="mt-5 flex gap-2">
                 <Link
                   href="/ofertas"
-                  className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                  className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
                 >
                   Ver ofertas
                 </Link>
                 <Link
                   href="/mais-buscados"
-                  className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-medium hover:bg-white/10"
+                  className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
                 >
                   Mais buscados
                 </Link>
               </div>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/90">
-              <p className="mb-1 font-semibold">Condição exclusiva</p>
-              <ul className="list-disc space-y-1 pl-5">
-                <li>30% OFF no PIX/Boleto</li>
-                <li>Em até 10x sem juros</li>
-                <li>Frete grátis em produtos selecionados</li>
+
+            {/* Caixa de destaques mais sutil */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/90">
+              <p className="mb-2 font-semibold">Condição exclusiva</p>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+                  <span>30% OFF no PIX/Boleto</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+                  <span>Em até 10x sem juros</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+                  <span>Frete grátis em produtos selecionados</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -248,7 +261,7 @@ export default function Page() {
 
       {/* 6) Newsletter — refinada, funcional e sem botão público de export */}
       <section className="mt-12">
-        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-650 to-emerald-700 px-6 py-8 shadow-md ring-1 ring-emerald-900/20">
+        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-8 shadow-lg ring-1 ring-emerald-900/20">
           <div className="grid gap-6 md:grid-cols-[1.2fr,1fr] md:items-center">
             <div>
               <h3 className="text-2xl font-extrabold text-white">Inscreva-se na nossa Newsletter</h3>
@@ -257,7 +270,7 @@ export default function Page() {
               </p>
             </div>
 
-            {/* Campos + botão (UI mais elegante e compacta) */}
+            {/* Campos + botão */}
             <form
               onSubmit={onNewsletterSubmit}
               className="flex flex-col gap-3 sm:flex-row sm:items-center"
