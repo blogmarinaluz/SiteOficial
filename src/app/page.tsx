@@ -1,3 +1,4 @@
+// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -235,7 +236,7 @@ export default function Page() {
       const header = ["name", "email", "createdAt"];
       const rows = arr.map((o: any) => [o.name || "", o.email || "", o.createdAt || ""]);
       const csv = [header, ...rows]
-        .map((r) => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .map((r) => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(",")))
         .join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
@@ -276,7 +277,7 @@ export default function Page() {
                   Ver ofertas
                 </Link>
                 <Link
-                  href="/mais-buscados"
+                  href="/#mais-buscados"  // ✅ muda para hash correto
                   className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
                 >
                   Mais buscados
@@ -305,8 +306,8 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 2) Celulares em oferta */}
-      <section className="mx-auto max-w-[1100px] px-4">
+      {/* 2) Celulares em oferta  → ID + scroll-mt para compensar o header fixo */}
+      <section id="mais-buscados" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Celulares em Oferta</h2>
           <Link href="/ofertas" className="text-sm text-emerald-700 hover:underline">
@@ -318,8 +319,8 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 3) Ofertas do dia | BBB */}
-      <section className="mx-auto max-w-[1100px] px-4">
+      {/* 3) Ofertas do dia | BBB  → ID + scroll-mt */}
+      <section id="bbb" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas do dia | BBB = Bom, Bonito e Barato</h2>
           <Link href="/bbb-do-dia" className="text-sm text-emerald-700 hover:underline">
@@ -336,13 +337,10 @@ export default function Page() {
         <Testimonials />
       </section>
 
-      {/* 5) Ofertas em destaque */}
-      <section className="mx-auto max-w-[1100px] px-4">
+      {/* 5) Ofertas em destaque  → ID + scroll-mt */}
+      <section id="destaques" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
-          <Link href="/mais-buscados" className="text-sm text-emerald-700 hover:underline">
-            Ver mais
-          </Link>
         </div>
         <div className="mt-4">
           <ProductGrid products={destaqueSafe as any[]} />
