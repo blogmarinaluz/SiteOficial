@@ -54,11 +54,8 @@ const parseStorage = (p: P): number | undefined => {
 
 const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
 
-/* =================== CORES ================
-   Mapa com nomes PT/EN e variações (sem acento).
-   Procuro por INCLUSÃO do token no nome da cor. */
+/* =================== CORES =================== */
 const COLOR_HEX: Record<string, string> = {
-  // tons escuros
   "preto": "#0f172a",
   "black": "#0f172a",
   "grafite": "#2f3133",
@@ -66,37 +63,21 @@ const COLOR_HEX: Record<string, string> = {
   "meia-noite": "#0b1220",
   "meia noite": "#0b1220",
   "midnight": "#0b1220",
-  "titânio preto": "#1f2937",
-  "titanium black": "#1f2937",
-  // claros/metal
   "branco": "#f9fafb",
   "estelar": "#f2f2ea",
   "starlight": "#f2f2ea",
   "prata": "#e5e7eb",
   "silver": "#e5e7eb",
-  "titânio branco": "#e5e7eb",
-  "titanium white": "#e5e7eb",
-  // azuis
   "azul": "#1e3a8a",
   "blue": "#1e3a8a",
-  "azul claro": "#60a5fa",
-  "sky": "#60a5fa",
-  // verdes
   "verde": "#065f46",
   "green": "#065f46",
-  "verde claro": "#34d399",
-  "mint": "#34d399",
-  // vermelhos/rosa
   "vermelho": "#991b1b",
   "red": "#991b1b",
   "rosa": "#db2777",
   "pink": "#db2777",
-  // amarelos/dourados
   "dourado": "#f59e0b",
   "gold": "#f59e0b",
-  "amarelo": "#fbbf24",
-  "yellow": "#fbbf24",
-  // roxos
   "roxo": "#6d28d9",
   "purple": "#6d28d9",
 };
@@ -124,14 +105,13 @@ type EnderecoViaCep = {
 
 type Frete = {
   tipo: "expresso" | "economico" | "retira";
-  prazo: string; // ex: "3 a 5 dias úteis"
-  valor: number; // em reais
+  prazo: string;
+  valor: number;
 };
 
 const normalizeCep = (v: string) => (v || "").replace(/\D/g, "");
 const safeDelay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/* Modal isolado dentro do arquivo — não depende de nada externo */
 function CepModal({
   open,
   onClose,
@@ -165,9 +145,8 @@ function CepModal({
 
     try {
       setLoading(true);
-      await safeDelay(350); // efeito visual
+      await safeDelay(350);
 
-      // simulação offline
       const fake: EnderecoViaCep = {
         cep: raw.replace(/(\d{5})(\d{3})/, "$1-$2"),
         logradouro: "Rua Exemplo",
@@ -185,7 +164,7 @@ function CepModal({
       setOpcoes(opts);
 
       localStorage.setItem("prostore:cep", raw);
-    } catch (e) {
+    } catch {
       setErro("Não foi possível calcular o frete agora.");
     } finally {
       setLoading(false);
@@ -269,7 +248,7 @@ function CepModal({
   );
 }
 
-/* =================== SEO helpers (não alteram layout) =================== */
+/* =================== SEO helpers =================== */
 function absUrl(path: string): string {
   if (!path) return "";
   try {
@@ -280,7 +259,6 @@ function absUrl(path: string): string {
     return path;
   }
 }
-
 function setMetaTag(name: string, content: string) {
   if (typeof document === "undefined") return;
   let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
@@ -291,7 +269,6 @@ function setMetaTag(name: string, content: string) {
   }
   el.setAttribute("content", content);
 }
-
 function setCanonical(url: string) {
   if (typeof document === "undefined") return;
   let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
@@ -302,7 +279,6 @@ function setCanonical(url: string) {
   }
   link.setAttribute("href", url);
 }
-
 function setMetaProperty(prop: string, content: string) {
   if (typeof document === "undefined") return;
   let el = document.querySelector(`meta[property="${prop}"]`) as HTMLMetaElement | null;
@@ -336,7 +312,6 @@ function ProductSEO({
     selectedStorage ? ` ${selectedStorage}GB` : ""
   } com 30% OFF no PIX. Frete grátis em itens selecionados.`.trim();
 
-  // JSON-LD Product
   const productJson = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -355,7 +330,6 @@ function ProductSEO({
     },
   };
 
-  // JSON-LD Breadcrumb
   const breadcrumbJson = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -375,7 +349,6 @@ function ProductSEO({
     ],
   };
 
-  // Head tags (title/description/canonical + OG/Twitter)
   useEffect(() => {
     try {
       document.title = title;
@@ -422,7 +395,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     );
   }, [data, params.id]);
 
-  // Irmãos por model_key (ou nome sem "GB")
   const siblings = useMemo(() => {
     const key = product.model_key || stripStorageFromName(product.name).toLowerCase();
     return data.filter(
@@ -432,7 +404,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     );
   }, [data, product]);
 
-  // Cores disponíveis com fallback
   const colorOptions = useMemo(() => {
     const cols = new Set<string>();
     siblings.forEach((s) => {
@@ -443,7 +414,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     return arr.length ? arr.map((name) => ({ name })) : [{ name: "Preto" }];
   }, [siblings]);
 
-  // Storages disponíveis (ordem crescente com fallback)
   const storageOptions = useMemo(() => {
     const set = new Set<number>();
     siblings.forEach((s) => {
@@ -454,11 +424,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     return arr.length ? arr : [128, 256, 512];
   }, [siblings]);
 
-  // Seleção atual
   const [selectedColor, setSelectedColor] = useState<string>(() => colorOptions[0]?.name || "Preto");
   const [selectedStorage, setSelectedStorage] = useState<number>(() => storageOptions[0] || 128);
 
-  // imagem principal
   const selectedImage = useMemo(() => {
     const byColor = siblings.find(
       (s) =>
@@ -468,7 +436,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     return byColor?.image || byColorOnly?.image || product.images?.[0] || product.image || "/placeholder.svg";
   }, [siblings, selectedColor, selectedStorage, product]);
 
-  // preço por GB
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
     if (sameStorage.length) {
@@ -477,7 +444,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     return product.price;
   }, [siblings, selectedStorage, product]);
 
-  // CEP / frete visual
   const [cepModal, setCepModal] = useState(false);
   const [cep, setCep] = useState<string | undefined>(undefined);
   const [frete, setFrete] = useState<Frete | undefined>(undefined);
@@ -486,7 +452,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     setFrete(payload.frete);
   }
 
-  // Adicionar ao carrinho
   function addToCart() {
     cart.add(
       {
@@ -504,7 +469,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   return (
     <>
-      {/* SEO (não altera layout) */}
+      {/* SEO */}
       <ProductSEO
         product={product}
         paramsId={params.id}
@@ -515,7 +480,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       />
 
       <div className="container mx-auto px-4">
-        {/* Breadcrumb simples */}
+        {/* Breadcrumb */}
         <nav className="my-4 text-sm text-zinc-500">
           <Link href="/" className="hover:underline">
             Início
@@ -524,20 +489,23 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           <span className="text-zinc-700 font-medium">{product.name}</span>
         </nav>
 
-        {/* Cabeçalho produto */}
-        <div className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
+        {/* ====== LAYOUT AJUSTADO ======
+             - Coluna da imagem com largura CONTROLADA no desktop
+             - Some o "vazio" à direita pois a coluna não expande além de ~460px
+        */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(320px,460px)_1fr]">
           {/* Imagem principal */}
-          <div className="rounded-2xl border bg-white p-3">
+          <div className="rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
             <div className="flex items-center justify-center rounded-xl bg-white ring-1 ring-zinc-200 p-2">
               <div
                 className="w-full flex items-center justify-center overflow-hidden"
-                style={{ height: "var(--prod-stage-h, 360px)" }}
+                style={{ height: "var(--prod-stage-h, 420px)" }}
               >
                 <img
                   src={selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`}
                   alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
                   style={{
-                    height: "var(--prod-img-h, 320px)",
+                    height: "var(--prod-img-h, 380px)",
                     width: "auto",
                     maxWidth: "none",
                     objectFit: "contain",
@@ -550,7 +518,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conteúdo */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-1">
             <h1 className="text-xl md:text-2xl font-semibold text-zinc-900">
               {product.name} {selectedStorage} GB
             </h1>
@@ -684,7 +652,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           }}
         />
 
-        {/* Quem viu, viu também */}
+        {/* Outras variações */}
         {siblings && siblings.length > 1 && (
           <section className="mt-10">
             <h3 className="text-lg font-semibold">Outras variações</h3>
@@ -729,6 +697,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       {/* estilos locais só para esta página */}
       <style jsx global>{`
         .prose :where(p):not(:where([class~=not-prose] *)) { margin: .25rem 0; }
+        @media (min-width: 1024px) {
+          /* permite ajuste fácil do palco em desktop */
+          :root {
+            --prod-stage-h: 420px;
+            --prod-img-h: 380px;
+          }
+        }
       `}</style>
 
       {/* Modal CEP */}
