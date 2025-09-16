@@ -22,7 +22,9 @@ export default function ProductGrid({
   }
 
   return (
-    <div className={`mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 ${className}`}>
+    // ⚠️ Nada de grid-cols aqui — deixo o desktop intacto.
+    // "two-cols-mobile" só tem efeito até 640px (ver CSS abaixo).
+    <div className={`mt-5 grid gap-4 two-cols-mobile ${className}`}>
       {list.map((p) => (
         <Link
           key={p.id}
@@ -36,7 +38,7 @@ export default function ProductGrid({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={p.image.startsWith("/") ? p.image : `/${p.image}`}
+                src={p.image?.startsWith("/") ? p.image : `/${p.image}`}
                 alt={p.name}
                 loading="lazy"
                 decoding="async"
@@ -50,7 +52,9 @@ export default function ProductGrid({
           </div>
 
           <div className="mt-2 space-y-1">
-            <div className="text-xs uppercase text-zinc-500">{p.brand}</div>
+            {p.brand ? (
+              <div className="text-xs uppercase text-zinc-500">{p.brand}</div>
+            ) : null}
             <div className="text-sm font-semibold text-zinc-900">{p.name}</div>
           </div>
         </Link>
