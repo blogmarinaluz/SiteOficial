@@ -47,21 +47,11 @@ type EnderecoViaCep = {
   ddd?: string;
 };
 
-type Frete = {
-  tipo: "expresso" | "economico" | "retira";
-  prazo: string;
-  valor: number;
-};
+type Frete = { tipo: "expresso" | "economico" | "retira"; prazo: string; valor: number };
 
 type Order = {
   code: string;
-  items: Array<{
-    id: string;
-    name: string;
-    qty: number;
-    price: number;
-    total: number;
-  }>;
+  items: Array<{ id: string; name: string; qty: number; price: number; total: number }>;
   subtotal: number;
   discount: number;
   total: number;
@@ -139,8 +129,6 @@ const CartItemRow = memo(function CartItemRow({
           className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
           aria-label="Diminuir"
         >
-          <Plus className="hidden" />
-          <span className="sr-only">Diminuir</span>
           −
         </button>
         <span className="w-6 text-center text-sm font-medium">{it.qty}</span>
@@ -223,9 +211,7 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
       {erro && <div className="note">{erro}</div>}
       {endereco && (
         <div className="note">
-          <div>
-            <strong>Endereço:</strong> {endereco.logradouro}, {endereco.bairro} - {endereco.localidade}/{endereco.uf}
-          </div>
+          <div><strong>Endereço:</strong> {endereco.logradouro}, {endereco.bairro} - {endereco.localidade}/{endereco.uf}</div>
         </div>
       )}
       {opcoes && (
@@ -245,13 +231,62 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
+/* ====================== Supabase (REST do navegador) ====================== */
+async function supabaseInsert(order: Order) {
+  try {
+    const url = localStorage.getItem("prostore:supa:url") || "";
+    const key = localStorage.getItem("prostore:supa:key") || "";
+    const table = localStorage.getItem("prostore:supa:table") || "orders";
+    if (!url || !key) return;
+
+    const payload = {
+      code: order.code,
+      subtotal: order.subtotal,
+      discount: order.discount,
+      total: order.total,
+      created_at: order.createdAt,
+      items: order.items, // jsonb na tabela
+    };
+
+    await fetch(`${url}/rest/v1/${table}`, {
+      method: "POST",
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // silencioso no cliente
+  }
+}
+
+async function supabaseList(limit = 50) {
+  const url = localStorage.getItem("prostore:supa:url") || "";
+  const key = localStorage.getItem("prostore:supa:key") || "";
+  const table = localStorage.getItem("prostore:supa:table") || "orders";
+  if (!url || !key) return [];
+  const res = await fetch(`${url}/rest/v1/${table}?select=*&order=created_at.desc&limit=${limit}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 /* ====================== Página ====================== */
 export default function CheckoutPage() {
   const { items, increase, decrease, remove, clear } = useCart();
 
-  // ===== Admin (oculto ao público) =====
+  // ===== Admin oculto =====
   const [showAdmin, setShowAdmin] = useState(false);
   const [waNumber, setWaNumber] = useState<string>("");
+
+  const [supaUrl, setSupaUrl] = useState("");
+  const [supaKey, setSupaKey] = useState("");
+  const [supaTable, setSupaTable] = useState("orders");
+  const [remoteOrders, setRemoteOrders] = useState<any[]>([]);
 
   useEffect(() => {
     try {
@@ -261,6 +296,13 @@ export default function CheckoutPage() {
 
       const savedWa = localStorage.getItem("prostore:wa");
       if (savedWa) setWaNumber(savedWa);
+
+      const u = localStorage.getItem("prostore:supa:url") || "";
+      const k = localStorage.getItem("prostore:supa:key") || "";
+      const t = localStorage.getItem("prostore:supa:table") || "orders";
+      setSupaUrl(u);
+      setSupaKey(k);
+      setSupaTable(t);
     } catch {}
   }, []);
 
@@ -275,8 +317,8 @@ export default function CheckoutPage() {
     () => (items ?? []).reduce((acc, i) => acc + (Number(i.price || 0) * Number(i.qty || 0)), 0),
     [items]
   );
-  const desconto = useMemo(() => subtotal * 0.3, [subtotal]); // 30% OFF
-  const total = useMemo(() => subtotal - desconto, [subtotal, desconto]);
+  const discount = useMemo(() => subtotal * 0.3, [subtotal]); // 30% OFF
+  const total = useMemo(() => subtotal - discount, [subtotal, discount]);
   const allFreeShipping = useMemo(
     () => (items ?? []).length > 0 && (items ?? []).every((i) => !!i.freeShipping),
     [items]
@@ -304,32 +346,31 @@ export default function CheckoutPage() {
     localStorage.setItem("prostore:lastOrder", JSON.stringify(order));
   }
 
-  function formatCurrency(n: number) {
+  function fmt(n: number) {
     return Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
   }
 
   function buildWhatsappUrl(order: Order): string {
     const lines: string[] = [];
-    lines.push("🛒 *Novo pedido*");
+    lines.push("📦 *Novo pedido*");
     lines.push(`Código: *${order.code}*`);
     lines.push("");
     lines.push("*Itens:*");
     order.items.forEach((it) => {
-      lines.push(`• ${it.qty}x ${it.name} — ${formatCurrency(it.price)} (subtotal ${formatCurrency(it.total)})`);
+      lines.push(`• ${it.qty}x ${it.name} — ${fmt(it.price)} (subtotal ${fmt(it.total)})`);
     });
     lines.push("");
-    lines.push(`Subtotal: ${formatCurrency(order.subtotal)}`);
-    lines.push(`Cupom (30% OFF): - ${formatCurrency(order.discount)}`);
-    lines.push(`*Total:* ${formatCurrency(order.total)}`);
+    lines.push(`Subtotal: ${fmt(order.subtotal)}`);
+    lines.push(`Cupom (30% OFF): - ${fmt(order.discount)}`);
+    lines.push(`*Total:* ${fmt(order.total)}`);
     const text = encodeURIComponent(lines.join("\n"));
 
-    // número salvo (somente dígitos, com DDI, ex: 55DDDNUMERO)
     const raw = (waNumber || "").replace(/\D/g, "");
     if (raw) return `https://wa.me/${raw}?text=${text}`;
     return `https://wa.me/?text=${text}`;
   }
 
-  function finalizarPedido() {
+  async function finalizarPedido() {
     if (!items || items.length === 0) return;
 
     const code = generateOrderCode();
@@ -343,71 +384,45 @@ export default function CheckoutPage() {
         total: Number(i.price || 0) * Number(i.qty || 0),
       })),
       subtotal,
-      discount: desconto,
+      discount,
       total,
       createdAt: new Date().toISOString(),
     };
 
-    // salva na base local
-    try {
-      saveOrderLocal(order);
-    } catch {}
-
-    // abre WhatsApp
+    // salva local + supabase (se configurado) + abre WhatsApp
+    try { saveOrderLocal(order); } catch {}
+    try { await supabaseInsert(order); } catch {}
     const url = buildWhatsappUrl(order);
     window.open(url, "_blank", "noopener,noreferrer");
-
-    // opcional: manter itens no carrinho para conferência. Se quiser limpar, descomente:
-    // clear();
   }
 
-  // ===== Admin: ver pedidos / exportar / salvar número WA =====
-  const [orders, setOrders] = useState<Order[]>([]);
-  useEffect(() => {
-    if (!showAdmin) return;
-    try {
-      const arr = JSON.parse(localStorage.getItem("prostore:orders") || "[]");
-      setOrders(Array.isArray(arr) ? arr : []);
-    } catch {
-      setOrders([]);
-    }
-  }, [showAdmin]);
-
-  function exportOrdersCsv() {
-    try {
-      const header = ["code", "createdAt", "name", "qty", "price", "itemTotal", "subtotal", "discount", "total"];
-      const rows: string[][] = [];
-      orders.forEach((o) => {
-        o.items.forEach((it) => {
-          rows.push([
-            o.code,
-            o.createdAt,
-            it.name,
-            String(it.qty),
-            String(it.price).replace(".", ","),
-            String(it.total).replace(".", ","),
-            String(o.subtotal).replace(".", ","),
-            String(o.discount).replace(".", ","),
-            String(o.total).replace(".", ","),
-          ]);
-        });
-      });
-      const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `pedidos-${new Date().toISOString().slice(0,10)}.csv`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {}
-  }
-
-  function saveWaNumber() {
+  // ===== Admin: salvar configs, listar e exportar pedidos do Supabase =====
+  function saveWa() {
     const onlyDigits = (waNumber || "").replace(/\D/g, "");
     localStorage.setItem("prostore:wa", onlyDigits);
     setWaNumber(onlyDigits);
-    alert("Número do WhatsApp salvo!");
+  }
+  function saveSupa() {
+    localStorage.setItem("prostore:supa:url", supaUrl.trim().replace(/\/+$/, ""));
+    localStorage.setItem("prostore:supa:key", supaKey.trim());
+    localStorage.setItem("prostore:supa:table", supaTable.trim() || "orders");
+  }
+  async function loadRemote() {
+    const rows = await supabaseList(100);
+    setRemoteOrders(Array.isArray(rows) ? rows : []);
+  }
+  function exportRemoteCsv() {
+    const header = ["code","created_at","subtotal","discount","total","items"];
+    const rows = remoteOrders.map((o:any)=>[
+      o.code, o.created_at, String(o.subtotal).replace(".",","), String(o.discount).replace(".",","), String(o.total).replace(".",","), JSON.stringify(o.items)
+    ]);
+    const csv = [header,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `pedidos-remotos-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -455,26 +470,23 @@ export default function CheckoutPage() {
           {/* Painel Admin local/privado */}
           {showAdmin && (
             <Section title="Admin (visível só em localhost ou ?admin=1)">
-              <div className="space-y-3 text-sm">
+              <div className="space-y-4 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="text-neutral-700">WhatsApp (DDI+DDD+Número):</label>
-                  <input
-                    value={waNumber}
-                    onChange={(e) => setWaNumber(e.target.value)}
-                    placeholder="5599984905715"
-                    className="input w-56"
-                  />
-                  <button onClick={saveWaNumber} className="btn-primary">Salvar número</button>
+                  <input value={waNumber} onChange={(e) => setWaNumber(e.target.value)} placeholder="55XXXXXXXXXXX" className="input w-56" />
+                  <button onClick={saveWa} className="btn-primary">Salvar número</button>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={exportOrdersCsv} className="btn-secondary">Exportar pedidos (CSV)</button>
-                  <button
-                    onClick={() => { localStorage.removeItem("prostore:orders"); setOrders([]); }}
-                    className="rounded-lg border border-neutral-200 bg-white px-3 py-2 font-medium hover:bg-neutral-50"
-                  >
-                    Limpar base local
-                  </button>
+                <div className="grid gap-2">
+                  <div className="font-medium text-neutral-800">Supabase (REST)</div>
+                  <input value={supaUrl} onChange={(e)=>setSupaUrl(e.target.value)} className="input" placeholder="https://xxxx.supabase.co" />
+                  <input value={supaKey} onChange={(e)=>setSupaKey(e.target.value)} className="input" placeholder="Anon/Public Key" />
+                  <input value={supaTable} onChange={(e)=>setSupaTable(e.target.value)} className="input" placeholder="orders" />
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={saveSupa} className="btn-primary">Salvar config</button>
+                    <button onClick={loadRemote} className="btn-secondary">Listar pedidos remotos</button>
+                    <button onClick={exportRemoteCsv} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 font-medium hover:bg-neutral-50">Exportar CSV</button>
+                  </div>
                 </div>
 
                 <div className="mt-2 max-h-64 overflow-auto rounded border">
@@ -483,23 +495,19 @@ export default function CheckoutPage() {
                       <tr>
                         <th className="p-2 text-left">Código</th>
                         <th className="p-2 text-left">Data</th>
-                        <th className="p-2 text-left">Itens</th>
                         <th className="p-2 text-right">Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.slice().reverse().map((o) => (
+                      {remoteOrders.map((o:any)=>(
                         <tr key={o.code} className="border-t">
                           <td className="p-2 font-medium">{o.code}</td>
-                          <td className="p-2">{new Date(o.createdAt).toLocaleString()}</td>
-                          <td className="p-2">
-                            {o.items.map((it) => `${it.qty}x ${it.name}`).join(" • ")}
-                          </td>
-                          <td className="p-2 text-right font-semibold">{br(o.total)}</td>
+                          <td className="p-2">{new Date(o.created_at).toLocaleString()}</td>
+                          <td className="p-2 text-right font-semibold">{br(Number(o.total||0))}</td>
                         </tr>
                       ))}
-                      {orders.length === 0 && (
-                        <tr><td className="p-2 text-neutral-500" colSpan={4}>Sem pedidos salvos ainda.</td></tr>
+                      {remoteOrders.length===0 && (
+                        <tr><td className="p-2 text-neutral-500" colSpan={3}>Nenhum pedido remoto carregado.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -521,26 +529,14 @@ export default function CheckoutPage() {
                       <li key={it.id} className="flex items-center gap-2">
                         <div className="h-10 w-10 rounded-md overflow-hidden border bg-white">
                           {it.image ? (
-                            <Image
-                              src={src}
-                              alt={it.name}
-                              width={40}
-                              height={40}
-                              className="h-full w-full object-contain"
-                              unoptimized={isJfif(src)}
-                              sizes="40px"
-                            />
+                            <Image src={src} alt={it.name} width={40} height={40} className="h-full w-full object-contain" unoptimized={isJfif(src)} sizes="40px" />
                           ) : null}
                         </div>
                         <div className="flex-1 text-xs">
                           <div className="truncate">{it.name}</div>
-                          <div className="text-neutral-500">
-                            {it.qty}x • {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((it.price || 0))}
-                          </div>
+                          <div className="text-neutral-500">{it.qty}x • {fmt(Number(it.price || 0))}</div>
                         </div>
-                        <div className="text-sm font-semibold">
-                          {br((it.price || 0) * (it.qty || 0))}
-                        </div>
+                        <div className="text-sm font-semibold">{br((it.price || 0) * (it.qty || 0))}</div>
                       </li>
                     );
                   })}
@@ -549,50 +545,27 @@ export default function CheckoutPage() {
 
               <div className="flex items-center justify-between text-sm">
                 <span className="text-neutral-600">Subtotal</span>
-                <span className="font-medium text-neutral-900">
-                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(subtotal)}
-                </span>
+                <span className="font-medium text-neutral-900">{fmt(subtotal)}</span>
               </div>
 
               <div className="flex items-center justify-between text-sm">
                 <span className="text-neutral-600">Cupom (30% OFF)</span>
-                <span className="font-medium text-emerald-700">
-                  − {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(desconto)}
-                </span>
+                <span className="font-medium text-emerald-700">− {fmt(discount)}</span>
               </div>
 
               <div className="flex items-center justify-between text-base font-semibold">
                 <span>Total</span>
-                <span>
-                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)}
-                </span>
+                <span>{fmt(total)}</span>
               </div>
 
-              {allFreeShipping && (
-                <div className="text-xs font-medium text-emerald-700">Frete grátis</div>
-              )}
+              {allFreeShipping && <div className="text-xs font-medium text-emerald-700">Frete grátis</div>}
 
               <div className="pt-2 flex items-center justify-between">
-                <button
-                  onClick={onClear}
-                  className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-                >
-                  Limpar
-                </button>
+                <button onClick={onClear} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">Limpar</button>
 
                 <div className="flex items-center gap-2">
-                  <Link
-                    href="/carrinho"
-                    className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50 whitespace-nowrap"
-                  >
-                    Ver carrinho
-                  </Link>
-                  <button
-                    onClick={finalizarPedido}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 whitespace-nowrap"
-                  >
-                    Finalizar
-                  </button>
+                  <Link href="/carrinho" className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50 whitespace-nowrap">Ver carrinho</Link>
+                  <button onClick={finalizarPedido} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 whitespace-nowrap">Finalizar</button>
                 </div>
               </div>
             </div>
@@ -603,9 +576,7 @@ export default function CheckoutPage() {
               <Check className="h-4 w-4 text-emerald-600" />
               <span>Ambiente seguro</span>
             </div>
-            <p className="mt-2 text-sm">
-              Seus dados são protegidos e utilizados somente para processar seu pedido.
-            </p>
+            <p className="mt-2 text-sm">Seus dados são protegidos e utilizados somente para processar seu pedido.</p>
           </div>
         </div>
       </div>
