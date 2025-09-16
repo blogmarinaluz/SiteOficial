@@ -112,14 +112,14 @@ export default function ProductCard({ product }: Props) {
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Link
           href={`/produto/${product.id}`}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+          className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
         >
           Ver detalhes
         </Link>
 
         <button
           onClick={() => add(product, 1)}
-          className="inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm font-semibold text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700"
+          className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700"
         >
           Adicionar
         </button>
