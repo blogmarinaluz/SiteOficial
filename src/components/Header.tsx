@@ -14,46 +14,44 @@ import {
 /* ========= utils ========= */
 const norm = (v: unknown) =>
   String(v ?? "")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
     .trim();
 
-type Product = {
-  id: string;
-  name: string;
-  brand?: string;
-  price: number;
-  pricePromo?: number;
-  image: string;
-};
+const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
+const fmt = (n: number) =>
+  Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
+/* ========= tipos ========= */
+type Product = { id: string; name: string; brand?: string; price?: number };
+
+/* ========= modelos do catálogo ========= */
 function appleModelLabel(name: string): string | null {
   const m =
-    name
-      ?.normalize("NFKD")
-      ?.replace(/[\u0300-\u036f]/g, "")
-      ?.match(/iphone\s*(se|\d{2,4}\s*(plus|pro|max|pro\s*max)?)?/i) || null;
-  if (!m) return null;
-  return (m[0] || "")
-    .replace(/\s+/g, " ")
-    .replace(/\s+(pro\s*max)$/, " Pro Max")
-    .replace(/\s+(pro)$/, " Pro")
-    .replace(/\s+(max)$/, " Max")
-    .replace(/\s+(plus)$/, " Plus")
-    .replace(/\bse\b$/, "SE")
-    .replace(/\biphone\b/i, "iPhone")
-    .trim();
+    name.match(/iPhone\s+(SE(?:\s*\(\d{4}\))?|\d{2}(?:\s?(?:Plus|Pro|Pro Max))?)/i)?.[0] ||
+    name.match(/iPhone\s+(XR|XS Max|XS)/i)?.[0];
+  return m ? m.replace(/\s+/g, " ").trim() : null;
+}
+
+function samsungModelLabel(name: string): string | null {
+  const z = name.match(/Galaxy\s+Z\s+(Flip|Fold)(?:\s*\d{0,2})?/i)?.[0];
+  if (z) return z.replace(/\s+/g, " ").trim();
+  const s2 = name.match(/Galaxy\s+(A|S)\s*0?\d{1,3}/i)?.[0];
+  if (s2) {
+    return s2
+      .replace(/(Galaxy\s+[AS]\s*)(\d{1})(?!\d)/i, (_a, p1, p2) => `${p1}0${p2}`)
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  return null;
 }
 
 /* === tolera brand com erro "samsumg" === */
 function productBrand(p: Product): "apple" | "samsung" | "other" {
-  const s = `${p.brand || ""} ${p.name || ""}`
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-  if (s.includes("apple") || s.includes("iphone")) return "apple";
-  if (s.includes("samsung") || s.includes("galaxy") || s.includes("samsumg")) return "samsung";
+  const b = norm(`${p.brand || ""} ${p.name || ""}`);
+  if (b.includes("apple") || b.includes("iphone")) return "apple";
+  if (b.includes("samsung") || b.includes("galaxy") || b.includes("samsumg")) return "samsung";
   return "other";
 }
 
@@ -99,27 +97,38 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
 
         <div className="p-4 space-y-4">
           <div>
-            <div className="text-sm text-zinc-700 mb-1">Acompanhar pedido</div>
-            <div className="flex gap-2">
+            <div className="text-sm text-zinc-700">Acompanhar pedido</div>
+            <div className="mt-2 flex gap-2">
               <input
-                className="flex-1 rounded-xl border border-zinc-300 px-3 py-2 text-sm"
-                placeholder="Código do pedido"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
+                placeholder="Digite seu código (ex.: PS-20250916-ABCD)"
+                className="flex-1 rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
               />
               <button
-                className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
                 onClick={buscar}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
               >
-                Buscar
+                Consultar
               </button>
             </div>
-            {result === null ? (
-              <p className="text-xs text-zinc-500 mt-2">Nenhum pedido encontrado.</p>
-            ) : result ? (
+
+            {result ? (
               <div className="mt-3 text-sm rounded-xl border p-3">
-                <div><b>Código:</b> {result.code}</div>
-                <div><b>Status:</b> {result.status}</div>
+                <div className="font-semibold">Código: {result.code}</div>
+                <ul className="mt-2 space-y-1">
+                  {result.items.map((it: any, i: number) => (
+                    <li key={i} className="flex items-center justify-between">
+                      <span className="truncate">{it.qty}x {it.name}</span>
+                      <span className="font-medium">{fmt(it.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-2 border-t pt-2 text-right text-sm">
+                  <div className="text-zinc-600">Subtotal: {fmt(result.subtotal)}</div>
+                  <div className="text-emerald-700">Cupom: − {fmt(result.discount)}</div>
+                  <div className="font-semibold">Total: {fmt(result.total)}</div>
+                </div>
               </div>
             ) : null}
           </div>
@@ -128,10 +137,12 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
             <a
               href={whatsappUrl()}
               target="_blank"
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
             >
               <MessageCircle className="h-4 w-4" />
-              Falar com atendimento
+              Falar com atendente
+              <ChevronRight className="h-4 w-4" />
             </a>
           </div>
         </div>
@@ -142,10 +153,6 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
 
 /* ========= header ========= */
 export default function Header() {
-  /* >>>>>> ADIÇÃO: controla só o modal "Minha conta" <<<<<< */
-  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  /* >>>>>> FIM DA ADIÇÃO <<<<<< */
-
   const router = useRouter();
   const pathname = usePathname();
 
@@ -158,7 +165,7 @@ export default function Header() {
   const catalog = useMemo(() => productsData as Product[], []);
   const appleModels = useMemo(() => {
     const set = new Set<string>();
-    (catalog || []).forEach((p) => {
+    catalog.forEach((p) => {
       if (productBrand(p) !== "apple") return;
       const label = appleModelLabel(p.name || "");
       if (label) set.add(label);
@@ -176,115 +183,166 @@ export default function Header() {
 
   const samsungModels = useMemo(() => {
     const set = new Set<string>();
-    (catalog || []).forEach((p) => {
+    catalog.forEach((p) => {
       if (productBrand(p) !== "samsung") return;
-      const s = (p.name || "")
-        .normalize("NFKD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
-      const fam = s.match(/galaxy\s*([a-z]+)\s*\d+/i)?.[1] || s.match(/galaxy\s*(s|a|m|z)/i)?.[1];
-      if (fam) set.add(fam.toUpperCase());
+      const label = samsungModelLabel(p.name || "");
+      if (label) set.add(label);
     });
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => {
+      const family = (s: string) =>
+        norm(s).includes("z flip") ? "Z1" :
+        norm(s).includes("z fold") ? "Z2" :
+        norm(s).includes("galaxy s") ? "S" : "A";
+      const fa = family(a), fb = family(b);
+      if (fa !== fb) return fa.localeCompare(fb);
+      const an = Number(a.match(/\d{1,3}/)?.[0] || 0);
+      const bn = Number(b.match(/\d{1,3}/)?.[0] || 0);
+      return an - bn;
+    });
   }, [catalog]);
 
-  const [openDrop, setOpenDrop] = useState<"iphone" | "samsung" | null>(null);
+  // busca (mantém fluxo antigo)
+  const [q, setQ] = useState("");
+  function submitSearch(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    const term = q.trim();
+    if (!term) return;
+    const r = catalog.filter(
+      (p) => norm(p.name).includes(norm(term)) || norm(p.brand).includes(norm(term))
+    );
+    if (r[0]) router.push(`/produto/${idNoExt(r[0].id)}`);
+    else router.push(`/ofertas`);
+  }
+
+  // dropdowns desktop
+  const [openDrop, setOpenDrop] = useState<"apple" | "samsung" | null>(null);
+
+  // (mantido, mas os links de âncora abaixo NÃO cancelam o comportamento padrão)
+  function scrollToOnHome(_hash: string) {}
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenDrop(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <>
-      <header className="sticky top-0 z-[80] border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-3 lg:px-6">
-          <div className="flex items-center gap-2 py-3">
-            <button className="lg:hidden rounded-xl border border-zinc-300 p-2" aria-label="Abrir menu">
-              <Menu className="h-5 w-5" />
+      {/* faixa superior */}
+      <div className="w-full bg-zinc-50 border-b border-zinc-200 text-[12px] text-zinc-700">
+        <div className="mx-auto max-w-[1100px] px-4 py-1 flex items-center gap-4">
+          <span className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Nota Fiscal
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Percent className="h-3.5 w-3.5 text-emerald-600" /> 30% OFF no PIX/Boleto
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Truck className="h-3.5 w-3.5 text-emerald-600" /> Frete grátis em selecionados
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1.5">
+            <MessageCircle className="h-3.5 w-3.5 text-emerald-600" /> Suporte via WhatsApp
+          </span>
+        </div>
+      </div>
+
+      {/* barra principal */}
+      <header id="site-header" className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200">
+        <div className="mx-auto max-w-[1100px] px-4 py-3 flex items-center gap-3">
+          <button className="lg:hidden rounded-lg p-2 hover:bg-zinc-100" aria-label="Menu">
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <Link href="/" className="font-extrabold tracking-tight text-zinc-900">
+            pro<span className="text-emerald-600">Store</span>
+          </Link>
+
+          {/* busca (desktop) */}
+          <form onSubmit={submitSearch} className="hidden md:flex flex-1 items-center pl-4">
+            <div className="flex w-full items-center rounded-full border border-zinc-300 bg-white p-1.5">
+              <Search className="mx-2 h-4 w-4 text-zinc-500" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar por modelo, cor, armazenamento..."
+                className="flex-1 bg-transparent outline-none text-sm"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Buscar
+              </button>
+            </div>
+          </form>
+
+          <nav className="hidden lg:flex items-center gap-2">
+            <button
+              onClick={() => (document.getElementById("modal-open") as HTMLButtonElement)?.click()}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+              title="Minha conta"
+              id="modal-open"
+            >
+              <LogIn className="h-4 w-4" />
+              Entrar
             </button>
 
-            <Link href="/" className="flex items-center gap-2 font-bold text-zinc-900">
-              <span className="inline-block rounded-lg bg-emerald-600 px-2 py-1 text-white">PROSTORE</span>
-            </Link>
-
-            <div className="ml-auto hidden lg:block">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const q = (e.currentTarget.querySelector<HTMLInputElement>("#q")?.value || "").trim();
-                  if (q) router.push(`/buscar?q=${encodeURIComponent(q)}`);
-                }}
-                className="relative"
-              >
-                <div className="flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-3 py-1.5">
-                  <Search className="h-4 w-4 text-zinc-500" />
-                  <input
-                    id="q"
-                    name="q"
-                    className="w-[420px] outline-none text-sm"
-                    placeholder="Buscar produtos…"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700"
-                  >
-                    Buscar
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <nav className="hidden lg:flex items-center gap-2">
-              <button
-                onClick={() => setIsAccountModalOpen(true)} {/* >>>>>> ADIÇÃO: abre o modal <<<<<< */}
-                className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-                title="Minha conta"
-                id="modal-open"
-              >
-                <LogIn className="h-4 w-4" />
-                Entrar
-              </button>
-
-              <Link
-                href="/carrinho"
-                className="relative inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-                title="Meu carrinho"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Carrinho
-                <span className="absolute -top-1 -right-1 min-w-[18px] rounded-full bg-emerald-600 px-1 text-[11px] font-bold text-white grid place-items-center">
+            <Link
+              href="/carrinho"
+              className="relative inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+              title="Meu carrinho"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Carrinho
+              {count > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-emerald-600 px-1 text-[11px] font-bold text-white grid place-items-center">
                   {count}
                 </span>
-              </Link>
-            </nav>
-          </div>
+              )}
+            </Link>
+
+            <Link
+              href="/analise-boleto"
+              className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              title="Análise de Boleto"
+            >
+              Análise de Boleto
+            </Link>
+          </nav>
         </div>
 
-        <div className="border-t bg-white">
-          <div className="mx-auto max-w-7xl px-3 lg:px-6">
-            <ul className="flex items-center gap-4 py-2 text-sm text-zinc-700">
+        {/* linha 2 */}
+        <div className="hidden md:block border-t border-zinc-200">
+          <div className="mx-auto max-w-[1100px] px-4">
+            <ul className="relative flex items-center gap-6 text-[14px] py-2 text-zinc-700">
+              {/* iPhone */}
               <li
                 className="relative"
-                onMouseEnter={() => setOpenDrop("iphone")}
-                onMouseLeave={() => setOpenDrop((v) => (v === "iphone" ? null : v))}
+                onMouseEnter={() => setOpenDrop("apple")}
+                onMouseLeave={() => setOpenDrop((v) => (v === "apple" ? null : v))}
               >
                 <button className="inline-flex items-center gap-1 hover:text-zinc-900">
                   iPhone <ChevronDown className="h-3.5 w-3.5" />
                 </button>
-                {openDrop === "iphone" && (
+                {openDrop === "apple" && (
                   <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
                     <div className="grid grid-cols-2 gap-2">
-                      {appleModels.map((m) => (
-                        <Link
-                          key={m}
-                          href={`/buscar?q=${encodeURIComponent(m)}`}
-                          className="flex items-center justify-between rounded-xl border px-3 py-2 hover:bg-zinc-50"
-                        >
-                          <span>{m}</span>
-                          <ChevronRight className="h-4 w-4 text-zinc-500" />
+                      {appleModels.slice(0, 12).map((label) => (
+                        <Link key={label} href={`/ofertas?brand=apple&model=${encodeURIComponent(label)}`} className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100">
+                          {label}
                         </Link>
                       ))}
+                      <Link href="/ofertas?brand=apple" className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50">
+                        Ver todos os iPhones
+                      </Link>
                     </div>
                   </div>
                 )}
               </li>
 
+              {/* Samsung */}
               <li
                 className="relative"
                 onMouseEnter={() => setOpenDrop("samsung")}
@@ -297,40 +355,25 @@ export default function Header() {
                   <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
                     <div className="grid grid-cols-2 gap-2">
                       {samsungModels.slice(0, 14).map((label) => (
-                        <Link
-                          key={label}
-                          href={`/buscar?q=${encodeURIComponent(`Galaxy ${label}`)}`}
-                          className="flex items-center justify-between rounded-xl border px-3 py-2 hover:bg-zinc-50"
-                        >
-                          <span>Galaxy {label}</span>
-                          <ChevronRight className="h-4 w-4 text-zinc-500" />
+                        <Link key={label} href={`/ofertas?brand=samsung&model=${encodeURIComponent(label)}`} className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100">
+                          {label}
                         </Link>
                       ))}
+                      <Link href="/ofertas?brand=samsung" className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50">
+                        Ver todos Samsung
+                      </Link>
                     </div>
                   </div>
                 )}
               </li>
 
-              <li>
-                <a className="hover:text-zinc-900" href="/#venda-segura">
-                  <ShieldCheck className="inline h-4 w-4 mr-1" /> Compra segura
-                </a>
-              </li>
-              <li>
-                <a className="hover:text-zinc-900" href="/#ofertas">
-                  <Percent className="inline h-4 w-4 mr-1" /> Ofertas
-                </a>
-              </li>
-              <li>
-                <a className="hover:text-zinc-900" href="/#frete">
-                  <Truck className="inline h-4 w-4 mr-1" /> Frete grátis
-                </a>
-              </li>
+              {/* Âncoras — sem onClick, sem preventDefault */}
+              <li><a className="hover:text-zinc-900" href="/#mais-buscados">Mais buscados</a></li>
+              <li><a className="hover:text-zinc-900" href="/#bbb">BBB do dia</a></li>
+              <li><a className="hover:text-zinc-900" href="/#destaques">Ofertas em destaque</a></li>
 
               <li className="ml-auto">
-                <Link href="/checkout" className="hover:text-zinc-900">
-                  Checkout
-                </Link>
+                <Link href="/checkout" className="hover:text-zinc-900">Checkout</Link>
               </li>
             </ul>
           </div>
@@ -338,7 +381,7 @@ export default function Header() {
       </header>
 
       {/* modal (fora do header para não cortar o overlay) */}
-      <AccountModal open={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} />
+      <AccountModal open={false} onClose={() => {}} />
       <script
         dangerouslySetInnerHTML={{
           __html: `
