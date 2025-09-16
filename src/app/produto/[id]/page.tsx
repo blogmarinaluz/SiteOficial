@@ -54,16 +54,76 @@ const parseStorage = (p: P): number | undefined => {
 
 const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
 
-/* paleta de “bolinhas” de cor quando não há hex disponível */
-const COLOR_SWATCH = [
-  { name: "Preto", css: "#111827" },
-  { name: "Branco", css: "#f3f4f6" },
-  { name: "Azul", css: "#1d4ed8" },
-  { name: "Verde", css: "#16a34a" },
-  { name: "Roxo", css: "#7c3aed" },
-  { name: "Amarelo", css: "#facc15" },
-  { name: "Vermelho", css: "#ef4444" },
-];
+/* =================== CORES ================
+   Mapa com nomes PT/EN e variações (sem acento).
+   Procuro por INCLUSÃO do token no nome da cor. */
+const COLOR_HEX: Record<string, string> = {
+  // tons escuros
+  "preto": "#0f172a",
+  "black": "#0f172a",
+  "grafite": "#2f3133",
+  "graphite": "#2f3133",
+  "meia-noite": "#0b1220",
+  "meia noite": "#0b1220",
+  "midnight": "#0b1220",
+  "titânio preto": "#1f2937",
+  "titanium black": "#1f2937",
+  // claros/metal
+  "branco": "#f9fafb",
+  "estelar": "#f2f2ea",
+  "starlight": "#f2f2ea",
+  "prata": "#e5e7eb",
+  "silver": "#e5e7eb",
+  "titânio branco": "#e5e7eb",
+  "titanium white": "#e5e7eb",
+  "titânio natural": "#c8c2b8",
+  "titanium natural": "#c8c2b8",
+  // cores
+  "azul": "#2563eb",
+  "blue": "#2563eb",
+  "azul claro": "#60a5fa",
+  "verde": "#10b981",
+  "green": "#10b981",
+  "verde claro": "#86efac",
+  "amarelo": "#facc15",
+  "yellow": "#facc15",
+  "rosa": "#f9a8d4",
+  "pink": "#f9a8d4",
+  "roxo": "#7c3aed",
+  "purple": "#7c3aed",
+  "vermelho": "#dc2626",
+  "(product)red": "#b91c1c",
+  "red": "#dc2626",
+  "dourado": "#f5d487",
+  "gold": "#f5d487",
+  "creme": "#f5eddc",
+  "lavanda": "#c4b5fd",
+  // samsung frequentes
+  "grafite titanium": "#403f44",
+  "titanium gray": "#403f44",
+  "gray": "#6b7280",
+  "natural titanium": "#c8c2b8",
+  "violet": "#a78bfa",
+};
+
+/** normaliza acentos e espaços */
+const simplify = (s?: string) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+/** devolve o hex mais adequado para o nome informado */
+function colorToHex(name?: string): string {
+  const n = simplify(name);
+  if (!n) return "#e5e7eb";
+  // procura chave contida no nome
+  for (const [k, hex] of Object.entries(COLOR_HEX)) {
+    if (n.includes(simplify(k))) return hex;
+  }
+  // fallback: cinza
+  return "#e5e7eb";
+}
 
 /* =================== Modal de CEP/Frete =================== */
 type Regiao = "N" | "NE" | "CO" | "SE" | "S";
@@ -235,9 +295,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const cart: any = useCart();
 
-  // Local data
   const data = productsData as P[];
-  // Resolve produto pelo id (com/sem extensão)
   const product = useMemo(() => {
     const pid = params.id;
     return (
@@ -257,16 +315,20 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     );
   }, [data, product]);
 
-  // Opções de cor e armazenamento
+  // Opções de cor vindas do catálogo
   const colorOptions = useMemo(() => {
     const set = new Map<string, { name: string; image?: string }>();
     siblings.forEach((s) => {
       const c = s.color?.trim();
-      if (c && !set.has(c.toLowerCase())) set.set(c.toLowerCase(), { name: c, image: s.image || s.images?.[0] });
+      if (c && !set.has(c.toLowerCase())) {
+        set.set(c.toLowerCase(), { name: c, image: s.image || s.images?.[0] });
+      }
     });
-    // fallback caso catálogo não tenha campo "color"
+    // fallback se catálogo não trouxe cores
     if (set.size === 0) {
-      COLOR_SWATCH.forEach((c) => set.set(c.name.toLowerCase(), { name: c.name }));
+      ["Preto", "Branco", "Azul", "Verde", "Roxo", "Amarelo"].forEach((n) =>
+        set.set(n.toLowerCase(), { name: n })
+      );
     }
     return Array.from(set.values());
   }, [siblings]);
@@ -278,7 +340,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       if (st) set.add(st);
     });
     const arr = Array.from(set).sort((a, b) => a - b);
-    // fallback
     return arr.length ? arr : [128, 256, 512];
   }, [siblings]);
 
@@ -295,7 +356,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     return byColor?.image || byColorOnly?.image || product.images?.[0] || product.image || "/placeholder.svg";
   }, [siblings, selectedColor, selectedStorage, product]);
 
-  // preço por GB (pega o menor entre os “irmãos” com aquele storage)
+  // preço por GB
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
     if (sameStorage.length) {
@@ -329,7 +390,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       image: selectedImage,
       color: selectedColor,
       storage: selectedStorage,
-      qty: 1, // <- importante: evita o erro de 'quantity'
+      qty: 1,
     });
   }
   function comprarAgora() {
@@ -374,17 +435,21 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
             {/* Cor */}
             <div className="mt-4">
-              <div className="text-sm text-zinc-700">Cor: <b>{selectedColor}</b></div>
+              <div className="text-sm text-zinc-700">
+                Cor: <b>{selectedColor}</b>
+              </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {colorOptions.map((c) => {
-                  const colorMeta = COLOR_SWATCH.find((s) => norm(s.name) === norm(c.name));
-                  const css = colorMeta?.css || "#e5e7eb";
+                  const css = colorToHex(c.name);
                   const selected = norm(c.name) === norm(selectedColor);
+                  const isVeryLight = ["#f9fafb", "#f2f2ea", "#e5e7eb"].includes(css.toLowerCase());
                   return (
                     <button
                       key={c.name}
                       onClick={() => setSelectedColor(c.name)}
-                      className={`h-8 w-8 rounded-full border ${selected ? "border-emerald-600 ring-2 ring-emerald-300" : "border-zinc-300"}`}
+                      className={`h-8 w-8 rounded-full border ${
+                        selected ? "border-emerald-600 ring-2 ring-emerald-300" : isVeryLight ? "border-zinc-300" : "border-transparent"
+                      }`}
                       style={{ backgroundColor: css }}
                       title={c.name}
                       aria-label={c.name}
