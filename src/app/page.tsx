@@ -166,7 +166,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 6) Newsletter — verde/preto, clean (com armazenamento local e exportação CSV) */}
+      {/* 6) Newsletter — verde/preto, clean (armazenamento local + export CSV) */}
       <section className="mt-12">
         <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-8 shadow-md ring-1 ring-emerald-900/20">
           <div className="grid gap-6 md:grid-cols-[1.2fr,1fr] md:items-center">
@@ -178,27 +178,7 @@ export default function Page() {
             </div>
 
             {/* Campos + botão */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const name = (document.getElementById("nl-name") as HTMLInputElement).value.trim();
-                const email = (document.getElementById("nl-email") as HTMLInputElement).value.trim();
-                if (!email || !email.includes("@")) { alert("E-mail inválido"); return; }
-                try {
-                  const key = "prostore:newsletter";
-                  const arr = JSON.parse(localStorage.getItem(key) || "[]");
-                  arr.push({ name, email, createdAt: new Date().toISOString() });
-                  localStorage.setItem(key, JSON.stringify(arr));
-                  alert("E-mail cadastrado com sucesso!");
-                  (document.getElementById("nl-name") as HTMLInputElement).value = "";
-                  (document.getElementById("nl-email") as HTMLInputElement).value = "";
-                } catch {
-                  alert("Erro ao salvar localmente.");
-                }
-              }}
-              className="flex flex-col gap-3 sm:flex-row sm:items-center"
-              noValidate
-            >
+            <form id="nl-form" className="flex flex-col gap-3 sm:flex-row sm:items-center" noValidate>
               <label className="sr-only" htmlFor="nl-name">Nome</label>
               <input
                 id="nl-name"
@@ -235,28 +215,8 @@ export default function Page() {
 
               {/* Botão para baixar CSV com os e-mails armazenados localmente */}
               <button
+                id="nl-export"
                 type="button"
-                onClick={() => {
-                  try {
-                    const key = "prostore:newsletter";
-                    const arr = JSON.parse(localStorage.getItem(key) || "[]");
-                    if (!Array.isArray(arr) || arr.length === 0) { alert("Nenhum cadastro local encontrado."); return; }
-                    const header = ["name","email","createdAt"];
-                    const rows = arr.map((o:any)=>[o.name||"", o.email||"", o.createdAt||""]);
-                    const csv = [header, ...rows].map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
-                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `newsletter-${new Date().toISOString().slice(0,10)}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  } catch {
-                    alert("Não foi possível exportar agora.");
-                  }
-                }}
                 className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-white/20"
                 title="Exportar e-mails cadastrados (CSV)"
               >
@@ -266,6 +226,83 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* Script client-side: lida com submit/armazenamento/export sem transformar a página em Client Component */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+(function(){
+  function byId(id){ return document.getElementById(id); }
+
+  var form = byId('nl-form');
+  if(form){
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      try{
+        var nameEl = byId('nl-name') || { value: '' };
+        var emailEl = byId('nl-email') || { value: '' };
+        var name = nameEl.value ? String(nameEl.value).trim() : '';
+        var email = emailEl.value ? String(emailEl.value).trim() : '';
+
+        if(!email || email.indexOf('@') === -1){
+          alert('E-mail inválido');
+          return;
+        }
+
+        var key = 'prostore:newsletter';
+        var raw = localStorage.getItem(key);
+        var arr = [];
+        try { arr = raw ? JSON.parse(raw) : []; } catch(_) { arr = []; }
+        arr.push({ name: name, email: email, createdAt: new Date().toISOString() });
+        localStorage.setItem(key, JSON.stringify(arr));
+
+        alert('E-mail cadastrado com sucesso!');
+        if(nameEl && 'value' in nameEl) nameEl.value = '';
+        if(emailEl && 'value' in emailEl) emailEl.value = '';
+      }catch(_){
+        alert('Erro ao salvar localmente.');
+      }
+    });
+  }
+
+  var btn = byId('nl-export');
+  if(btn){
+    btn.addEventListener('click', function(){
+      try{
+        var key = 'prostore:newsletter';
+        var raw = localStorage.getItem(key);
+        var arr = [];
+        try { arr = raw ? JSON.parse(raw) : []; } catch(_) { arr = []; }
+        if(!Array.isArray(arr) || arr.length === 0){
+          alert('Nenhum cadastro local encontrado.');
+          return;
+        }
+        var header = ['name','email','createdAt'];
+        var rows = arr.map(function(o){ return [o.name || '', o.email || '', o.createdAt || '']; });
+        var csv = [header].concat(rows).map(function(r){
+          return r.map(function(v){
+            v = String(v == null ? '' : v);
+            return '"' + v.replace(/"/g,'""') + '"';
+          }).join(',');
+        }).join('\\n');
+
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'newsletter-' + new Date().toISOString().slice(0,10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }catch(_){
+        alert('Não foi possível exportar agora.');
+      }
+    });
+  }
+})();`
+        }}
+      />
     </main>
   );
 }
