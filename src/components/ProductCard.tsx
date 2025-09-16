@@ -9,7 +9,7 @@ export type Product = {
   id: string;
   brand: "apple" | "samsung" | string;
   name: string;
-  image: string; // pode ser "/public/..." ou remoto permitido no next.config
+  image: string; // caminho relativo ao /public ou remoto permitido
   price: number;
   freeShipping?: boolean;
 };
@@ -23,6 +23,16 @@ function capBrand(brand: string) {
 
 type Props = { product: Product };
 
+// normaliza caminho para sempre começar com "/"
+function normalizeSrc(src: string): string {
+  if (!src) return "/"; // fallback seguro
+  return src.startsWith("/") ? src : `/${src}`;
+}
+
+function isJfif(src: string): boolean {
+  return /\.jfif($|\?|\#)/i.test(src);
+}
+
 export default function ProductCard({ product }: Props) {
   const { add } = useCart();
 
@@ -31,6 +41,10 @@ export default function ProductCard({ product }: Props) {
   const parcela = promo / 10;
 
   const isSamsung = (product?.brand || "").toLowerCase() === "samsung";
+
+  // garante caminho absoluto para public/ e detecta jfif
+  const imgSrc = normalizeSrc(product.image);
+  const unopt = isJfif(imgSrc); // evita que o Next tente otimizar .jfif
 
   return (
     <div className="card relative overflow-hidden">
@@ -44,28 +58,28 @@ export default function ProductCard({ product }: Props) {
         {/* ====== IMAGEM (palco com altura fixa via CSS var para manter layout) ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-            {/* palco fixo; por padrão 240px (pode ser sobrescrito por seção via --card-stage-h) */}
+            {/* palco fixo; padrão 240px (pode ser sobrescrito por seção via --card-stage-h) */}
             <div
               className="relative w-full flex items-center justify-center overflow-hidden"
               style={{ height: "var(--card-stage-h, 240px)" }}
             >
-              {/* next/image com fill para manter responsividade e evitar CLS */}
               <Image
-                src={product.image}
+                src={imgSrc}
                 alt={product.name}
+                // fill garante que a imagem ocupe o palco sem “pular” layout
                 fill
-                // Tamanhos responsivos (mobile primeiro):
-                // - até 640px: a imagem ocupa ~50vw (2 cards por linha)
-                // - até 1024px: ~33vw (3 cards)
-                // - acima: ~25vw (4 cards)
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 className="object-contain"
-                // Escalas diferentes conforme a marca, mantendo o visual aprovado
+                // Mantém a mesma “sensação” de escala que você já tinha por marca
                 style={{
                   transform: isSamsung
                     ? "scale(var(--img-scale-samsung, 1.22))"
                     : "scale(var(--img-scale-apple, 1))",
                 }}
+                // Tamanhos responsivos p/ grid (2 col no mobile, 3 no md, 4 no lg+)
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                // Se for .jfif, não tenta otimizar — só serve a imagem
+                unoptimized={unopt}
+                // Evita prioridade para não bloquear outras imagens
                 priority={false}
               />
             </div>
