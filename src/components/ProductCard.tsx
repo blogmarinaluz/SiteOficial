@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
 import { br, withCoupon } from "@/lib/format";
 
@@ -9,7 +8,7 @@ export type Product = {
   id: string;
   brand: "apple" | "samsung" | string;
   name: string;
-  image: string; // caminho relativo ao /public ou remoto permitido
+  image: string;
   price: number;
   freeShipping?: boolean;
 };
@@ -23,14 +22,10 @@ function capBrand(brand: string) {
 
 type Props = { product: Product };
 
-// normaliza caminho para sempre começar com "/"
-function normalizeSrc(src: string): string {
-  if (!src) return "/"; // fallback seguro
+// garante caminho absoluto para /public (não altera tamanho)
+function normalizeSrc(src: string) {
+  if (!src) return "/";
   return src.startsWith("/") ? src : `/${src}`;
-}
-
-function isJfif(src: string): boolean {
-  return /\.jfif($|\?|\#)/i.test(src);
 }
 
 export default function ProductCard({ product }: Props) {
@@ -41,87 +36,75 @@ export default function ProductCard({ product }: Props) {
   const parcela = promo / 10;
 
   const isSamsung = (product?.brand || "").toLowerCase() === "samsung";
-
-  // garante caminho absoluto para public/ e detecta jfif
   const imgSrc = normalizeSrc(product.image);
-  const unopt = isJfif(imgSrc); // evita que o Next tente otimizar .jfif
 
   return (
     <div className="card relative overflow-hidden">
       {product.freeShipping && (
-        <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-600/95 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm ring-1 ring-emerald-700/30">
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm ring-1 ring-emerald-700/30">
           Frete grátis
         </span>
       )}
 
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* ====== IMAGEM (palco com altura fixa via CSS var para manter layout) ====== */}
+        {/* ====== IMAGEM (tamanho controlado por variáveis CSS) ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-            {/* palco fixo; padrão 240px (pode ser sobrescrito por seção via --card-stage-h) */}
+            {/* palco fixo; por padrão 240px (pode ser sobrescrito por seção) */}
             <div
-              className="relative w-full flex items-center justify-center overflow-hidden"
+              className="w-full flex items-center justify-center overflow-hidden"
               style={{ height: "var(--card-stage-h, 240px)" }}
             >
-              <Image
+              <img
                 src={imgSrc}
                 alt={product.name}
-                // fill garante que a imagem ocupe o palco sem “pular” layout
-                fill
-                className="object-contain"
-                // Mantém a mesma “sensação” de escala que você já tinha por marca
                 style={{
+                  height: isSamsung
+                    ? "var(--img-h-samsung, 230px)" // Samsung (padrão definido por você)
+                    : "var(--img-h-apple, 210px)",  // Apple (padrão definido por você)
+                  width: "auto",
+                  maxWidth: "none",
+                  objectFit: "contain",
                   transform: isSamsung
                     ? "scale(var(--img-scale-samsung, 1.22))"
                     : "scale(var(--img-scale-apple, 1))",
                 }}
-                // Tamanhos responsivos p/ grid (2 col no mobile, 3 no md, 4 no lg+)
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                // Se for .jfif, não tenta otimizar — só serve a imagem
-                unoptimized={unopt}
-                // Evita prioridade para não bloquear outras imagens
-                priority={false}
+                loading="lazy"
+                decoding="async"
               />
             </div>
           </div>
         </div>
         {/* ========================================================== */}
 
-        <div className="px-0">
-          <div className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            {capBrand(product.brand)}
+        <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
+        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 min-h-[40px]">
+          {product.name}
+        </h3>
+
+        <div className="mt-2">
+          <div className="text-[13px] text-zinc-500 line-through">{br(original)}</div>
+          <div className="mt-0.5 text-[15px] font-extrabold text-emerald-700">
+            A partir de {br(promo)}{" "}
+            <span className="font-normal text-zinc-700">no pix ou boleto</span>
           </div>
 
-          <h3 className="mb-2 line-clamp-2 text-sm font-semibold text-zinc-900 group-hover:underline group-hover:underline-offset-2">
-            {product.name}
-          </h3>
-
-          <div className="space-y-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-zinc-900">{br(promo)}</span>
-              <span className="text-sm text-zinc-500 line-through">{br(original)}</span>
-              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                30% OFF
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1 text-xs text-zinc-700">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                aria-hidden="true"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              >
-                <rect x="2.5" y="5" width="19" height="14" rx="2.2" />
-                <path d="M2.5 9.5h19" />
-              </svg>
-              <span>
-                ou {br(promo)} em até{" "}
-                <strong className="font-semibold">10x de {br(parcela)}</strong> sem juros
-              </span>
-            </div>
+          <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            >
+              <rect x="2.5" y="5" width="19" height="14" rx="2.2" />
+              <path d="M2.5 9.5h19" />
+            </svg>
+            <span>
+              ou {br(promo)} em até{" "}
+              <strong className="font-semibold">10x de {br(parcela)}</strong> sem juros
+            </span>
           </div>
         </div>
       </Link>
