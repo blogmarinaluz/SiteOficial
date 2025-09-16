@@ -76,77 +76,60 @@ const COLOR_HEX: Record<string, string> = {
   "silver": "#e5e7eb",
   "titânio branco": "#e5e7eb",
   "titanium white": "#e5e7eb",
-  "titânio natural": "#c8c2b8",
-  "titanium natural": "#c8c2b8",
-  // cores
-  "azul": "#2563eb",
-  "blue": "#2563eb",
+  // azuis
+  "azul": "#1e3a8a",
+  "blue": "#1e3a8a",
   "azul claro": "#60a5fa",
-  "verde": "#10b981",
-  "green": "#10b981",
-  "verde claro": "#86efac",
-  "amarelo": "#facc15",
-  "yellow": "#facc15",
-  "rosa": "#f9a8d4",
-  "pink": "#f9a8d4",
-  "roxo": "#7c3aed",
-  "purple": "#7c3aed",
-  "vermelho": "#dc2626",
-  "(product)red": "#b91c1c",
-  "red": "#dc2626",
-  "dourado": "#f5d487",
-  "gold": "#f5d487",
-  "creme": "#f5eddc",
-  "lavanda": "#c4b5fd",
-  // samsung frequentes
-  "grafite titanium": "#403f44",
-  "titanium gray": "#403f44",
-  "gray": "#6b7280",
-  "natural titanium": "#c8c2b8",
-  "violet": "#a78bfa",
+  "sky": "#60a5fa",
+  // verdes
+  "verde": "#065f46",
+  "green": "#065f46",
+  "verde claro": "#34d399",
+  "mint": "#34d399",
+  // vermelhos/rosa
+  "vermelho": "#991b1b",
+  "red": "#991b1b",
+  "rosa": "#db2777",
+  "pink": "#db2777",
+  // amarelos/dourados
+  "dourado": "#f59e0b",
+  "gold": "#f59e0b",
+  "amarelo": "#fbbf24",
+  "yellow": "#fbbf24",
+  // roxos
+  "roxo": "#6d28d9",
+  "purple": "#6d28d9",
 };
 
-/** normaliza acentos e espaços */
-const simplify = (s?: string) =>
-  (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-/** devolve o hex mais adequado para o nome informado */
-function colorToHex(name?: string): string {
-  const n = simplify(name);
-  if (!n) return "#e5e7eb";
-  // procura chave contida no nome
-  for (const [k, hex] of Object.entries(COLOR_HEX)) {
-    if (n.includes(simplify(k))) return hex;
+function colorToHex(input?: string) {
+  if (!input) return "#e5e7eb";
+  const k = norm(input).normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  for (const [name, hex] of Object.entries(COLOR_HEX)) {
+    const nk = name.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    if (k.includes(nk)) return hex;
   }
-  // fallback: cinza
   return "#e5e7eb";
 }
 
-/* =================== Modal de CEP/Frete =================== */
-type Regiao = "N" | "NE" | "CO" | "SE" | "S";
-const UF_REGION: Record<string, Regiao> = {
-  AC: "N", AM: "N", AP: "N", PA: "N", RO: "N", RR: "N", TO: "N",
-  AL: "NE", BA: "NE", CE: "NE", MA: "NE", PB: "NE", PE: "NE", PI: "NE", RN: "NE", SE: "NE",
-  DF: "CO", GO: "CO", MT: "CO", MS: "CO",
-  ES: "SE", MG: "SE", RJ: "SE", SP: "SE",
-  PR: "S", RS: "S", SC: "S",
+/* =================== CEP / Frete (fake) =================== */
+type EnderecoViaCep = {
+  cep: string;
+  logradouro: string;
+  complemento?: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  ddd?: string;
 };
-const FRETE_TABELA = {
-  SEDEX: { SE: 24.9, S: 29.9, CO: 34.9, NE: 39.9, N: 49.9 },
-  ECONOMICO: { SE: 14.9, S: 19.9, CO: 24.9, NE: 29.9, N: 39.9 },
-};
-const PRAZO_TABELA = {
-  SEDEX: { SE: "2–4 dias úteis", S: "3–5 dias úteis", CO: "3–6 dias úteis", NE: "4–7 dias úteis", N: "5–9 dias úteis" },
-  ECONOMICO: { SE: "4–7 dias úteis", S: "5–8 dias úteis", CO: "6–10 dias úteis", NE: "7–12 dias úteis", N: "10–15 dias úteis" },
-};
-type Frete = { tipo: "SEDEX" | "ECONOMICO"; valor: number; prazo: string };
-type EnderecoViaCep = { logradouro?: string; bairro?: string; localidade?: string; uf?: string };
 
-const normalizeCep = (v: string) => (v || "").replace(/\D/g, "").slice(0, 8);
-const getRegiao = (uf?: string): Regiao => (uf && UF_REGION[uf]) || "SE";
+type Frete = {
+  tipo: "expresso" | "economico" | "retira";
+  prazo: string; // ex: "3 a 5 dias úteis"
+  valor: number; // em reais
+};
+
+const normalizeCep = (v: string) => (v || "").replace(/\D/g, "");
+const safeDelay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /* Modal isolado dentro do arquivo — não depende de nada externo */
 function CepModal({
@@ -179,114 +162,248 @@ function CepModal({
       setErro("Digite um CEP válido (8 dígitos).");
       return;
     }
-    setLoading(true);
+
     try {
-      const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
-      const data = await res.json();
-      if (data?.erro) {
-        setErro("CEP não encontrado.");
-        setLoading(false);
-        return;
-      }
-      const uf = data.uf as string | undefined;
-      const reg = getRegiao(uf);
-      const op: Frete[] = [
-        { tipo: "SEDEX", valor: FRETE_TABELA.SEDEX[reg], prazo: PRAZO_TABELA.SEDEX[reg] },
-        { tipo: "ECONOMICO", valor: FRETE_TABELA.ECONOMICO[reg], prazo: PRAZO_TABELA.ECONOMICO[reg] },
-      ];
-      const end: EnderecoViaCep = {
-        logradouro: data.logradouro,
-        bairro: data.bairro,
-        localidade: data.localidade,
-        uf,
+      setLoading(true);
+      await safeDelay(350); // efeito visual
+
+      // simulação offline
+      const fake: EnderecoViaCep = {
+        cep: raw.replace(/(\d{5})(\d{3})/, "$1-$2"),
+        logradouro: "Rua Exemplo",
+        bairro: "Centro",
+        localidade: "Cidade",
+        uf: "SP",
       };
-      setEndereco(end);
-      setOpcoes(op);
+      setEndereco(fake);
+
+      const opts: Frete[] = [
+        { tipo: "economico", prazo: "5 a 8 dias úteis", valor: 29.9 },
+        { tipo: "expresso", prazo: "2 a 4 dias úteis", valor: 49.9 },
+        { tipo: "retira", prazo: "Retire amanhã", valor: 0 },
+      ];
+      setOpcoes(opts);
+
       localStorage.setItem("prostore:cep", raw);
-      localStorage.setItem("prostore:endereco", JSON.stringify(end));
-    } catch {
-      setErro("Falha ao consultar CEP. Tente novamente.");
+    } catch (e) {
+      setErro("Não foi possível calcular o frete agora.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    if (open) window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  function escolher(o: Frete) {
+    const raw = normalizeCep(cep);
+    if (!endereco) return;
+    onSelect({ cep: raw, endereco, frete: o });
+    onClose();
+  }
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70]">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute inset-0 grid place-items-center p-4">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-lg">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-emerald-100 p-2">
-              <Truck className="h-5 w-5 text-emerald-700" />
-            </div>
-            <h3 className="text-lg font-semibold">Calcular entrega</h3>
-            <button onClick={onClose} className="ml-auto rounded-md p-1 text-zinc-500 hover:bg-zinc-100" aria-label="Fechar">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+    <div className="fixed inset-0 z-[60]">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" onClick={onClose} />
+      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-zinc-200">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold">Calcular frete</h3>
+          <button onClick={onClose} className="rounded p-1 hover:bg-zinc-100" aria-label="Fechar">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-          <div className="mt-4 flex gap-2">
-            <div className="relative flex-1">
-              <input
-                value={cep}
-                onChange={(e) => setCep(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && consultar()}
-                placeholder="Digite seu CEP"
-                inputMode="numeric"
-                maxLength={9}
-                className="w-full pl-3 pr-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-300"
-              />
-            </div>
-            <button
-              onClick={consultar}
-              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-            >
+        <div className="mt-3 space-y-2">
+          <div className="flex gap-2">
+            <input
+              value={cep}
+              onChange={(e) => setCep(e.target.value)}
+              placeholder="Digite seu CEP"
+              className="input w-40"
+              maxLength={9}
+            />
+            <button onClick={consultar} className="btn-secondary">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calcular"}
             </button>
           </div>
 
-          {erro && <div className="mt-3 text-sm text-red-600">{erro}</div>}
+          {erro && <div className="note text-rose-700">{erro}</div>}
 
           {endereco && (
-            <div className="mt-4 rounded-lg border bg-zinc-50 p-3 text-sm text-zinc-700">
-              Entrega para: <b>{[endereco.logradouro, endereco.bairro].filter(Boolean).join(" - ")}</b> — {endereco.localidade}/{endereco.uf}
+            <div className="note text-sm">
+              <div>
+                <strong>Endereço:</strong> {endereco.logradouro}, {endereco.bairro} – {endereco.localidade}/{endereco.uf}
+              </div>
             </div>
           )}
 
           {opcoes && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <ul className="space-y-2">
               {opcoes.map((o) => (
-                <button
-                  key={o.tipo}
-                  onClick={() => {
-                    const raw = normalizeCep(cep);
-                    localStorage.setItem("prostore:frete_selected", JSON.stringify(o));
-                    onSelect({ cep: raw, endereco: endereco || {}, frete: o });
-                    onClose();
-                  }}
-                  className="text-left rounded-xl border p-4 hover:shadow-sm transition"
-                >
-                  <div className="font-semibold">{o.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"}</div>
-                  <div className="text-sm text-zinc-600">{o.prazo}</div>
-                  <div className="text-lg font-semibold text-emerald-700 mt-1">{br(o.valor)}</div>
-                </button>
+                <li key={o.tipo} className="trust">
+                  <Truck className="h-4 w-4 text-emerald-600" />
+                  <span className="font-medium capitalize">{o.tipo}</span>
+                  <span className="text-zinc-500">•</span>
+                  <span>{o.prazo}</span>
+                  <span className="ml-auto font-semibold">{br(o.valor)}</span>
+                  <button onClick={() => escolher(o)} className="ml-3 btn-primary">
+                    Escolher
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
+
+        <style jsx global>{`
+          .input { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; }
+          .input:focus { box-shadow: 0 0 0 2px rgba(16, 185, 129, .25); border-color: #10b981; }
+          .btn-primary { background:#10b981; color:#fff; padding:8px 12px; border-radius:10px; font-weight:600; }
+          .btn-primary:hover { background:#0e9f6e; }
+          .btn-secondary { background:#111827; color:#fff; padding:8px 12px; border-radius:10px; font-weight:500; }
+          .btn-secondary:hover { background:#000; }
+          .note { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:10px; font-size:13px; color:#374151; }
+          .trust { display:flex; align-items:center; gap:8px; font-weight:500; color:#111827; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; background:#fff; }
+        `}</style>
       </div>
     </div>
+  );
+}
+
+/* =================== SEO helpers (não alteram layout) =================== */
+function absUrl(path: string): string {
+  if (!path) return "";
+  try {
+    if (path.startsWith("http")) return path;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return origin + (path.startsWith("/") ? path : `/${path}`);
+  } catch {
+    return path;
+  }
+}
+
+function setMetaTag(name: string, content: string) {
+  if (typeof document === "undefined") return;
+  let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute("name", name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
+}
+
+function setCanonical(url: string) {
+  if (typeof document === "undefined") return;
+  let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("href", url);
+}
+
+function setMetaProperty(prop: string, content: string) {
+  if (typeof document === "undefined") return;
+  let el = document.querySelector(`meta[property="${prop}"]`) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute("property", prop);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
+}
+
+function ProductSEO({
+  product,
+  paramsId,
+  selectedImage,
+  selectedPrice,
+  selectedStorage,
+  selectedColor,
+}: {
+  product: any;
+  paramsId: string;
+  selectedImage: string;
+  selectedPrice: number;
+  selectedStorage?: number;
+  selectedColor?: string;
+}) {
+  const url =
+    typeof window !== "undefined" ? `${window.location.origin}/produto/${paramsId}` : `/produto/${paramsId}`;
+  const title = `${product?.name}${selectedStorage ? ` ${selectedStorage} GB` : ""} | proStore`;
+  const description = `${product?.brand || ""} ${product?.name || ""}${
+    selectedStorage ? ` ${selectedStorage}GB` : ""
+  } com 30% OFF no PIX. Frete grátis em itens selecionados.`.trim();
+
+  // JSON-LD Product
+  const productJson = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: `${product?.name}${selectedStorage ? ` ${selectedStorage} GB` : ""}`,
+    brand: { "@type": "Brand", name: product?.brand || "proStore" },
+    sku: String(product?.id || paramsId),
+    image: [absUrl(selectedImage || product?.image || "")],
+    description,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "BRL",
+      price: Number(selectedPrice || product?.price || 0),
+      availability: "https://schema.org/InStock",
+      url,
+      priceValidUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10),
+    },
+  };
+
+  // JSON-LD Breadcrumb
+  const breadcrumbJson = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: typeof window !== "undefined" ? window.location.origin : "/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Produto",
+        item: url,
+      },
+    ],
+  };
+
+  // Head tags (title/description/canonical + OG/Twitter)
+  useEffect(() => {
+    try {
+      document.title = title;
+      setMetaTag("description", description);
+      setCanonical(url);
+
+      setMetaProperty("og:title", title);
+      setMetaProperty("og:description", description);
+      setMetaProperty("og:type", "product");
+      setMetaProperty("og:url", url);
+      setMetaProperty("og:image", absUrl(selectedImage || product?.image || ""));
+      setMetaTag("twitter:card", "summary_large_image");
+      setMetaTag("twitter:title", title);
+      setMetaTag("twitter:description", description);
+    } catch {}
+  }, [title, description, url, selectedImage]);
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJson) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJson) }}
+      />
+    </>
   );
 }
 
@@ -315,24 +432,18 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     );
   }, [data, product]);
 
-  // Opções de cor vindas do catálogo
+  // Cores disponíveis com fallback
   const colorOptions = useMemo(() => {
-    const set = new Map<string, { name: string; image?: string }>();
+    const cols = new Set<string>();
     siblings.forEach((s) => {
-      const c = s.color?.trim();
-      if (c && !set.has(c.toLowerCase())) {
-        set.set(c.toLowerCase(), { name: c, image: s.image || s.images?.[0] });
-      }
+      const c = s.color || "";
+      if (c) cols.add(c);
     });
-    // fallback se catálogo não trouxe cores
-    if (set.size === 0) {
-      ["Preto", "Branco", "Azul", "Verde", "Roxo", "Amarelo"].forEach((n) =>
-        set.set(n.toLowerCase(), { name: n })
-      );
-    }
-    return Array.from(set.values());
+    const arr = Array.from(cols);
+    return arr.length ? arr.map((name) => ({ name })) : [{ name: "Preto" }];
   }, [siblings]);
 
+  // Storages disponíveis (ordem crescente com fallback)
   const storageOptions = useMemo(() => {
     const set = new Set<number>();
     siblings.forEach((s) => {
@@ -350,9 +461,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   // imagem principal
   const selectedImage = useMemo(() => {
     const byColor = siblings.find(
-      (s) => s.color && norm(s.color) === norm(selectedColor) && parseStorage(s) === selectedStorage
+      (s) =>
+        norm(s.color) === norm(selectedColor) && parseStorage(s) === selectedStorage && s.image
     );
-    const byColorOnly = siblings.find((s) => s.color && norm(s.color) === norm(selectedColor));
+    const byColorOnly = siblings.find((s) => norm(s.color) === norm(selectedColor) && s.image);
     return byColor?.image || byColorOnly?.image || product.images?.[0] || product.image || "/placeholder.svg";
   }, [siblings, selectedColor, selectedStorage, product]);
 
@@ -369,58 +481,69 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const [cepModal, setCepModal] = useState(false);
   const [cep, setCep] = useState<string | undefined>(undefined);
   const [frete, setFrete] = useState<Frete | undefined>(undefined);
-  useEffect(() => {
-    const c = localStorage.getItem("prostore:cep") || undefined;
-    const f = localStorage.getItem("prostore:frete_selected");
-    if (c) setCep(c);
-    if (f) try { setFrete(JSON.parse(f) as Frete); } catch {}
-  }, []);
-
-  function onFreteSelect(payload: { cep: string; frete: Frete; endereco: EnderecoViaCep }) {
+  function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) {
     setCep(payload.cep);
     setFrete(payload.frete);
   }
 
-  // Carrinho
+  // Adicionar ao carrinho
   function addToCart() {
-    cart?.add?.({
-      id: product.id,
-      name: `${product.name} ${selectedStorage} GB`,
-      price: selectedPrice,
-      image: selectedImage,
-      color: selectedColor,
-      storage: selectedStorage,
-      qty: 1,
-    });
+    cart.add(
+      {
+        id: product.id,
+        name: `${product.name} ${selectedStorage} GB`,
+        image: selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`,
+        price: selectedPrice,
+        freeShipping: !!product.tag || product.tag === "frete-gratis",
+        color: selectedColor,
+        storage: selectedStorage,
+      },
+      1
+    );
   }
-  function comprarAgora() {
-    addToCart();
-    router.push("/checkout");
-  }
-
-  // “Quem viu, viu também”
-  const recommendations = useMemo(() => {
-    const sameBrand = data.filter((p) => p.brand && p.brand === product.brand);
-    return sameBrand
-      .filter((p) => idNoExt(p.id) !== idNoExt(product.id))
-      .slice(0, 4);
-  }, [data, product]);
 
   return (
     <>
-      <CepModal open={cepModal} onClose={() => setCepModal(false)} onSelect={onFreteSelect} />
+      {/* SEO (não altera layout) */}
+      <ProductSEO
+        product={product}
+        paramsId={params.id}
+        selectedImage={selectedImage}
+        selectedPrice={selectedPrice}
+        selectedStorage={selectedStorage}
+        selectedColor={selectedColor}
+      />
 
-      <div className="py-6 md:py-8">
-        <div className="grid lg:grid-cols-12 gap-8">
-          {/* Galeria */}
-          <div className="lg:col-span-5">
-            <div className="rounded-2xl border bg-white p-4">
-              <div className="relative mx-auto aspect-[1/1] max-h-[520px] w-full overflow-hidden rounded-xl">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+      <div className="container mx-auto px-4">
+        {/* Breadcrumb simples */}
+        <nav className="my-4 text-sm text-zinc-500">
+          <Link href="/" className="hover:underline">
+            Início
+          </Link>{" "}
+          /{" "}
+          <span className="text-zinc-700 font-medium">{product.name}</span>
+        </nav>
+
+        {/* Cabeçalho produto */}
+        <div className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
+          {/* Imagem principal */}
+          <div className="rounded-2xl border bg-white p-3">
+            <div className="flex items-center justify-center rounded-xl bg-white ring-1 ring-zinc-200 p-2">
+              <div
+                className="w-full flex items-center justify-center overflow-hidden"
+                style={{ height: "var(--prod-stage-h, 360px)" }}
+              >
                 <img
-                  src={selectedImage}
-                  alt={product.name}
-                  className="h-full w-full object-contain"
+                  src={selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`}
+                  alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
+                  style={{
+                    height: "var(--prod-img-h, 320px)",
+                    width: "auto",
+                    maxWidth: "none",
+                    objectFit: "contain",
+                  }}
+                  loading="eager"
+                  decoding="async"
                 />
               </div>
             </div>
@@ -461,17 +584,19 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
             {/* Armazenamento */}
             <div className="mt-4">
-              <div className="text-sm text-zinc-700">Capacidade</div>
+              <div className="text-sm text-zinc-700">Armazenamento</div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {storageOptions.map((st) => {
-                  const selected = st === selectedStorage;
+                {storageOptions.map((s) => {
+                  const selected = s === selectedStorage;
                   return (
                     <button
-                      key={st}
-                      onClick={() => setSelectedStorage(st)}
-                      className={`rounded-lg px-3 py-2 text-sm border ${selected ? "border-emerald-600 ring-2 ring-emerald-200 bg-emerald-50" : "border-zinc-300 hover:bg-zinc-50"}`}
+                      key={s}
+                      onClick={() => setSelectedStorage(s)}
+                      className={`rounded-xl border px-3 py-1.5 text-sm ${
+                        selected ? "border-emerald-600 ring-2 ring-emerald-300" : "border-zinc-300"
+                      }`}
                     >
-                      {st} GB
+                      {s} GB
                     </button>
                   );
                 })}
@@ -479,8 +604,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Preço */}
-            <div className="mt-5 flex flex-col gap-1">
-              <div className="text-2xl md:text-3xl font-extrabold tracking-tight text-emerald-700">
+            <div className="mt-5 rounded-2xl border bg-white p-4">
+              <div className="text-sm text-zinc-600 line-through">{br(selectedPrice)}</div>
+              <div className="text-2xl font-extrabold tracking-tight text-emerald-700">
                 {br(withPix(selectedPrice))} <span className="text-base font-semibold">no PIX</span>
               </div>
               <div className="text-sm text-zinc-600">
@@ -492,14 +618,17 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="mt-5 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={addToCart}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 font-semibold shadow-sm"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 font-semibold shadow-sm"
               >
                 <ShoppingCart className="h-5 w-5" />
                 Adicionar ao carrinho
               </button>
               <button
-                onClick={comprarAgora}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-black text-white px-5 py-3 font-semibold shadow-sm"
+                onClick={() => {
+                  addToCart();
+                  router.push("/checkout");
+                }}
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-zinc-900 hover:bg-black text-white px-5 py-3 font-semibold shadow-sm"
               >
                 <CreditCard className="h-5 w-5" />
                 Comprar
@@ -515,20 +644,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                   onClick={() => setCepModal(true)}
                   className="ml-2 text-emerald-700 underline inline-flex items-center gap-1"
                 >
-                  Consultar entrega <ChevronRight className="h-4 w-4" />
+                  <span>calcular frete</span>
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
-              {cep && (
+              {cep && frete && (
                 <div className="mt-2 text-sm text-zinc-700">
-                  CEP <b>{cep}</b>{" "}
-                  {frete ? (
-                    <>
-                      • {frete.tipo === "ECONOMICO" ? "Econômico" : "SEDEX"} • {frete.prazo} •{" "}
-                      <b className="text-emerald-700">{br(frete.valor)}</b>
-                    </>
-                  ) : (
-                    <span className="text-amber-700">— selecione a opção de frete.</span>
-                  )}
+                  CEP: <b>{cep.replace(/(\d{5})(\d{3})/, "$1-$2")}</b> • {frete.tipo} — {frete.prazo} —{" "}
+                  <b>{br(frete.valor)}</b>
                 </div>
               )}
             </div>
@@ -562,37 +685,42 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         />
 
         {/* Quem viu, viu também */}
-        {recommendations.length > 0 && (
-          <section className="mt-8">
-            <h3 className="text-base md:text-lg font-semibold">Quem viu, viu também</h3>
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {recommendations.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/produto/${idNoExt(p.id)}`}
-                  className="rounded-2xl border bg-white p-3 hover:shadow-sm transition"
-                >
-                  <div className="h-44 grid place-items-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={p.image || p.images?.[0] || "/placeholder.svg"}
-                      alt={p.name}
-                      className="max-h-40 object-contain"
-                    />
-                  </div>
-                  <div className="text-[12px] md:text-sm text-zinc-500 mt-1">{p.brand}</div>
-                  <div className="font-medium text-[13px] md:text-sm line-clamp-2 min-h-[2.8rem]">
-                    {p.name}
-                  </div>
-                  <div className="mt-1 text-[11px] text-zinc-500">A partir de</div>
-                  <div className="text-emerald-700 font-semibold text-lg tracking-tight">
-                    {br(withPix(p.price))}
-                  </div>
-                  <div className="text-[11px] text-zinc-500">
-                    10x sem juros de {br(Math.ceil(p.price / 10))}
-                  </div>
-                </Link>
-              ))}
+        {siblings && siblings.length > 1 && (
+          <section className="mt-10">
+            <h3 className="text-lg font-semibold">Outras variações</h3>
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {siblings
+                .filter((s) => s.id !== product.id)
+                .slice(0, 8)
+                .map((s) => {
+                  const sid = idNoExt(s.id);
+                  const img = s.image || product.image || "/placeholder.svg";
+                  const st = parseStorage(s);
+                  return (
+                    <Link
+                      key={s.id}
+                      href={`/produto/${sid}`}
+                      className="rounded-xl border bg-white p-2 hover:shadow-sm transition"
+                    >
+                      <div className="w-full rounded-lg bg-white ring-1 ring-zinc-200 p-2">
+                        <div className="w-full flex items-center justify-center overflow-hidden" style={{ height: 150 }}>
+                          <img
+                            src={img.startsWith("/") ? img : `/${img}`}
+                            alt={s.name}
+                            style={{ height: 130, width: "auto", objectFit: "contain" }}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[13px] font-medium text-zinc-900 line-clamp-2">
+                        {s.name} {st ? `${st} GB` : ""}
+                      </div>
+                      <div className="text-[13px] text-zinc-500 line-through">{br(s.price)}</div>
+                      <div className="text-[14px] font-extrabold text-emerald-700">{br(withPix(s.price))} no PIX</div>
+                    </Link>
+                  );
+                })}
             </div>
           </section>
         )}
@@ -602,6 +730,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       <style jsx global>{`
         .prose :where(p):not(:where([class~=not-prose] *)) { margin: .25rem 0; }
       `}</style>
+
+      {/* Modal CEP */}
+      <CepModal
+        open={cepModal}
+        onClose={() => setCepModal(false)}
+        onSelect={onFrete}
+      />
     </>
   );
 }
