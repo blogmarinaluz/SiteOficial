@@ -5,16 +5,91 @@ import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+// Util simples e local (sem criar novo arquivo) para obter a base URL
+function getBaseUrl(): string {
+  const env =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.VERCEL_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
+  if (env) {
+    const url = env.startsWith("http") ? env : `https://${env}`;
+    return url.replace(/\/+$/, "");
+  }
+  return "http://localhost:3000";
+}
+
+const SITE_NAME = "proStore";
+const DEFAULT_TITLE = "proStore — Apple & Samsung";
+const DEFAULT_DESCRIPTION =
+  "Catálogo Apple e Samsung com 30% OFF. Boleto para negativados.";
+
 export const metadata: Metadata = {
-  title: "proStore — Apple & Samsung",
-  description: "Catálogo Apple e Samsung com 30% OFF. Boleto para negativados.",
+  // Base usada para compor URLs absolutas de OG/alternates quando necessário
+  metadataBase: new URL(getBaseUrl()),
+
+  // Título padrão e template para páginas que definirem title próprio
+  title: {
+    default: DEFAULT_TITLE,
+    template: "%s | proStore",
+  },
+
+  description: DEFAULT_DESCRIPTION,
+
+  // Melhora rastreabilidade
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+
+  // Palavras-chave relevantes (não exagerar)
+  keywords: [
+    "iPhone",
+    "Samsung",
+    "Apple",
+    "Galaxy",
+    "smartphone",
+    "parcelamento",
+    "boleto",
+    "negativado",
+    "promoção",
+    "desconto",
+  ],
+
+  // Open Graph básico (sem imagens para não depender de assets inexistentes)
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: SITE_NAME,
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    locale: "pt_BR",
+  },
+
+  // Cart do Twitter
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+  },
+
+  // Canonical base (nas dinâmicas podemos refinar depois, sem criar arquivos)
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body>
-        {/* Header usa useSearchParams -> precisa de Suspense no app router */}
         <Suspense fallback={<div className="h-16" />}>
           <Header />
         </Suspense>
