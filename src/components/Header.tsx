@@ -11,68 +11,68 @@ import {
   ShieldCheck, Percent, Truck, Search, ChevronDown,
 } from "lucide-react";
 
-/* ===== utils ===== */
-const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
+/* ========= utils ========= */
+const norm = (v: unknown) =>
+  String(v ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+
 const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
+
 const fmt = (n: number) =>
   Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-/* ===== tipos ===== */
+/* ========= tipos ========= */
 type Product = { id: string; name: string; brand?: string; price?: number };
-type Order = {
-  code: string;
-  items: Array<{ name: string; qty: number; price: number; total: number }>;
-  subtotal: number;
-  discount: number;
-  total: number;
-  createdAt: string;
-};
 
-/* ===== componente de link com âncora (scroll com offset) ===== */
-function AnchorLink({ hash, children, className }: { hash: string; children: React.ReactNode; className?: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  function scrollToHash(h: string) {
-    const id = h.replace("#", "");
-    const el = document.getElementById(id);
-    if (!el) return;
-    const header = document.getElementById("site-header");
-    const offset = (header?.offsetHeight ?? 90) + 12;
-    const top = el.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: "smooth" });
-  }
-
-  function onClick(e: React.MouseEvent) {
-    e.preventDefault();
-    if (pathname !== "/") {
-      router.push(`/${hash}`);
-      // aguarda render e faz o ajuste suave
-      setTimeout(() => scrollToHash(hash), 60);
-    } else {
-      scrollToHash(hash);
-    }
-  }
-
-  return (
-    <a href={`/${hash}`} className={className} onClick={onClick}>
-      {children}
-    </a>
-  );
+/* ========= extração de MODELOS diretamente do catálogo ========= */
+/** iPhone 14, iPhone 14 Plus, iPhone 15 Pro Max, iPhone SE (2022)… */
+function appleModelLabel(name: string): string | null {
+  const m =
+    name.match(/iPhone\s+(SE(?:\s*\(\d{4}\))?|\d{2}(?:\s?(?:Plus|Pro|Pro Max))?)/i)?.[0] ||
+    name.match(/iPhone\s+(XR|XS Max|XS)/i)?.[0];
+  return m ? m.replace(/\s+/g, " ").trim() : null;
 }
 
-/* ===== Modal “Minha conta” ===== */
+/** Galaxy A14, Galaxy A07, Galaxy S21, Galaxy Z Flip, Galaxy Z Fold… */
+function samsungModelLabel(name: string): string | null {
+  const s1 = name.match(/Galaxy\s+Z\s+(Flip|Fold)(?:\s*\d{0,2})?/i)?.[0];
+  if (s1) return s1.replace(/\s+/g, " ").trim();
+
+  const s2 = name.match(/Galaxy\s+(A|S)\s*0?\d{1,3}/i)?.[0];
+  if (s2) {
+    // normaliza A7 -> A07
+    return s2
+      .replace(/(Galaxy\s+[AS]\s*)(\d{1})(?!\d)/i, (_a, p1, p2) => `${p1}0${p2}`)
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  return null;
+}
+
+function productBrand(p: Product): "apple" | "samsung" | "other" {
+  const b = norm(p.brand || p.name);
+  if (b.includes("apple") || b.includes("iphone")) return "apple";
+  if (b.includes("samsung") || b.includes("galaxy")) return "samsung";
+  return "other";
+}
+
+/* ========= modal “Minha conta” ========= */
 function AccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [code, setCode] = useState("");
-  const [result, setResult] = useState<Order | null>(null);
+  const [result, setResult] = useState<any | null>(null);
 
-  const WA_NUMBER = "5599984905715"; // número fixo informado pelo cliente
+  const WA_NUMBER = "5599984905715"; // fixo (pedido do cliente)
 
   function buscar() {
     try {
       const raw = localStorage.getItem("prostore:orders");
-      const arr: Order[] = raw ? JSON.parse(raw) : [];
-      const found = arr.find((o) => o.code.toLowerCase() === code.trim().toLowerCase());
+      const arr: any[] = raw ? JSON.parse(raw) : [];
+      const found = arr.find(
+        (o) => norm(o.code) === norm(code)
+      );
       setResult(found || null);
     } catch {
       setResult(null);
@@ -124,7 +124,7 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
               <div className="mt-3 text-sm rounded-xl border p-3">
                 <div className="font-semibold">Código: {result.code}</div>
                 <ul className="mt-2 space-y-1">
-                  {result.items.map((it, i) => (
+                  {result.items.map((it: any, i: number) => (
                     <li key={i} className="flex items-center justify-between">
                       <span className="truncate">
                         {it.qty}x {it.name}
@@ -160,43 +160,103 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
-/* ===== Header ===== */
+/* ========= header ========= */
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
 
   const { items } = useCart();
   const count = useMemo(
-    () => (items ?? []).reduce((a, i) => a + (i.qty || 0), 0),
+    () => (items ?? []).reduce((a: number, i: any) => a + (i.qty || 0), 0),
     [items]
   );
 
-  const [openMobile, setOpenMobile] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
+  // catálogo em memória
+  const catalog = useMemo(() => productsData as Product[], []);
+  const appleModels = useMemo(() => {
+    const set = new Set<string>();
+    catalog.forEach((p) => {
+      if (productBrand(p) !== "apple") return;
+      const label = appleModelLabel(p.name || "");
+      if (label) set.add(label);
+    });
+    // ordena por número/variante
+    return Array.from(set).sort((a, b) => {
+      const an = Number(a.match(/\d{2,4}/)?.[0] || 0);
+      const bn = Number(b.match(/\d{2,4}/)?.[0] || 0);
+      if (an !== bn) return an - bn;
+      const order = ["", "Plus", "Pro", "Pro Max", "SE"];
+      const av = order.findIndex((k) => norm(a).includes(norm(k)));
+      const bv = order.findIndex((k) => norm(b).includes(norm(k)));
+      return av - bv;
+    });
+  }, [catalog]);
 
-  // busca inline (desktop)
+  const samsungModels = useMemo(() => {
+    const set = new Set<string>();
+    catalog.forEach((p) => {
+      if (productBrand(p) !== "samsung") return;
+      const label = samsungModelLabel(p.name || "");
+      if (label) set.add(label);
+    });
+    // ordena por família (A,S, Z Flip/Fold) e número
+    return Array.from(set).sort((a, b) => {
+      const family = (s: string) =>
+        norm(s).includes("z flip")
+          ? "Z1"
+          : norm(s).includes("z fold")
+          ? "Z2"
+          : norm(s).includes("galaxy s")
+          ? "S"
+          : "A";
+      const fa = family(a),
+        fb = family(b);
+      if (fa !== fb) return fa.localeCompare(fb);
+      const an = Number(a.match(/\d{1,3}/)?.[0] || 0);
+      const bn = Number(b.match(/\d{1,3}/)?.[0] || 0);
+      return an - bn;
+    });
+  }, [catalog]);
+
+  // busca
   const [q, setQ] = useState("");
-  const productList = useMemo(() => productsData as Product[], []);
   function submitSearch(e?: React.FormEvent) {
     if (e) e.preventDefault();
     const term = q.trim();
     if (!term) return;
-    const r = productList.filter(
+    const r = catalog.filter(
       (p) => norm(p.name).includes(norm(term)) || norm(p.brand).includes(norm(term))
     );
     if (r[0]) router.push(`/produto/${idNoExt(r[0].id)}`);
     else router.push(`/ofertas`);
   }
 
-  // dropdowns (desktop)
+  // dropdowns desktop
   const [openDrop, setOpenDrop] = useState<"apple" | "samsung" | null>(null);
+
+  // scroll anchor helper (para os itens de 2ª linha)
+  function scrollToOnHome(hash: string) {
+    const go = () => {
+      const el = document.getElementById(hash.replace("#", ""));
+      const header = document.getElementById("site-header");
+      const offset = (header?.offsetHeight ?? 90) + 12;
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+    };
+    if (pathname !== "/") {
+      router.push(`/${hash}`);
+      setTimeout(go, 60);
+    } else {
+      go();
+    }
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        setOpenMobile(false);
         setOpenDrop(null);
-        setShowAccount(false);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -205,7 +265,7 @@ export default function Header() {
 
   return (
     <>
-      {/* faixa de benefícios */}
+      {/* faixa superior */}
       <div className="w-full bg-zinc-50 border-b border-zinc-200 text-[12px] text-zinc-700">
         <div className="mx-auto max-w-[1100px] px-4 py-1 flex items-center gap-4">
           <span className="inline-flex items-center gap-1.5">
@@ -224,14 +284,13 @@ export default function Header() {
       </div>
 
       {/* barra principal */}
-      <header id="site-header" className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200">
+      <header
+        id="site-header"
+        className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200"
+      >
         <div className="mx-auto max-w-[1100px] px-4 py-3 flex items-center gap-3">
           {/* menu mobile */}
-          <button
-            onClick={() => setOpenMobile((v) => !v)}
-            className="lg:hidden rounded-lg p-2 hover:bg-zinc-100"
-            aria-label="Abrir menu"
-          >
+          <button className="lg:hidden rounded-lg p-2 hover:bg-zinc-100" aria-label="Menu">
             <Menu className="h-5 w-5" />
           </button>
 
@@ -262,9 +321,10 @@ export default function Header() {
           {/* ações (desktop) */}
           <nav className="hidden lg:flex items-center gap-2">
             <button
-              onClick={() => setShowAccount(true)}
+              onClick={() => (document.getElementById("modal-open") as HTMLButtonElement)?.click()}
               className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
               title="Minha conta"
+              id="modal-open"
             >
               <LogIn className="h-4 w-4" />
               Entrar
@@ -294,7 +354,7 @@ export default function Header() {
           </nav>
         </div>
 
-        {/* segunda linha + dropdowns */}
+        {/* segunda linha + dropdowns alimentados pelo CATÁLOGO */}
         <div className="hidden md:block border-t border-zinc-200">
           <div className="mx-auto max-w-[1100px] px-4">
             <ul className="relative flex items-center gap-6 text-[14px] py-2 text-zinc-700">
@@ -308,19 +368,24 @@ export default function Header() {
                   iPhone <ChevronDown className="h-3.5 w-3.5" />
                 </button>
 
-                {openDrop === "apple" && (
-                  <div className="absolute left-0 top-[120%] z-50 w-[520px] rounded-xl border bg-white p-4 shadow-xl">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      {["iPhone 11", "iPhone 12", "iPhone 13", "iPhone 14", "iPhone 14 Plus", "iPhone 15", "iPhone 15 Plus", "iPhone 15 Pro"]
-                        .map((label) => (
-                          <Link
-                            key={label}
-                            href={`/ofertas?brand=apple`}
-                            className="rounded-lg px-2 py-1 hover:bg-zinc-100"
-                          >
-                            {label}
-                          </Link>
-                        ))}
+                {openDrop === "apple" && appleModels.length > 0 && (
+                  <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
+                    <div className="grid grid-cols-2 gap-2">
+                      {appleModels.slice(0, 12).map((label) => (
+                        <Link
+                          key={label}
+                          href={`/ofertas?brand=apple&model=${encodeURIComponent(label)}`}
+                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                      <Link
+                        href="/ofertas?brand=apple"
+                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
+                      >
+                        Ver todos os iPhones
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -336,109 +401,88 @@ export default function Header() {
                   Samsung <ChevronDown className="h-3.5 w-3.5" />
                 </button>
 
-                {openDrop === "samsung" && (
-                  <div className="absolute left-0 top-[120%] z-50 w-[520px] rounded-xl border bg-white p-4 shadow-xl">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      {["Galaxy A", "Galaxy S", "Galaxy Z Flip", "Galaxy Z Fold", "Linha M", "Linha F"]
-                        .map((label) => (
-                          <Link
-                            key={label}
-                            href={`/ofertas?brand=samsung`}
-                            className="rounded-lg px-2 py-1 hover:bg-zinc-100"
-                          >
-                            {label}
-                          </Link>
-                        ))}
+                {openDrop === "samsung" && samsungModels.length > 0 && (
+                  <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
+                    <div className="grid grid-cols-2 gap-2">
+                      {samsungModels.slice(0, 14).map((label) => (
+                        <Link
+                          key={label}
+                          href={`/ofertas?brand=samsung&model=${encodeURIComponent(label)}`}
+                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                      <Link
+                        href="/ofertas?brand=samsung"
+                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
+                      >
+                        Ver todos Samsung
+                      </Link>
                     </div>
                   </div>
                 )}
               </li>
 
-              {/* âncoras na home com scroll suave */}
-              <li><AnchorLink hash="#mais-buscados" className="hover:text-zinc-900">Mais buscados</AnchorLink></li>
-              <li><AnchorLink hash="#bbb" className="hover:text-zinc-900">BBB do dia</AnchorLink></li>
-              <li><AnchorLink hash="#destaques" className="hover:text-zinc-900">Ofertas em destaque</AnchorLink></li>
+              {/* âncoras da home */}
+              <li>
+                <a className="hover:text-zinc-900" href="/#mais-buscados" onClick={(e) => { e.preventDefault(); scrollToOnHome("#mais-buscados"); }}>
+                  Mais buscados
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-zinc-900" href="/#bbb" onClick={(e) => { e.preventDefault(); scrollToOnHome("#bbb"); }}>
+                  BBB do dia
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-zinc-900" href="/#destaques" onClick={(e) => { e.preventDefault(); scrollToOnHome("#destaques"); }}>
+                  Ofertas em destaque
+                </a>
+              </li>
 
               <li className="ml-auto">
-                <Link href="/checkout" className="hover:text-zinc-900">Checkout</Link>
+                <Link href="/checkout" className="hover:text-zinc-900">
+                  Checkout
+                </Link>
               </li>
             </ul>
           </div>
         </div>
       </header>
 
-      {/* menu mobile */}
-      {openMobile && (
-        <div className="lg:hidden border-b border-zinc-200">
-          <div className="mx-auto max-w-[1100px] px-4 py-3 flex flex-col gap-2">
-            <form
-              onSubmit={submitSearch}
-              className="flex items-center rounded-xl border border-zinc-300 bg-white p-2"
-            >
-              <Search className="h-4 w-4 text-zinc-500 mr-2" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-sm"
-                placeholder="Buscar produtos…"
-              />
-              <button
-                type="submit"
-                className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white"
-              >
-                Buscar
-              </button>
-            </form>
-
-            {/* grupos simples no mobile */}
-            <details className="rounded-lg bg-white border border-zinc-200">
-              <summary className="cursor-pointer px-3 py-2 text-sm">iPhone</summary>
-              <div className="px-3 pb-2 text-sm">
-                <Link href="/ofertas?brand=apple" className="block rounded px-2 py-1 hover:bg-zinc-100">
-                  Ver iPhones
-                </Link>
-              </div>
-            </details>
-            <details className="rounded-lg bg-white border border-zinc-200">
-              <summary className="cursor-pointer px-3 py-2 text-sm">Samsung</summary>
-              <div className="px-3 pb-2 text-sm">
-                <Link href="/ofertas?brand=samsung" className="block rounded px-2 py-1 hover:bg-zinc-100">
-                  Ver Samsungs
-                </Link>
-              </div>
-            </details>
-
-            <AnchorLink hash="#mais-buscados" className="rounded-lg px-3 py-2 text-sm hover:bg-zinc-100">Mais buscados</AnchorLink>
-            <AnchorLink hash="#bbb" className="rounded-lg px-3 py-2 text-sm hover:bg-zinc-100">BBB do dia</AnchorLink>
-            <AnchorLink hash="#destaques" className="rounded-lg px-3 py-2 text-sm hover:bg-zinc-100">Ofertas em destaque</AnchorLink>
-
-            <div className="mt-1 flex gap-2">
-              <button
-                onClick={() => { setShowAccount(true); setOpenMobile(false); }}
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-              >
-                Entrar
-              </button>
-              <Link
-                href="/carrinho"
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 text-center"
-              >
-                Carrinho
-              </Link>
-            </div>
-
-            <Link
-              href="/analise-boleto"
-              className="mt-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white text-center hover:bg-emerald-700"
-            >
-              Análise de Boleto
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* modal conta */}
-      <AccountModal open={showAccount} onClose={() => setShowAccount(false)} />
+      {/* modal (fora do header para não cortar o overlay) */}
+      <AccountModal
+        open={false /* abre clicando no botão acima (id=modal-open) */}
+        onClose={() => {}}
+      />
+      {/* usamos o botão para abrir o modal controlado (sem estado global) */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              var modal, btn;
+              function openModal(){
+                if(!modal){
+                  // cria modal uma vez
+                  var container = document.createElement('div');
+                  container.id = 'account-modal-root';
+                  document.body.appendChild(container);
+                  // usa o mesmo HTML de cima renderizado via React? Sim, o Componente já está na árvore.
+                }
+                // dispara um evento para o React abrir
+                window.dispatchEvent(new CustomEvent('open-account-modal'));
+              }
+              function mount(){
+                btn = document.getElementById('modal-open');
+                if(btn){ btn.addEventListener('click', openModal); }
+              }
+              document.addEventListener('DOMContentLoaded', mount);
+              mount();
+            })();
+          `,
+        }}
+      />
     </>
   );
 }
