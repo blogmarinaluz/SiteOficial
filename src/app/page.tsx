@@ -1,15 +1,108 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import Testimonials from "@/components/Testimonials";
 import productsData from "@/data/products.json";
 
-// ===== tipos util =====
+// ======================= SEO (não altera o visual) =======================
+function setMetaTag(name: string, content: string) {
+  if (typeof document === "undefined") return;
+  let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute("name", name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
+}
+
+function setMetaProperty(prop: string, content: string) {
+  if (typeof document === "undefined") return;
+  let el = document.querySelector(`meta[property="${prop}"]`) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute("property", prop);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
+}
+
+function setCanonical(url: string) {
+  if (typeof document === "undefined") return;
+  let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("href", url);
+}
+
+function absUrl(path: string): string {
+  try {
+    if (path.startsWith("http")) return path;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return origin + (path.startsWith("/") ? path : `/${path}`);
+  } catch {
+    return path;
+  }
+}
+
+function HomeSEO() {
+  useEffect(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = origin || "/";
+    const title = "proStore • Celulares Apple & Samsung com 30% OFF";
+    const description =
+      "Ofertas reais em iPhone e Samsung: 30% OFF no PIX/Boleto e até 10x sem juros. Frete grátis em produtos selecionados.";
+
+    try {
+      // Title / Description / Canonical
+      document.title = title;
+      setMetaTag("description", description);
+      setCanonical(url);
+
+      // Open Graph / Twitter
+      setMetaProperty("og:title", title);
+      setMetaProperty("og:description", description);
+      setMetaProperty("og:type", "website");
+      setMetaProperty("og:url", url);
+      setMetaProperty("og:image", absUrl("/og-home.jpg")); // opcional, usa se existir
+      setMetaTag("twitter:card", "summary_large_image");
+      setMetaTag("twitter:title", title);
+      setMetaTag("twitter:description", description);
+    } catch {}
+  }, []);
+
+  // JSON-LD WebSite + Organization
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const websiteJson = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "proStore",
+    url: origin || "/",
+  };
+  const orgJson = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "proStore",
+    url: origin || "/",
+    logo: absUrl("/logo.png"),
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJson) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJson) }} />
+    </>
+  );
+}
+
+// ======================= Catálogo / util =======================
 type P = any;
 
-// ---------- utils ----------
 const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
 const isBrand = (p: P, target: "apple" | "samsung") => {
   const b = norm(p?.brand);
@@ -17,17 +110,15 @@ const isBrand = (p: P, target: "apple" | "samsung") => {
   return b === target || n.includes(target);
 };
 
-// Escore básico: preço menor + nome mais curto
+// Escore simples: preço menor + nome mais curto
 const score = (p: P) => {
   const price = Number(p?.price || 0);
   const len = String(p?.name || "").length;
   return price * 0.9 + len * 10;
 };
 
-const pickTop = (arr: P[], n: number) =>
-  [...arr].sort((a, b) => score(a) - score(b)).slice(0, n);
+const pickTop = (arr: P[], n: number) => [...arr].sort((a, b) => score(a) - score(b)).slice(0, n);
 
-// Embaralhar intercalando
 function interleave<A>(a: A[], b: A[]) {
   const res: A[] = [];
   const len = Math.max(a.length, b.length);
@@ -38,7 +129,6 @@ function interleave<A>(a: A[], b: A[]) {
   return res;
 }
 
-// Sorteio estável (seed simples) para “frete grátis”
 function mulberry32(seed: number) {
   return function () {
     let t = (seed += 0x6d2b79f5);
@@ -61,7 +151,7 @@ function pickRandomIdsStable(list: P[], n: number, seed = 12345) {
 }
 
 export default function Page() {
-  // ==================== CATÁLOGO (inalterado) ====================
+  // ====== Catálogo ======
   const raw: P[] = productsData as any[];
 
   // Frete grátis em 20 produtos (estável)
@@ -72,26 +162,25 @@ export default function Page() {
     freeShipping: freeIds.has(String(p?.id)),
   }));
 
-  // 1) CELULARES EM OFERTA: 4 Samsung + 4 Apple (intercalados)
+  // 1) Celulares em Oferta: 4 Samsung + 4 Apple
   const samsungs = pickTop(all.filter((p) => isBrand(p, "samsung")), 4);
   const apples = pickTop(all.filter((p) => isBrand(p, "apple")), 4);
   const emOferta = interleave(samsungs, apples).slice(0, 8);
 
-  // 2) OFERTAS DO DIA | BBB — 8 melhores pontuados
+  // 2) Ofertas do dia | BBB
   const ofertasDia = pickTop(all, 8);
 
-  // 3) OFERTAS EM DESTAQUE — 12 itens (fallback se necessário)
+  // 3) Ofertas em Destaque
   const destaque = pickTop(all, 12);
   const destaqueSafe = destaque.length >= 8 ? destaque : all.slice(0, 12);
 
-  // ==================== NEWSLETTER (refinada) ====================
+  // ====== Newsletter ======
   const [nlName, setNlName] = useState("");
   const [nlEmail, setNlEmail] = useState("");
   const [nlMsg, setNlMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
-    // Botão de exportação só aparece no localhost ou com ?admin=1
     try {
       const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost";
       const isAdminParam =
@@ -164,10 +253,12 @@ export default function Page() {
 
   return (
     <main className="space-y-10">
+      {/* SEO da Home */}
+      <HomeSEO />
+
       {/* 1) Hero — visual premium e discreto */}
       <section className="mx-auto max-w-[1100px] px-4">
         <div className="relative overflow-hidden rounded-3xl ring-1 ring-zinc-800/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black shadow-lg">
-          {/* Brilho radial suave em verde (somente estética) */}
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_300px_at_15%_15%,rgba(16,185,129,0.14),transparent)]" />
           <div className="relative grid gap-6 md:grid-cols-[1.35fr,1fr] md:items-center px-6 py-8">
             <div>
@@ -193,7 +284,6 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Caixa de destaques mais sutil */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/90">
               <p className="mb-2 font-semibold">Condição exclusiva</p>
               <ul className="space-y-2">
@@ -270,12 +360,7 @@ export default function Page() {
               </p>
             </div>
 
-            {/* Campos + botão */}
-            <form
-              onSubmit={onNewsletterSubmit}
-              className="flex flex-col gap-3 sm:flex-row sm:items-center"
-              noValidate
-            >
+            <form onSubmit={onNewsletterSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center" noValidate>
               <label className="sr-only" htmlFor="nl-name">Nome</label>
               <input
                 id="nl-name"
@@ -326,7 +411,6 @@ export default function Page() {
               )}
             </div>
 
-            {/* Mensagem discreta */}
             {nlMsg && (
               <div
                 className={
