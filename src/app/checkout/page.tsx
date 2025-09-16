@@ -310,7 +310,7 @@ export default function CheckoutPage() {
 
   function buildWhatsappUrl(order: Order): string {
     const lines: string[] = [];
-    lines.push("📦 *Novo pedido*");
+    lines.push("🛒 *Novo pedido*");
     lines.push(`Código: *${order.code}*`);
     lines.push("");
     lines.push("*Itens:*");
