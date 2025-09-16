@@ -235,8 +235,9 @@ export default function Page() {
       }
       const header = ["name", "email", "createdAt"];
       const rows = arr.map((o: any) => [o.name || "", o.email || "", o.createdAt || ""]);
+      // ✅ corrigido: parênteses/colchetes do map
       const csv = [header, ...rows]
-        .map((r) => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(",")))
+        .map((r: any[]) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
         .join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
@@ -277,7 +278,7 @@ export default function Page() {
                   Ver ofertas
                 </Link>
                 <Link
-                  href="/#mais-buscados"  // ✅ muda para hash correto
+                  href="/#mais-buscados"
                   className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
                 >
                   Mais buscados
