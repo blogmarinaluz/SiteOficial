@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search as SearchIcon,
   LogIn,
@@ -16,17 +16,19 @@ import { useCart } from "@/hooks/useCart";
 type Product = {
   id: string;
   name: string;
-  brand: string;
+  brand?: string;
   model_key?: string;
   image?: string;
   price: number;
-  tag?: string;
 };
 
-/* Utils */
 const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
+const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
 
-/* Componente */
+/* Remove “128 GB” etc. do nome para agrupar modelos */
+const stripStorage = (name: string) =>
+  name.replace(/\b(\d{2,4})\s?gb\b/gi, "").trim();
+
 export default function Header() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -44,32 +46,49 @@ export default function Header() {
     router.push(`/buscar${q ? `?q=${encodeURIComponent(q)}` : ""}`);
   }
 
-  /* ----- Menus dinâmicos (a partir do products.json) ----- */
+  /* ----- Menus dinâmicos a partir do products.json ----- */
   const catalog = products as Product[];
 
-  const menuApple = useMemo(() => {
-    const apple = catalog.filter((p) => p.brand.toLowerCase().includes("apple") || p.name.toLowerCase().includes("iphone"));
+  function uniqueByModel(list: Product[]) {
     const map = new Map<string, Product>();
-    for (const p of apple) {
-      const key = (p.model_key || p.name).toLowerCase();
+    for (const p of list) {
+      const key = norm(p.model_key || stripStorage(p.name));
       if (!map.has(key)) map.set(key, p);
     }
-    return Array.from(map.values()).slice(0, 8);
+    return Array.from(map.values());
+  }
+
+  const menuApple = useMemo(() => {
+    const apple = catalog.filter(
+      (p) => /iphone|apple/i.test(p.name) || /apple/i.test(p.brand || "")
+    );
+    return uniqueByModel(apple).slice(0, 12);
   }, [catalog]);
 
   const menuSamsung = useMemo(() => {
-    const sams = catalog.filter((p) => p.brand.toLowerCase().includes("samsung"));
-    const map = new Map<string, Product>();
-    for (const p of sams) {
-      const key = (p.model_key || p.name).toLowerCase();
-      if (!map.has(key)) map.set(key, p);
-    }
-    return Array.from(map.values()).slice(0, 8);
+    const sams = catalog.filter(
+      (p) =>
+        /samsung|galaxy/i.test(p.name) || /samsung/i.test(p.brand || "")
+    );
+    return uniqueByModel(sams).slice(0, 12);
   }, [catalog]);
 
+  /* ----- Controle de dropdown com atraso para evitar “sumir rápido” ----- */
+  const [open, setOpen] = useState<null | "apple" | "samsung">(null);
+  const closeTimer = useRef<any>(null);
+
+  const openMenu = (k: "apple" | "samsung") => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(k);
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(null), 160);
+  };
+
   return (
-    /* ↑ isolate cria um novo stacking context; z-[60] garante que tudo do header fique acima do conteúdo */
-    <header className="relative z-[60] isolate w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+    /* isolate + z garantem que o header e os menus fiquem acima das imagens */
+    <header className="relative z-[80] isolate w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
       {/* Barra superior fina */}
       <div className="hidden md:block text-[11px] text-zinc-600 bg-zinc-50">
         <div className="container py-1.5">
@@ -128,7 +147,6 @@ export default function Header() {
             Carrinho
           </Link>
 
-          {/* Botão Análise de Boleto -> mesma rota do checkout */}
           <Link
             href="/analise-boleto"
             className="hidden sm:inline-flex rounded-full bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 text-sm font-medium"
@@ -145,43 +163,94 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Linha de navegação secundária */}
+      {/* Navegação */}
       <nav className="container -mt-1 mb-2">
         <ul className="flex flex-wrap items-center gap-2 text-[13px] text-zinc-700">
-          {/* iPhone menu */}
-          <li className="group relative">
-            <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-zinc-100 cursor-pointer">
+          {/* iPhone */}
+          <li
+            className="relative"
+            onMouseEnter={() => openMenu("apple")}
+            onMouseLeave={scheduleClose}
+          >
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-zinc-100 ${
+                open === "apple" ? "bg-zinc-100" : ""
+              }`}
+              aria-haspopup="menu"
+              aria-expanded={open === "apple"}
+            >
               iPhone <ChevronDown className="h-3.5 w-3.5" />
-            </span>
-            {/* dropdown - z elevado para ficar acima das imagens */}
-            <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute left-0 mt-1 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition z-[70]">
-              {menuApple.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/produto/${idNoExt(p.id)}`}
-                  className="block rounded-md px-2 py-1.5 hover:bg-zinc-50"
-                >
-                  {p.name}
-                </Link>
-              ))}
+            </button>
+
+            {/* Dropdown */}
+            <div
+              role="menu"
+              className={`absolute left-0 top-full mt-2 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition
+                          ${open === "apple" ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"}
+                          z-[90]`}
+              onMouseEnter={() => openMenu("apple")}
+              onMouseLeave={scheduleClose}
+            >
+              {menuApple.length ? (
+                menuApple.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/produto/${idNoExt(p.id)}`}
+                    className="block rounded-md px-2 py-1.5 hover:bg-zinc-50"
+                  >
+                    {p.name}
+                  </Link>
+                ))
+              ) : (
+                <span className="block px-2 py-1.5 text-sm text-zinc-500">
+                  Em breve
+                </span>
+              )}
             </div>
           </li>
 
-          {/* Samsung menu */}
-          <li className="group relative">
-            <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-zinc-100 cursor-pointer">
+          {/* Samsung */}
+          <li
+            className="relative"
+            onMouseEnter={() => openMenu("samsung")}
+            onMouseLeave={scheduleClose}
+          >
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-zinc-100 ${
+                open === "samsung" ? "bg-zinc-100" : ""
+              }`}
+              aria-haspopup="menu"
+              aria-expanded={open === "samsung"}
+            >
               Samsung <ChevronDown className="h-3.5 w-3.5" />
-            </span>
-            <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute left-0 mt-1 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition z-[70]">
-              {menuSamsung.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/produto/${idNoExt(p.id)}`}
-                  className="block rounded-md px-2 py-1.5 hover:bg-zinc-50"
-                >
-                  {p.name}
-                </Link>
-              ))}
+            </button>
+
+            {/* Dropdown */}
+            <div
+              role="menu"
+              className={`absolute left-0 top-full mt-2 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition
+                          ${open === "samsung" ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"}
+                          z-[90]`}
+              onMouseEnter={() => openMenu("samsung")}
+              onMouseLeave={scheduleClose}
+            >
+              {menuSamsung.length ? (
+                menuSamsung.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/produto/${idNoExt(p.id)}`}
+                    className="block rounded-md px-2 py-1.5 hover:bg-zinc-50"
+                  >
+                    {p.name}
+                  </Link>
+                ))
+              ) : (
+                <span className="block px-2 py-1.5 text-sm text-zinc-500">
+                  Em breve
+                </span>
+              )}
             </div>
           </li>
 
@@ -204,7 +273,7 @@ export default function Header() {
         </ul>
       </nav>
 
-      {/* Busca responsiva (mobile) */}
+      {/* Busca mobile */}
       <div className="container pb-3 sm:hidden">
         <form onSubmit={doSearch} className="relative">
           <input
