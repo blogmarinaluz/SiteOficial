@@ -1,429 +1,530 @@
-// src/app/page.tsx
+// src/components/Header.tsx
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import ProductGrid from "@/components/ProductGrid";
-import Testimonials from "@/components/Testimonials";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCart } from "@/hooks/useCart";
 import productsData from "@/data/products.json";
+import {
+  Menu, X, User, LogIn, ChevronRight, MessageCircle, ShoppingCart,
+  ShieldCheck, Percent, Truck, Search, ChevronDown,
+} from "lucide-react";
 
-// ======================= SEO (não altera o visual) =======================
-function setMetaTag(name: string, content: string) {
-  if (typeof document === "undefined") return;
-  let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
-  if (!el) {
-    el = document.createElement("meta");
-    el.setAttribute("name", name);
-    document.head.appendChild(el);
-  }
-  el.setAttribute("content", content);
+/* ========= utils ========= */
+const norm = (v: unknown) =>
+  String(v ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+
+const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
+
+const fmt = (n: number) =>
+  Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+
+/* ========= tipos ========= */
+type Product = { id: string; name: string; brand?: string; price?: number };
+
+/* ========= extração de MODELOS diretamente do catálogo ========= */
+function appleModelLabel(name: string): string | null {
+  const m =
+    name.match(/iPhone\s+(SE(?:\s*\(\d{4}\))?|\d{2}(?:\s?(?:Plus|Pro|Pro Max))?)/i)?.[0] ||
+    name.match(/iPhone\s+(XR|XS Max|XS)/i)?.[0];
+  return m ? m.replace(/\s+/g, " ").trim() : null;
 }
 
-function setMetaProperty(prop: string, content: string) {
-  if (typeof document === "undefined") return;
-  let el = document.querySelector(`meta[property="${prop}"]`) as HTMLMetaElement | null;
-  if (!el) {
-    el = document.createElement("meta");
-    el.setAttribute("property", prop);
-    document.head.appendChild(el);
+/** Galaxy A14, Galaxy A07, Galaxy S21, Galaxy Z Flip, Galaxy Z Fold… */
+function samsungModelLabel(name: string): string | null {
+  const s1 = name.match(/Galaxy\s+Z\s+(Flip|Fold)(?:\s*\d{0,2})?/i)?.[0];
+  if (s1) return s1.replace(/\s+/g, " ").trim();
+
+  const s2 = name.match(/Galaxy\s+(A|S)\s*0?\d{1,3}/i)?.[0];
+  if (s2) {
+    // normaliza A7 -> A07
+    return s2
+      .replace(/(Galaxy\s+[AS]\s*)(\d{1})(?!\d)/i, (_a, p1, p2) => `${p1}0${p2}`)
+      .replace(/\s+/g, " ")
+      .trim();
   }
-  el.setAttribute("content", content);
+  return null;
 }
 
-function setCanonical(url: string) {
-  if (typeof document === "undefined") return;
-  let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
-  if (!link) {
-    link = document.createElement("link");
-    link.setAttribute("rel", "canonical");
-    document.head.appendChild(link);
-  }
-  link.setAttribute("href", url);
+/* === tolera brand com erro ("samsumg") === */
+function productBrand(p: Product): "apple" | "samsung" | "other" {
+  const b = norm(`${p.brand || ""} ${p.name || ""}`);
+  if (b.includes("apple") || b.includes("iphone")) return "apple";
+  if (b.includes("samsung") || b.includes("galaxy") || b.includes("samsumg")) return "samsung";
+  return "other";
 }
 
-function absUrl(path: string): string {
-  try {
-    if (path.startsWith("http")) return path;
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return origin + (path.startsWith("/") ? path : `/${path}`);
-  } catch {
-    return path;
-  }
-}
+/* ========= modal “Minha conta” ========= */
+function AccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [code, setCode] = useState("");
+  const [result, setResult] = useState<any | null>(null);
 
-function HomeSEO() {
-  useEffect(() => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = origin || "/";
-    const title = "proStore • Celulares Apple & Samsung com 30% OFF";
-    const description =
-      "Ofertas reais em iPhone e Samsung: 30% OFF no PIX/Boleto e até 10x sem juros. Frete grátis em produtos selecionados.";
+  const WA_NUMBER = "5599984905715"; // fixo (pedido do cliente)
 
+  function buscar() {
     try {
-      // Title / Description / Canonical
-      document.title = title;
-      setMetaTag("description", description);
-      setCanonical(url);
+      const raw = localStorage.getItem("prostore:orders");
+      const arr: any[] = raw ? JSON.parse(raw) : [];
+      const found = arr.find((o) => norm(o.code) === norm(code));
+      setResult(found || null);
+    } catch {
+      setResult(null);
+    }
+  }
 
-      // Open Graph / Twitter
-      setMetaProperty("og:title", title);
-      setMetaProperty("og:description", description);
-      setMetaProperty("og:type", "website");
-      setMetaProperty("og:url", url);
-      setMetaProperty("og:image", absUrl("/og-home.jpg")); // opcional, usa se existir
-      setMetaTag("twitter:card", "summary_large_image");
-      setMetaTag("twitter:title", title);
-      setMetaTag("twitter:description", description);
-    } catch {}
-  }, []);
+  function whatsappUrl() {
+    const text = encodeURIComponent(
+      `Olá! Preciso de ajuda com meu pedido${code ? ` (código ${code.trim()})` : ""}.`
+    );
+    return `https://wa.me/${WA_NUMBER}?text=${text}`;
+  }
 
-  // JSON-LD WebSite + Organization
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const websiteJson = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "proStore",
-    url: origin || "/",
-  };
-  const orgJson = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "proStore",
-    url: origin || "/",
-    logo: absUrl("/logo.png"),
-  };
+  if (!open) return null;
 
   return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJson) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJson) }} />
-    </>
+    <div className="fixed inset-0 z-[90]">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <div className="flex items-center gap-2 text-zinc-800">
+            <User className="h-5 w-5" />
+            <b>Minha conta</b>
+          </div>
+          <button onClick={onClose} className="rounded p-1 hover:bg-zinc-100" aria-label="Fechar">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div>
+            <div className="text-sm text-zinc-700">Acompanhar pedido</div>
+            <div className="mt-2 flex gap-2">
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Digite seu código (ex.: PS-20250916-ABCD)"
+                className="flex-1 rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
+              />
+              <button
+                onClick={buscar}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Consultar
+              </button>
+            </div>
+
+            {result ? (
+              <div className="mt-3 text-sm rounded-xl border p-3">
+                <div className="font-semibold">Código: {result.code}</div>
+                <ul className="mt-2 space-y-1">
+                  {result.items.map((it: any, i: number) => (
+                    <li key={i} className="flex items-center justify-between">
+                      <span className="truncate">
+                        {it.qty}x {it.name}
+                      </span>
+                      <span className="font-medium">{fmt(it.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-2 border-t pt-2 text-right text-sm">
+                  <div className="text-zinc-600">Subtotal: {fmt(result.subtotal)}</div>
+                  <div className="text-emerald-700">Cupom: − {fmt(result.discount)}</div>
+                  <div className="font-semibold">Total: {fmt(result.total)}</div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="pt-2 border-t">
+            <a
+              href={whatsappUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Falar com atendente
+              <ChevronRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
-// ======================= Catálogo / util =======================
-type P = any;
+/* ========= header ========= */
+export default function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
 
-const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
-const isBrand = (p: P, target: "apple" | "samsung") => {
-  const b = norm(p?.brand);
-  const n = norm(`${p?.brand} ${p?.name}`);
-  return b === target || n.includes(target);
-};
+  const { items } = useCart();
+  const count = useMemo(
+    () => (items ?? []).reduce((a: number, i: any) => a + (i.qty || 0), 0),
+    [items]
+  );
 
-// Escore simples: preço menor + nome mais curto
-const score = (p: P) => {
-  const price = Number(p?.price || 0);
-  const len = String(p?.name || "").length;
-  return price * 0.9 + len * 10;
-};
+  // catálogo em memória
+  const catalog = useMemo(() => productsData as Product[], []);
+  const appleModels = useMemo(() => {
+    const set = new Set<string>();
+    catalog.forEach((p) => {
+      if (productBrand(p) !== "apple") return;
+      const label = appleModelLabel(p.name || "");
+      if (label) set.add(label);
+    });
+    // ordena por número/variante
+    return Array.from(set).sort((a, b) => {
+      const an = Number(a.match(/\d{2,4}/)?.[0] || 0);
+      const bn = Number(b.match(/\d{2,4}/)?.[0] || 0);
+      if (an !== bn) return an - bn;
+      const order = ["", "Plus", "Pro", "Pro Max", "SE"];
+      const av = order.findIndex((k) => norm(a).includes(norm(k)));
+      const bv = order.findIndex((k) => norm(b).includes(norm(k)));
+      return av - bv;
+    });
+  }, [catalog]);
 
-const pickTop = (arr: P[], n: number) => [...arr].sort((a, b) => score(a) - score(b)).slice(0, n);
+  const samsungModels = useMemo(() => {
+    const set = new Set<string>();
+    catalog.forEach((p) => {
+      if (productBrand(p) !== "samsung") return;
+      const label = samsungModelLabel(p.name || "");
+      if (label) set.add(label);
+    });
+    // ordena por família (A,S, Z Flip/Fold) e número
+    return Array.from(set).sort((a, b) => {
+      const family = (s: string) =>
+        norm(s).includes("z flip")
+          ? "Z1"
+          : norm(s).includes("z fold")
+          ? "Z2"
+          : norm(s).includes("galaxy s")
+          ? "S"
+          : "A";
+      const fa = family(a),
+        fb = family(b);
+      if (fa !== fb) return fa.localeCompare(fb);
+      const an = Number(a.match(/\d{1,3}/)?.[0] || 0);
+      const bn = Number(b.match(/\d{1,3}/)?.[0] || 0);
+      return an - bn;
+    });
+  }, [catalog]);
 
-function interleave<A>(a: A[], b: A[]) {
-  const res: A[] = [];
-  const len = Math.max(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    if (a[i]) res.push(a[i]);
-    if (b[i]) res.push(b[i]);
+  // busca
+  const [q, setQ] = useState("");
+  function submitSearch(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    const term = q.trim();
+    if (!term) return;
+    const r = catalog.filter(
+      (p) => norm(p.name).includes(norm(term)) || norm(p.brand).includes(norm(term))
+    );
+    if (r[0]) router.push(`/produto/${idNoExt(r[0].id)}`);
+    else router.push(`/ofertas`);
   }
-  return res;
-}
 
-function mulberry32(seed: number) {
-  return function () {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  // dropdowns desktop (com atraso no fechar)
+  const [openDrop, setOpenDrop] = useState<"apple" | "samsung" | null>(null);
+  const closeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearClose = () => {
+    if (closeRef.current) {
+      clearTimeout(closeRef.current);
+      closeRef.current = null;
+    }
   };
-}
+  const openMenu = (k: "apple" | "samsung") => {
+    clearClose();
+    setOpenDrop(k);
+  };
+  const delayedClose = (k: "apple" | "samsung") => {
+    clearClose();
+    closeRef.current = setTimeout(() => {
+      setOpenDrop((v) => (v === k ? null : v));
+    }, 180); // ~0.18s para não sumir na transição
+  };
 
-function pickRandomIdsStable(list: P[], n: number, seed = 12345) {
-  const rnd = mulberry32(seed);
-  const arr = [...list];
-  const chosen = new Set<string>();
-  while (arr.length && chosen.size < n) {
-    const idx = Math.floor(rnd() * arr.length);
-    const item = arr.splice(idx, 1)[0];
-    chosen.add(String(item?.id));
+  // scroll anchor helper (para os itens de 2ª linha)
+  function scrollToOnHome(hash: string) {
+    const go = () => {
+      const el = document.getElementById(hash.replace("#", ""));
+      const header = document.getElementById("site-header");
+      const offset = (header?.offsetHeight ?? 90) + 12;
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+    };
+    if (pathname !== "/") {
+      router.push(`/${hash}`);
+      setTimeout(go, 60);
+    } else {
+      go();
+    }
   }
-  return chosen;
-}
-
-export default function Page() {
-  // ====== Catálogo ======
-  const raw: P[] = productsData as any[];
-
-  // Frete grátis em 20 produtos (estável)
-  const FREE_COUNT = 20;
-  const freeIds = pickRandomIdsStable(raw, FREE_COUNT, 202409);
-  const all: P[] = raw.map((p) => ({
-    ...p,
-    freeShipping: freeIds.has(String(p?.id)),
-  }));
-
-  // 1) Celulares em Oferta: 4 Samsung + 4 Apple
-  const samsungs = pickTop(all.filter((p) => isBrand(p, "samsung")), 4);
-  const apples = pickTop(all.filter((p) => isBrand(p, "apple")), 4);
-  const emOferta = interleave(samsungs, apples).slice(0, 8);
-
-  // 2) Ofertas do dia | BBB
-  const ofertasDia = pickTop(all, 8);
-
-  // 3) Ofertas em Destaque
-  const destaque = pickTop(all, 12);
-  const destaqueSafe = destaque.length >= 8 ? destaque : all.slice(0, 12);
-
-  // ====== Newsletter ======
-  const [nlName, setNlName] = useState("");
-  const [nlEmail, setNlEmail] = useState("");
-  const [nlMsg, setNlMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
-    try {
-      const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost";
-      const isAdminParam =
-        typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).has("admin");
-      setShowExport(Boolean(isLocal || isAdminParam));
-    } catch {
-      setShowExport(false);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        clearClose();
+        setOpenDrop(null);
+      }
     }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  function saveNewsletterLocal(name: string, email: string) {
-    const key = "prostore:newsletter";
-    const raw = localStorage.getItem(key);
-    let arr: Array<{ name: string; email: string; createdAt: string }> = [];
-    try {
-      arr = raw ? JSON.parse(raw) : [];
-    } catch {
-      arr = [];
-    }
-    arr.push({ name, email, createdAt: new Date().toISOString() });
-    localStorage.setItem(key, JSON.stringify(arr));
-  }
-
-  function onNewsletterSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const name = nlName.trim();
-    const email = nlEmail.trim();
-    if (!email || !email.includes("@")) {
-      setNlMsg({ type: "err", text: "Informe um e-mail válido." });
-      return;
-    }
-    try {
-      saveNewsletterLocal(name, email);
-      setNlMsg({ type: "ok", text: "Cadastro realizado com sucesso!" });
-      setNlName("");
-      setNlEmail("");
-    } catch {
-      setNlMsg({ type: "err", text: "Não foi possível cadastrar agora." });
-    }
-  }
-
-  function exportCsv() {
-    try {
-      const key = "prostore:newsletter";
-      const raw = localStorage.getItem(key);
-      const arr = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(arr) || arr.length === 0) {
-        setNlMsg({ type: "err", text: "Nenhum cadastro para exportar." });
-        return;
-      }
-      const header = ["name", "email", "createdAt"];
-      const rows = arr.map((o: any) => [o.name || "", o.email || "", o.createdAt || ""]);
-      // ✅ corrigido: parênteses/colchetes do map
-      const csv = [header, ...rows]
-        .map((r: any[]) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-        .join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `newsletter-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      setNlMsg({ type: "err", text: "Falha ao exportar." });
-    }
-  }
-
   return (
-    <main className="space-y-10">
-      {/* SEO da Home */}
-      <HomeSEO />
-
-      {/* 1) Hero — visual premium e discreto */}
-      <section className="mx-auto max-w-[1100px] px-4">
-        <div className="relative overflow-hidden rounded-3xl ring-1 ring-zinc-800/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black shadow-lg">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_300px_at_15%_15%,rgba(16,185,129,0.14),transparent)]" />
-          <div className="relative grid gap-6 md:grid-cols-[1.35fr,1fr] md:items-center px-6 py-8">
-            <div>
-              <h1 className="text-3xl md:text-[34px] font-extrabold tracking-tight text-white">
-                Apple & Samsung com 30% OFF
-              </h1>
-              <p className="mt-2 text-[15px] text-white/80">
-                Pague no PIX ou Boleto (30% OFF). Até 10x sem juros no cartão.
-              </p>
-              <div className="mt-5 flex gap-2">
-                <Link
-                  href="/ofertas"
-                  className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-                >
-                  Ver ofertas
-                </Link>
-                <Link
-                  href="/#mais-buscados"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
-                >
-                  Mais buscados
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/90">
-              <p className="mb-2 font-semibold">Condição exclusiva</p>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-                  <span>30% OFF no PIX/Boleto</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-                  <span>Em até 10x sem juros</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-                  <span>Frete grátis em produtos selecionados</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+    <>
+      {/* faixa superior */}
+      <div className="w-full bg-zinc-50 border-b border-zinc-200 text-[12px] text-zinc-700">
+        <div className="mx-auto max-w-[1100px] px-4 py-1 flex items-center gap-4">
+          <span className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Nota Fiscal
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Percent className="h-3.5 w-3.5 text-emerald-600" /> 30% OFF no PIX/Boleto
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Truck className="h-3.5 w-3.5 text-emerald-600" /> Frete grátis em selecionados
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1.5">
+            <MessageCircle className="h-3.5 w-3.5 text-emerald-600" /> Suporte via WhatsApp
+          </span>
         </div>
-      </section>
+      </div>
 
-      {/* 2) Celulares em oferta  → ID + scroll-mt para compensar o header fixo */}
-      <section id="mais-buscados" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold">Celulares em Oferta</h2>
-          <Link href="/ofertas" className="text-sm text-emerald-700 hover:underline">
-            Ver todas
+      {/* barra principal */}
+      <header
+        id="site-header"
+        className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200"
+      >
+        <div className="mx-auto max-w-[1100px] px-4 py-3 flex items-center gap-3">
+          {/* menu mobile */}
+          <button className="lg:hidden rounded-lg p-2 hover:bg-zinc-100" aria-label="Menu">
+            <Menu className="h-5 w-5" />
+          </button>
+
+          {/* logo */}
+          <Link href="/" className="font-extrabold tracking-tight text-zinc-900">
+            pro<span className="text-emerald-600">Store</span>
           </Link>
-        </div>
-        <div className="mt-4">
-          <ProductGrid products={emOferta as any[]} />
-        </div>
-      </section>
 
-      {/* 3) Ofertas do dia | BBB  → ID + scroll-mt */}
-      <section id="bbb" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold">Ofertas do dia | BBB = Bom, Bonito e Barato</h2>
-          <Link href="/bbb-do-dia" className="text-sm text-emerald-700 hover:underline">
-            Ver todas
-          </Link>
-        </div>
-        <div className="mt-4">
-          <ProductGrid products={ofertasDia as any[]} />
-        </div>
-      </section>
-
-      {/* 4) Depoimentos */}
-      <section className="mx-auto max-w-[1100px] px-4">
-        <Testimonials />
-      </section>
-
-      {/* 5) Ofertas em destaque  → ID + scroll-mt */}
-      <section id="destaques" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
-        </div>
-        <div className="mt-4">
-          <ProductGrid products={destaqueSafe as any[]} />
-        </div>
-      </section>
-
-      {/* 6) Newsletter — refinada, funcional e sem botão público de export */}
-      <section className="mt-12">
-        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-8 shadow-lg ring-1 ring-emerald-900/20">
-          <div className="grid gap-6 md:grid-cols-[1.2fr,1fr] md:items-center">
-            <div>
-              <h3 className="text-2xl font-extrabold text-white">Inscreva-se na nossa Newsletter</h3>
-              <p className="mt-1 text-sm text-white/90">
-                Promoções exclusivas e novidades da <span className="font-semibold">proStore</span> direto no seu e-mail.
-              </p>
-            </div>
-
-            <form onSubmit={onNewsletterSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center" noValidate>
-              <label className="sr-only" htmlFor="nl-name">Nome</label>
+          {/* busca (desktop) */}
+          <form onSubmit={submitSearch} className="hidden md:flex flex-1 items-center pl-4">
+            <div className="flex w-full items-center rounded-full border border-zinc-300 bg-white p-1.5">
+              <Search className="mx-2 h-4 w-4 text-zinc-500" />
               <input
-                id="nl-name"
-                value={nlName}
-                onChange={(e) => setNlName(e.target.value)}
-                type="text"
-                placeholder="Seu nome"
-                className="w-full rounded-xl bg-white/95 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar por modelo, cor, armazenamento..."
+                className="flex-1 bg-transparent outline-none text-sm"
               />
-
-              <label className="sr-only" htmlFor="nl-email">E-mail</label>
-              <input
-                id="nl-email"
-                value={nlEmail}
-                onChange={(e) => setNlEmail(e.target.value)}
-                type="email"
-                placeholder="Seu e-mail"
-                className="w-full rounded-xl bg-white/95 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
-                required
-              />
-
               <button
                 type="submit"
-                className="w-full sm:w-auto rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                className="rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700"
               >
-                Cadastrar
+                Buscar
               </button>
-            </form>
-
-            <div className="md:col-span-2 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-              <p className="text-[11px] leading-relaxed text-white/90">
-                *Ao clicar em cadastrar você autoriza a coleta e o tratamento dos dados conforme nossa
-                <a href="/politica-de-privacidade" className="underline underline-offset-2"> Política de Privacidade</a>,
-                <a href="/termos-de-uso" className="underline underline-offset-2"> Termos de Uso</a> e
-                <a href="/politica-de-cookies" className="underline underline-offset-2"> Política de Cookies</a>.
-              </p>
-
-              {/* Botão de exportação só para admin/local */}
-              {showExport && (
-                <button
-                  type="button"
-                  onClick={exportCsv}
-                  className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-white/20"
-                  title="Exportar e-mails cadastrados (CSV)"
-                >
-                  Baixar cadastros (CSV)
-                </button>
-              )}
             </div>
+          </form>
 
-            {nlMsg && (
-              <div
-                className={
-                  "md:col-span-2 mt-1 text-sm " +
-                  (nlMsg.type === "ok" ? "text-white/95" : "text-rose-100")
-                }
-                role="status"
+          {/* ações (desktop) */}
+          <nav className="hidden lg:flex items-center gap-2">
+            <button
+              onClick={() => (document.getElementById("modal-open") as HTMLButtonElement)?.click()}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+              title="Minha conta"
+              id="modal-open"
+            >
+              <LogIn className="h-4 w-4" />
+              Entrar
+            </button>
+
+            <Link
+              href="/carrinho"
+              className="relative inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+              title="Meu carrinho"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Carrinho
+              {count > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-emerald-600 px-1 text-[11px] font-bold text-white grid place-items-center">
+                  {count}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              href="/analise-boleto"
+              className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              title="Análise de Boleto"
+            >
+              Análise de Boleto
+            </Link>
+          </nav>
+        </div>
+
+        {/* segunda linha + dropdowns alimentados pelo CATÁLOGO */}
+        <div className="hidden md:block border-t border-zinc-200">
+          <div className="mx-auto max-w-[1100px] px-4">
+            <ul className="relative flex items-center gap-6 text-[14px] py-2 text-zinc-700">
+              {/* iPhone */}
+              <li
+                className="relative"
+                onMouseEnter={() => openMenu("apple")}
+                onMouseLeave={() => delayedClose("apple")}
               >
-                {nlMsg.text}
-              </div>
-            )}
+                <button className="inline-flex items-center gap-1 hover:text-zinc-900">
+                  iPhone <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+
+                {openDrop === "apple" && appleModels.length > 0 && (
+                  <div
+                    className="absolute left-0 top-full mt-2 z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl"
+                    onMouseEnter={clearClose}
+                    onMouseLeave={() => delayedClose("apple")}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      {appleModels.slice(0, 12).map((label) => (
+                        <Link
+                          key={label}
+                          href={`/ofertas?brand=apple&model=${encodeURIComponent(label)}`}
+                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                      <Link
+                        href="/ofertas?brand=apple"
+                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
+                      >
+                        Ver todos os iPhones
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </li>
+
+              {/* Samsung */}
+              <li
+                className="relative"
+                onMouseEnter={() => openMenu("samsung")}
+                onMouseLeave={() => delayedClose("samsung")}
+              >
+                <button className="inline-flex items-center gap-1 hover:text-zinc-900">
+                  Samsung <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+
+                {openDrop === "samsung" && samsungModels.length > 0 && (
+                  <div
+                    className="absolute left-0 top-full mt-2 z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl"
+                    onMouseEnter={clearClose}
+                    onMouseLeave={() => delayedClose("samsung")}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      {samsungModels.slice(0, 14).map((label) => (
+                        <Link
+                          key={label}
+                          href={`/ofertas?brand=samsung&model=${encodeURIComponent(label)}`}
+                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                      <Link
+                        href="/ofertas?brand=samsung"
+                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
+                      >
+                        Ver todos Samsung
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </li>
+
+              {/* âncoras da home */}
+              <li>
+                <a
+                  className="hover:text-zinc-900"
+                  href="/#mais-buscados"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToOnHome("#mais-buscados");
+                  }}
+                >
+                  Mais buscados
+                </a>
+              </li>
+              <li>
+                <a
+                  className="hover:text-zinc-900"
+                  href="/#bbb"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToOnHome("#bbb");
+                  }}
+                >
+                  BBB do dia
+                </a>
+              </li>
+              <li>
+                <a
+                  className="hover:text-zinc-900"
+                  href="/#destaques"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToOnHome("#destaques");
+                  }}
+                >
+                  Ofertas em destaque
+                </a>
+              </li>
+
+              <li className="ml-auto">
+                <Link href="/checkout" className="hover:text-zinc-900">
+                  Checkout
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
-      </section>
-    </main>
+      </header>
+
+      {/* modal (fora do header para não cortar o overlay) */}
+      <AccountModal
+        open={false /* abre clicando no botão acima (id=modal-open) */}
+        onClose={() => {}}
+      />
+      {/* usamos o botão para abrir o modal controlado (sem estado global) */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              var modal, btn;
+              function openModal(){
+                if(!modal){
+                  var container = document.createElement('div');
+                  container.id = 'account-modal-root';
+                  document.body.appendChild(container);
+                }
+                window.dispatchEvent(new CustomEvent('open-account-modal'));
+              }
+              function mount(){
+                btn = document.getElementById('modal-open');
+                if(btn){ btn.addEventListener('click', openModal); }
+              }
+              document.addEventListener('DOMContentLoaded', mount);
+              mount();
+            })();
+          `,
+        }}
+      />
+    </>
   );
 }
