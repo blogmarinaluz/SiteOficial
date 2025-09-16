@@ -169,10 +169,99 @@ const CartItemRow = memo(function CartItemRow({
   );
 });
 
+/* ====================== CEP / Frete (fake) ====================== */
+function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [cep, setCep] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
+  const [opcoes, setOpcoes] = useState<Frete[] | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const saved = localStorage.getItem("prostore:cep");
+    if (saved) setCep(saved);
+  }, [open]);
+
+  async function consultar() {
+    try {
+      setLoading(true);
+      setErro(null);
+
+      const v = cep.replace(/\D/g, "");
+      if (v.length !== 8) {
+        setErro("CEP inválido");
+        setEndereco(null);
+        setOpcoes(null);
+        return;
+      }
+
+      // simulação offline
+      const fake: EnderecoViaCep = {
+        cep: v.replace(/(\d{5})(\d{3})/, "$1-$2"),
+        logradouro: "Rua Exemplo",
+        bairro: "Centro",
+        localidade: "Cidade",
+        uf: "SP",
+      };
+      setEndereco(fake);
+
+      const opts: Frete[] = [
+        { tipo: "economico", prazo: "5 a 8 dias úteis", valor: 29.9 },
+        { tipo: "expresso", prazo: "2 a 4 dias úteis", valor: 49.9 },
+        { tipo: "retira", prazo: "Retire amanhã", valor: 0 },
+      ];
+      setOpcoes(opts);
+
+      localStorage.setItem("prostore:cep", v);
+    } catch (e) {
+      setErro("Não foi possível calcular o frete agora.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input
+          value={cep}
+          onChange={(e) => setCep(e.target.value)}
+          placeholder="Digite seu CEP"
+          className="input w-40"
+          maxLength={9}
+        />
+        <button onClick={consultar} className="btn-secondary">Calcular</button>
+        <button onClick={onClose} className="btn-primary">Aplicar</button>
+      </div>
+      {erro && <div className="note">{erro}</div>}
+      {endereco && (
+        <div className="note">
+          <div>
+            <strong>Endereço:</strong> {endereco.logradouro}, {endereco.bairro} - {endereco.localidade}/{endereco.uf}
+          </div>
+        </div>
+      )}
+      {opcoes && (
+        <ul className="space-y-2">
+          {opcoes.map((o) => (
+            <li key={o.tipo} className="trust">
+              <Truck className="h-4 w-4 text-emerald-600" />
+              <span className="font-medium capitalize">{o.tipo}</span>
+              <span className="text-neutral-500">•</span>
+              <span>{o.prazo}</span>
+              <span className="ml-auto font-semibold">{br(o.valor)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /* ====================== Página ====================== */
 export default function CheckoutPage() {
   const { items, increase, decrease, remove, clear } = useCart();
-  const [tab, setTab] = useState<"entrega" | "pagamento">("entrega");
 
   // ====== callbacks estáveis (evitam re-render de itens) ======
   const onDec = useCallback((id: string) => decrease(id), [decrease]);
@@ -203,94 +292,6 @@ export default function CheckoutPage() {
     () => (items ?? []).length > 0 && (items ?? []).every((i) => !!i.freeShipping),
     [items]
   );
-
-  /* ===== CEP / frete fake (idêntico ao anterior) ===== */
-  function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
-    const [cep, setCep] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [erro, setErro] = useState<string | null>(null);
-    const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
-    const [opcoes, setOpcoes] = useState<Frete[] | null>(null);
-
-    useEffect(() => {
-      if (!open) return;
-      const saved = localStorage.getItem("prostore:cep");
-      if (saved) setCep(saved);
-    }, [open]);
-
-    async function consultar() {
-      try {
-        setLoading(true);
-        setErro(null);
-
-        const v = cep.replace(/\D/g, "");
-        if (v.length !== 8) {
-          setErro("CEP inválido");
-          setEndereco(null);
-          setOpcoes(null);
-          return;
-        }
-
-        // simulação offline
-        const fake: EnderecoViaCep = {
-          cep: v.replace(/(\d{5})(\d{3})/, "$1-$2"),
-          logradouro: "Rua Exemplo",
-          bairro: "Centro",
-          localidade: "Cidade",
-          uf: "SP",
-        };
-        setEndereco(fake);
-
-        const opts: Frete[] = [
-          { tipo: "economico", prazo: "5 a 8 dias úteis", valor: 29.9 },
-          { tipo: "expresso", prazo: "2 a 4 dias úteis", valor: 49.9 },
-          { tipo: "retira", prazo: "Retire amanhã", valor: 0 },
-        ];
-        setOpcoes(opts);
-
-        localStorage.setItem("prostore:cep", v);
-      } catch (e) {
-        setErro("Não foi possível calcular o frete agora.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    return (
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <input
-            value={cep}
-            onChange={(e) => setCep(e.target.value)}
-            placeholder="Digite seu CEP"
-            className="input w-40"
-            maxLength={9}
-          />
-          <button onClick={consultar} className="btn-secondary">Calcular</button>
-          <button onClick={onClose} className="btn-primary">Aplicar</button>
-        </div>
-        {erro && <div className="note">{erro}</div>}
-        {endereco && (
-          <div className="note">
-            <div><strong>Endereço:</strong> {endereco.logradouro}, {endereco.bairro} - {endereco.localidade}/{endereco.uf}</div>
-          </div>
-        )}
-        {opcoes && (
-          <ul className="space-y-2">
-            {opcoes.map((o) => (
-              <li key={o.tipo} className="trust">
-                <Truck className="h-4 w-4 text-emerald-600" />
-                <span className="font-medium capitalize">{o.tipo}</span>
-                <span className="text-neutral-500">•</span>
-                <span>{o.prazo}</span>
-                <span className="ml-auto font-semibold">{br(o.valor)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    );
-  }
 
   return (
     <>
@@ -367,3 +368,94 @@ export default function CheckoutPage() {
                             )}
                           </div>
                         </div>
+                        <div className="text-sm font-semibold">
+                          {br((it.price || 0) * (it.qty || 0))}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-600">Subtotal</span>
+                <span className="font-medium text-neutral-900">
+                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(subtotal)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-600">Cupom (30% OFF)</span>
+                <span className="font-medium text-emerald-700">
+                  −{" "}
+                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                    desconto
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-base font-semibold">
+                <span>Total</span>
+                <span>
+                  {Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)}
+                </span>
+              </div>
+
+              {allFreeShipping && (
+                <div className="text-xs font-medium text-emerald-700">Frete grátis</div>
+              )}
+
+              <div className="pt-2 flex items-center justify-between">
+                <button
+                  onClick={onClear}
+                  className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                >
+                  Limpar
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/carrinho"
+                    className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50 whitespace-nowrap"
+                  >
+                    Ver carrinho
+                  </Link>
+                  <Link
+                    href="/checkout"
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 whitespace-nowrap"
+                  >
+                    Finalizar
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          <div className="note">
+            <div className="trust">
+              <Check className="h-4 w-4 text-emerald-600" />
+              <span>Ambiente seguro</span>
+            </div>
+            <p className="mt-2 text-sm">
+              Seus dados são protegidos e utilizados somente para processar seu pedido.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* estilos locais do checkout (mantidos) */}
+      <style jsx global>{`
+        .input { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; }
+        .input:focus { box-shadow: 0 0 0 2px rgba(16, 185, 129, .25); border-color: #10b981; }
+        .tab { display:flex; align-items:center; padding:8px 12px; gap:10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; }
+        .tab-active { border-color:#10b981; box-shadow:0 0 0 2px rgba(16,185,129,.12) inset; }
+        .btn-primary { background:#10b981; color:#fff; padding:12px 16px; border-radius:10px; font-weight:600; }
+        .btn-primary:hover { background:#0e9f6e; }
+        .btn-secondary { background:#111827; color:#fff; padding:12px 16px; border-radius:10px; font-weight:500; }
+        .btn-secondary:hover { background:#000; }
+        .note { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px; font-size:13px; color:#374151; }
+        .trust { display:flex; align-items:center; gap:8px; font-weight:500; color:#111827; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; background:#fff; }
+      `}</style>
+    </>
+  );
+}
