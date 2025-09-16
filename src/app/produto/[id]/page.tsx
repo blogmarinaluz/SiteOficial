@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import productsData from "@/data/products.json";
@@ -434,7 +433,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 Adicionar ao carrinho
               </button>
               <button
-                onClick={compro nagora}
+                onClick={comprarAgora}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-black text-white px-5 py-3 font-semibold shadow-sm"
               >
                 <CreditCard className="h-5 w-5" />
