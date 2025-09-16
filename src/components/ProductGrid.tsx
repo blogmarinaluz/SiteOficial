@@ -22,23 +22,18 @@ export default function ProductGrid({
   }
 
   return (
-    // ⚠️ Nada de grid-cols aqui — deixo o desktop intacto.
-    // "two-cols-mobile" só tem efeito até 640px (ver CSS abaixo).
-    <div className={`mt-5 grid gap-4 two-cols-mobile ${className}`}>
+    <div className={`mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 ${className}`}>
       {list.map((p) => (
-        <Link
-          key={p.id}
-          href={`/produto/${p.id}`}
-          className="rounded-2xl border bg-white p-3 hover:shadow-sm transition"
-        >
+        <Link key={p.id} href={`/produto/${p.id}`} className="rounded-2xl border bg-white p-3 hover:shadow-sm transition">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
+            {/* palco fixo; por padrão 240px (pode ser sobrescrito por seção) */}
             <div
               className="w-full flex items-center justify-center overflow-hidden"
               style={{ height: "var(--card-stage-h, 240px)" }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={p.image?.startsWith("/") ? p.image : `/${p.image}`}
+                src={p.image.startsWith("/") ? p.image : `/${p.image}`}
                 alt={p.name}
                 loading="lazy"
                 decoding="async"
@@ -52,9 +47,7 @@ export default function ProductGrid({
           </div>
 
           <div className="mt-2 space-y-1">
-            {p.brand ? (
-              <div className="text-xs uppercase text-zinc-500">{p.brand}</div>
-            ) : null}
+            <div className="text-xs uppercase text-zinc-500">{p.brand}</div>
             <div className="text-sm font-semibold text-zinc-900">{p.name}</div>
           </div>
         </Link>
