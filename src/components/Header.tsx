@@ -1,449 +1,299 @@
-// src/components/Header.tsx
+// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { useCart } from "@/hooks/useCart";
+import ProductGrid from "@/components/ProductGrid";
+import Testimonials from "@/components/Testimonials";
 import productsData from "@/data/products.json";
-import {
-  Menu, X, User, LogIn, ChevronRight, MessageCircle, ShoppingCart,
-  ShieldCheck, Percent, Truck, Search, ChevronDown,
-} from "lucide-react";
 
-/* ========= utils ========= */
-const norm = (v: unknown) =>
-  String(v ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim();
-
-const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
-
-const fmt = (n: number) =>
-  Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
-
-/* ========= tipos ========= */
-type Product = { id: string; name: string; brand?: string; price?: number };
-
-/* ========= extração de MODELOS diretamente do catálogo ========= */
-function appleModelLabel(name: string): string | null {
-  const m =
-    name.match(/iPhone\s+(SE(?:\s*\(\d{4}\))?|\d{2}(?:\s?(?:Plus|Pro|Pro Max))?)/i)?.[0] ||
-    name.match(/iPhone\s+(XR|XS Max|XS)/i)?.[0];
-  return m ? m.replace(/\s+/g, " ").trim() : null;
+// ======================= SEO (não altera o visual) =======================
+function setMetaTag(name: string, content: string) {
+  if (typeof document === "undefined") return;
+  let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute("name", name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
 }
 
-/** Aceita: "Samsung A14", "Samsung Galaxy A14", "Galaxy A14", "Galaxy Z Flip 5" */
-function samsungModelLabel(name: string): string | null {
-  const txt = name.replace(/\s+/g, " ").trim();
-
-  // Z Flip / Fold
-  const z = txt.match(/(?:Samsung\s+)?(?:Galaxy\s+)?Z\s+(Flip|Fold)\s*\d{0,2}/i)?.[0];
-  if (z) {
-    const normZ = z
-      .replace(/^\s*Samsung\s+/i, "")
-      .replace(/^\s*(Galaxy\s+)?/i, "Galaxy ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return normZ;
+function setOG(property: string, content: string) {
+  if (typeof document === "undefined") return;
+  let el = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute("property", property);
+    document.head.appendChild(el);
   }
+  el.setAttribute("content", content);
+}
 
-  // Séries A / S (com opção zero à esquerda)
-  const as = txt.match(/(?:Samsung\s+)?(?:Galaxy\s+)?(A|S)\s*0?\d{1,3}/i)?.[0];
-  if (as) {
-    const m = as.match(/(A|S)\s*0?(\d{1,3})/i);
-    if (m) {
-      const serie = m[1].toUpperCase();
-      const num = m[2].padStart(2, "0"); // A7 -> A07
-      return `Galaxy ${serie}${num}`;
+function canonicalUrl(path = "/") {
+  try {
+    if (path.startsWith("http")) return path;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return origin + (path.startsWith("/") ? path : `/${path}`);
+  } catch {
+    return path;
+  }
+}
+
+function HomeSEO() {
+  useEffect(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = origin || "/";
+    const title = "proStore • Celulares Apple & Samsung com 30% OFF";
+    const description =
+      "Ofertas reais em iPhone e Samsung: 30% OFF no PIX/Boleto e até 10x sem juros. Frete grátis em produtos selecionados.";
+
+    document.title = title;
+    setMetaTag("description", description);
+    setMetaTag("robots", "index, follow");
+    setOG("og:title", title);
+    setOG("og:description", description);
+    setOG("og:type", "website");
+    setOG("og:url", url);
+    setOG("og:image", `${origin}/og-prostore.jpg`);
+    setMetaTag("twitter:card", "summary_large_image");
+    setMetaTag("twitter:title", title);
+    setMetaTag("twitter:description", description);
+    setMetaTag("twitter:image", `${origin}/og-prostore.jpg`);
+    // canonical
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "canonical";
+      document.head.appendChild(link);
     }
-  }
+    link.href = canonicalUrl("/");
+  }, []);
 
   return null;
 }
 
-/* === FIX CRÍTICO: classifica usando brand **e** name e tolera 'samsumg' === */
-function productBrand(p: Product): "apple" | "samsung" | "other" {
-  const combo = norm(`${p.brand ?? ""} ${p.name ?? ""}`);
-  if (combo.includes("apple") || combo.includes("iphone")) return "apple";
-  if (
-    combo.includes("samsung") ||
-    combo.includes("galaxy") ||
-    combo.includes("samsumg") // tolera o typo presente no catálogo
-  )
-    return "samsung";
-  return "other";
+// ======================= Helpers de catálogo =======================
+type P = {
+  id: string;
+  name: string;
+  brand?: string;
+  price?: number;
+  tags?: string[];
+  color?: string;
+  storage?: string | number;
+  freeShipping?: boolean;
+};
+
+function norm(v: unknown) {
+  return String(v ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
 }
 
-/* ========= modal “Minha conta” ========= */
-function AccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [code, setCode] = useState("");
-  const [result, setResult] = useState<any | null>(null);
+function mulberry32(a: number) {
+  return function () {
+    var t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  const WA_NUMBER = "5599984905715"; // fixo
+function score(p: P) {
+  const price = Number(p.price || 0);
+  const len = (p.name || "").length;
+  return price * 0.9 + len * 10;
+};
 
-  function buscar() {
-    try {
-      const raw = localStorage.getItem("prostore:orders");
-      const arr: any[] = raw ? JSON.parse(raw) : [];
-      const found = arr.find((o) => norm(o.code) === norm(code));
-      setResult(found || null);
-    } catch {
-      setResult(null);
-    }
+const pickTop = (arr: P[], n: number) => [...arr].sort((a, b) => score(a) - score(b)).slice(0, n);
+
+function interleave<A>(a: A[], b: A[], n: number, seed = 12345) {
+  const rnd = mulberry32(seed);
+  const res: A[] = [];
+  let ia = 0, ib = 0;
+  while (res.length < n && (ia < a.length || ib < b.length)) {
+    if (ia < a.length && (ib >= b.length || rnd() > 0.5)) res.push(a[ia++]);
+    if (ib < b.length && res.length < n) res.push(b[ib++]);
   }
+  return res.slice(0, n);
+}
 
-  function whatsappUrl() {
-    const text = encodeURIComponent(
-      `Olá! Preciso de ajuda com meu pedido${code ? ` (código ${code.trim()})` : ""}.`
-    );
-    return `https://wa.me/${WA_NUMBER}?text=${text}`;
+// frete grátis fake (estático)
+function domIdsStable(list: P[], n = 24, seed = 202409) {
+  const rnd = mulberry32(seed);
+  const arr = [...list];
+  const chosen = new Set<string>();
+  while (arr.length && chosen.size < n) {
+    const i = Math.floor(rnd() * arr.length);
+    chosen.add(String(arr[i]?.id));
+    arr.splice(i, 1);
   }
+  return chosen;
+}
 
-  if (!open) return null;
+export default function Page() {
+  const raw: P[] = useMemo(() => (productsData as any) as P[], []);
+  const FREE_COUNT = 36;
+  const freeIds = useMemo(() => domIdsStable(raw, FREE_COUNT, 202409), [raw]);
+
+  const all: P[] = useMemo(
+    () =>
+      raw.map((p) => ({
+        ...p,
+        freeShipping: freeIds.has(String(p?.id)),
+      })),
+    [raw, freeIds]
+  );
+
+  // 1) “Mais buscados” (na Home vamos usar a seção "Celulares em Oferta")
+  const emOferta = useMemo(() => pickTop(all, 12), [all]);
+
+  // 2) Ofertas do dia | BBB
+  const ofApple = all.filter((p) => norm(p.brand).includes("apple") || norm(p.name).includes("iphone"));
+  const ofSam = all.filter((p) => norm(p.brand).includes("samsung") || norm(p.name).includes("galaxy") || norm(p.name).includes("samsumg"));
+  const ofertasDia = useMemo(() => interleave(ofApple, ofSam, 12), [ofApple, ofSam]);
+
+  // 3) Ofertas em Destaque
+  const destaque = pickTop(all, 12);
+  const destaqueSafe = destaque.length >= 8 ? destaque : all.slice(0, 12);
+
+  // Newsletter (visual)
+  const [nlName, setNlName] = useState("");
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlMsg, setNlMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  function onNewsletterSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setNlMsg({ type: "ok", text: "Obrigado! Você receberá nossas ofertas em breve." });
+    setNlName("");
+    setNlEmail("");
+  }
 
   return (
-    <div className="fixed inset-0 z-[90]">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <div className="flex items-center gap-2 text-zinc-800">
-            <User className="h-5 w-5" />
-            <b>Minha conta</b>
-          </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-zinc-100" aria-label="Fechar">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <main className="min-h-[60vh]">
+      <HomeSEO />
 
-        <div className="p-4 space-y-4">
-          <div>
-            <div className="text-sm text-zinc-700">Acompanhar pedido</div>
-            <div className="mt-2 flex gap-2">
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Digite seu código (ex.: PS-20250916-ABCD)"
-                className="flex-1 rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-              />
-              <button
-                onClick={buscar}
-                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+      {/* 1) Hero */}
+      <section className="relative">
+        <div className="mx-auto max-w-[1100px] px-4 py-8 grid gap-6 md:grid-cols-[1.35fr,1fr] md:items-center">
+          <div className="rounded-2xl border border-zinc-200 p-6">
+            <h1 className="text-2xl md:text-[28px] font-extrabold tracking-tight">
+              Economize de verdade: 30% OFF no PIX/Boleto
+            </h1>
+            <p className="mt-2 text-zinc-700">
+              iPhone e Samsung com garantia e nota fiscal. Até 10x sem juros no cartão.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Link
+                href="/ofertas"
+                className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
               >
-                Consultar
-              </button>
+                Ver ofertas
+              </Link>
+              <Link
+                href="/#mais-buscados"
+                className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-zinc-50"
+              >
+                Mais buscados
+              </Link>
             </div>
-
-            {result ? (
-              <div className="mt-3 text-sm rounded-xl border p-3">
-                <div className="font-semibold">Código: {result.code}</div>
-                <ul className="mt-2 space-y-1">
-                  {result.items.map((it: any, i: number) => (
-                    <li key={i} className="flex items-center justify-between">
-                      <span className="truncate">
-                        {it.qty}x {it.name}
-                      </span>
-                      <span className="font-medium">{fmt(it.total)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-2 border-t pt-2 text-right text-sm">
-                  <div className="text-zinc-600">Subtotal: {fmt(result.subtotal)}</div>
-                  <div className="text-emerald-700">Cupom: − {fmt(result.discount)}</div>
-                  <div className="font-semibold">Total: {fmt(result.total)}</div>
-                </div>
-              </div>
-            ) : null}
           </div>
 
-          <div className="pt-2 border-top">
-            <a
-              href={whatsappUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Falar com atendente
-              <ChevronRight className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+          <div className="rounded-2xl border border-zinc-200 p-6">
+            <h3 className="text-lg font-bold">Assine e receba promoções</h3>
+            <p className="mt-1 text-sm text-zinc-600">
+              Promoções exclusivas e novidades da <b>proStore</b> direto no seu e-mail.
+            </p>
 
-/* ========= header ========= */
-export default function Header() {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const { items } = useCart();
-  const count = useMemo(
-    () => (items ?? []).reduce((a: number, i: any) => a + (i.qty || 0), 0),
-    [items]
-  );
-
-  // controla o modal "Entrar" via estado
-  const [accountOpen, setAccountOpen] = useState(false);
-
-  // catálogo em memória
-  const catalog = useMemo(() => productsData as Product[], []);
-  const appleModels = useMemo(() => {
-    const set = new Set<string>();
-    catalog.forEach((p) => {
-      if (productBrand(p) !== "apple") return;
-      const label = appleModelLabel(p.name || "");
-      if (label) set.add(label);
-    });
-    return Array.from(set).sort((a, b) => {
-      const an = Number(a.match(/\d{2,4}/)?.[0] || 0);
-      const bn = Number(b.match(/\d{2,4}/)?.[0] || 0);
-      if (an !== bn) return an - bn;
-      const order = ["", "Plus", "Pro", "Pro Max", "SE"];
-      const av = order.findIndex((k) => norm(a).includes(norm(k)));
-      const bv = order.findIndex((k) => norm(b).includes(norm(k)));
-      return av - bv;
-    });
-  }, [catalog]);
-
-  const samsungModels = useMemo(() => {
-    const set = new Set<string>();
-    catalog.forEach((p) => {
-      if (productBrand(p) !== "samsung") return;
-      const label = samsungModelLabel(p.name || "");
-      if (label) set.add(label);
-    });
-    return Array.from(set).sort((a, b) => {
-      const family = (s: string) =>
-        norm(s).includes("z flip")
-          ? "Z1"
-          : norm(s).includes("z fold")
-          ? "Z2"
-          : norm(s).includes("galaxy s")
-          ? "S"
-          : "A";
-      const fa = family(a),
-        fb = family(b);
-      if (fa !== fb) return fa.localeCompare(fb);
-      const an = Number(a.match(/\d{1,3}/)?.[0] || 0);
-      const bn = Number(b.match(/\d{1,3}/)?.[0] || 0);
-      return an - bn;
-    });
-  }, [catalog]);
-
-  // busca -> /buscar?q=termo
-  const [q, setQ] = useState("");
-  function submitSearch(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    const term = q.trim();
-    if (!term) return;
-    router.push(`/buscar?q=${encodeURIComponent(term)}`);
-  }
-
-  // dropdowns desktop
-  const [openDrop, setOpenDrop] = useState<"apple" | "samsung" | null>(null);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpenDrop(null);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  return (
-    <>
-      {/* faixa superior */}
-      <div className="w-full bg-zinc-50 border-b border-zinc-200 text-[12px] text-zinc-700">
-        <div className="mx-auto max-w-[1100px] px-4 py-1 flex items-center gap-4">
-          <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Nota Fiscal
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Percent className="h-3.5 w-3.5 text-emerald-600" /> 30% OFF no PIX/Boleto
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Truck className="h-3.5 w-3.5 text-emerald-600" /> Frete grátis em selecionados
-          </span>
-          <span className="ml-auto inline-flex items-center gap-1.5">
-            <MessageCircle className="h-3.5 w-3.5 text-emerald-600" /> Suporte via WhatsApp
-          </span>
-        </div>
-      </div>
-
-      {/* barra principal */}
-      <header
-        id="site-header"
-        className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-zinc-200"
-      >
-        <div className="mx-auto max-w-[1100px] px-4 py-3 flex items-center gap-3">
-          {/* menu mobile */}
-          <button className="lg:hidden rounded-lg p-2 hover:bg-zinc-100" aria-label="Menu">
-            <Menu className="h-5 w-5" />
-          </button>
-
-          {/* logo */}
-          <Link href="/" className="font-extrabold tracking-tight text-zinc-900">
-            pro<span className="text-emerald-600">Store</span>
-          </Link>
-
-          {/* busca (desktop) */}
-          <form onSubmit={submitSearch} className="hidden md:flex flex-1 items-center pl-4">
-            <div className="flex w-full items-center rounded-full border border-zinc-300 bg-white p-1.5">
-              <Search className="mx-2 h-4 w-4 text-zinc-500" />
+            <form onSubmit={onNewsletterSubmit} className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center" noValidate>
+              <label className="sr-only" htmlFor="nl-name">Nome</label>
               <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por modelo, cor, armazenamento..."
-                className="flex-1 bg-transparent outline-none text-sm"
+                id="nl-name"
+                value={nlName}
+                onChange={(e) => setNlName(e.target.value)}
+                type="text"
+                placeholder="Seu nome"
+                className="w-full rounded-xl bg-white px-3 py-2 text-sm outline-none ring-1 ring-zinc-300 focus:ring-2 focus:ring-emerald-400"
               />
+
+              <label className="sr-only" htmlFor="nl-email">E-mail</label>
+              <input
+                id="nl-email"
+                value={nlEmail}
+                onChange={(e) => setNlEmail(e.target.value)}
+                type="email"
+                placeholder="Seu e-mail"
+                className="w-full rounded-xl bg-white px-3 py-2 text-sm outline-none ring-1 ring-zinc-300 focus:ring-2 focus:ring-emerald-400"
+              />
+
               <button
                 type="submit"
-                className="rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
               >
-                Buscar
+                Quero receber
               </button>
-            </div>
-          </form>
+            </form>
 
-          {/* ações (desktop) */}
-          <nav className="hidden lg:flex items-center gap-2">
-            <button
-              onClick={() => setAccountOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-              title="Minha conta"
-            >
-              <LogIn className="h-4 w-4" />
-              Entrar
-            </button>
-
-            <Link
-              href="/carrinho"
-              className="relative inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-              title="Meu carrinho"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              Carrinho
-              {count > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-emerald-600 px-1 text-[11px] font-bold text-white grid place-items-center">
-                  {count}
-                </span>
-              )}
-            </Link>
-
-            <Link
-              href="/analise-boleto"
-              className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
-              title="Análise de Boleto"
-            >
-              Análise de Boleto
-            </Link>
-          </nav>
-        </div>
-
-        {/* segunda linha + dropdowns alimentados pelo CATÁLOGO */}
-        <div className="hidden md:block border-top border-zinc-200">
-          <div className="mx-auto max-w-[1100px] px-4">
-            <ul className="relative flex items-center gap-6 text-[14px] py-2 text-zinc-700">
-              {/* iPhone */}
-              <li
-                className="relative"
-                onMouseEnter={() => setOpenDrop("apple")}
-                onMouseLeave={() => setOpenDrop((v) => (v === "apple" ? null : v))}
+            {nlMsg && (
+              <div
+                className={
+                  "md:col-span-2 mt-1 text-sm " +
+                  (nlMsg.type === "ok" ? "text-emerald-700" : "text-rose-600")
+                }
+                role="status"
               >
-                <button className="inline-flex items-center gap-1 hover:text-zinc-900">
-                  iPhone <ChevronDown className="h-3.5 w-3.5" />
-                </button>
-
-                {openDrop === "apple" && appleModels.length > 0 && (
-                  <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
-                    <div className="grid grid-cols-2 gap-2">
-                      {appleModels.slice(0, 12).map((label) => (
-                        <Link
-                          key={label}
-                          href={`/buscar?q=${encodeURIComponent(label)}`}
-                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
-                        >
-                          {label}
-                        </Link>
-                      ))}
-                      <Link
-                        href="/buscar?q=iphone"
-                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
-                      >
-                        Ver todos os iPhones
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </li>
-
-              {/* Samsung */}
-              <li
-                className="relative"
-                onMouseEnter={() => setOpenDrop("samsung")}
-                onMouseLeave={() => setOpenDrop((v) => (v === "samsung" ? null : v))}
-              >
-                <button className="inline-flex items-center gap-1 hover:text-zinc-900">
-                  Samsung <ChevronDown className="h-3.5 w-3.5" />
-                </button>
-
-                {openDrop === "samsung" && samsungModels.length > 0 && (
-                  <div className="absolute left-0 top-[120%] z-50 w-[560px] rounded-xl border bg-white p-4 shadow-xl">
-                    <div className="grid grid-cols-2 gap-2">
-                      {samsungModels.slice(0, 14).map((label) => (
-                        <Link
-                          key={label}
-                          href={`/buscar?q=${encodeURIComponent(label)}`}
-                          className="rounded-lg px-2 py-1.5 text-sm hover:bg-zinc-100"
-                        >
-                          {label}
-                        </Link>
-                      ))}
-                      <Link
-                        href="/buscar?q=samsung"
-                        className="rounded-lg px-2 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-zinc-50"
-                      >
-                        Ver todos Samsung
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </li>
-
-              {/* âncoras com <a> nativo para garantir scroll */}
-              <li>
-                <a href="/#mais-buscados" className="hover:text-zinc-900">
-                  Mais buscados
-                </a>
-              </li>
-              <li>
-                <a href="/#bbb" className="hover:text-zinc-900">
-                  BBB do dia
-                </a>
-              </li>
-              <li>
-                <a href="/#destaques" className="hover:text-zinc-900">
-                  Ofertas em destaque
-                </a>
-              </li>
-
-              <li className="ml-auto">
-                <Link href="/checkout" className="hover:text-zinc-900">
-                  Checkout
-                </Link>
-              </li>
-            </ul>
+                {nlMsg.text}
+              </div>
+            )}
           </div>
         </div>
-      </header>
+      </section>
 
-      {/* modal (fora do header para não cortar o overlay) */}
-      <AccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
-    </>
+      {/* 2) Celulares em oferta  →  ID para âncora "mais-buscados" */}
+      <section id="mais-buscados" className="mx-auto max-w-[1100px] px-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-extrabold">Celulares em Oferta</h2>
+          <Link href="/ofertas" className="text-sm text-emerald-700 hover:underline">
+            Ver todas
+          </Link>
+        </div>
+        <div className="mt-4">
+          <ProductGrid products={emOferta as any[]} />
+        </div>
+      </section>
+
+      {/* 3) Ofertas do dia | BBB  →  ID para âncora "bbb" */}
+      <section id="bbb" className="mx-auto max-w-[1100px] px-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-extrabold">Ofertas do dia | BBB = Bom, Bonito e Barato</h2>
+          <Link href="/bbb-do-dia" className="text-sm text-emerald-700 hover:underline">
+            Ver todas
+          </Link>
+        </div>
+        <div className="mt-4">
+          <ProductGrid products={ofertasDia as any[]} />
+        </div>
+      </section>
+
+      {/* 4) Depoimentos */}
+      <section className="mx-auto max-w-[1100px] px-4">
+        <Testimonials />
+      </section>
+
+      {/* 5) Ofertas em destaque  →  ID para âncora "destaques" */}
+      <section id="destaques" className="mx-auto max-w-[1100px] px-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
+          <Link href="/mais-buscados" className="text-sm text-emerald-700 hover:underline">
+            Ver mais
+          </Link>
+        </div>
+        <div className="mt-4">
+          <ProductGrid products={destaqueSafe as any[]} />
+        </div>
+      </section>
+    </main>
   );
 }
