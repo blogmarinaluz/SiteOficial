@@ -89,24 +89,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      {/* ALTERAÇÃO 1: meta viewport para o mobile funcionar direito */}
-      <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
-      </head>
-
       <body>
         <Suspense fallback={<div className="h-16" />}>
           <Header />
         </Suspense>
 
-        {/* ALTERAÇÃO 2: só adiciona respiro lateral no mobile; desktop fica igual */}
+        {/* Algumas páginas/slots podem usar hooks de navigation também */}
         <Suspense fallback={<main className="container py-8" />}>
-          <main className="container px-3 sm:px-4 md:px-6 py-6 md:py-8">
-            {children}
-          </main>
+          <main className="container py-8">{children}</main>
         </Suspense>
 
         <Footer />
