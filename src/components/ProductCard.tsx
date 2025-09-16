@@ -1,4 +1,3 @@
-// src/components/ProductCard.tsx
 "use client";
 
 import Link from "next/link";
@@ -20,10 +19,9 @@ function capBrand(brand: string) {
 
 export default function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
-
-  const price = product.price ?? 0;
-  const promo = withCoupon(price, 0.3); // 30% OFF
-  const parcela = Math.ceil((promo || 0) / 10);
+  const price = product.price;
+  const promo = withCoupon(price, 0.3); // 30% OFF boleto
+  const parcela = Math.ceil(promo / 10);
 
   return (
     <div className="relative rounded-2xl border bg-white p-3 transition hover:shadow-sm">
@@ -33,18 +31,18 @@ export default function ProductCard({ product }: { product: Product }) {
         </span>
       )}
 
-      {/* CARD LINK (imagem + textos) */}
       <Link href={`/produto/${product.id}`} className="group block">
-        {/* IMAGEM com palco fixo (controlado por CSS var) */}
+        {/* ====== IMAGEM (tamanho controlado por variáveis CSS) ====== */}
         <div className="mb-3">
           <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
+            {/* palco fixo; por padrão 240px (pode ser sobrescrito por seção) */}
             <div
               className="w-full flex items-center justify-center overflow-hidden"
               style={{ height: "var(--card-stage-h, 240px)" }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={product.image?.startsWith("/") ? product.image : `/${product.image}`}
+                src={product.image.startsWith("/") ? product.image : `/${product.image}`}
                 alt={product.name}
                 loading="lazy"
                 decoding="async"
@@ -58,13 +56,10 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* TEXTOS */}
+        {/* ====== TEXTOS ====== */}
         <div className="space-y-1">
-          {!!product.brand && (
-            <div className="text-xs uppercase text-zinc-500">{capBrand(product.brand)}</div>
-          )}
+          <div className="text-xs uppercase text-zinc-500">{capBrand(product.brand)}</div>
           <div className="text-sm font-semibold text-zinc-900">{product.name}</div>
-
           <div className="text-sm text-zinc-600">
             <svg
               className="mr-1 inline-block align-[-2px]"
@@ -79,9 +74,10 @@ export default function ProductCard({ product }: { product: Product }) {
               <rect x="2.5" y="5" width="19" height="14" rx="2.2" />
               <path d="M2.5 9.5h19" />
             </svg>
-            à vista por <strong className="font-semibold text-emerald-700">{br(promo)}</strong>
+            <span>
+              à vista no boleto por <strong className="font-semibold text-emerald-700">{br(promo)}</strong>
+            </span>
           </div>
-
           <div className="text-xs text-zinc-500">
             <svg
               className="mr-1 inline-block align-[-2px]"
@@ -96,16 +92,19 @@ export default function ProductCard({ product }: { product: Product }) {
               <rect x="2.5" y="5" width="19" height="14" rx="2.2" />
               <path d="M2.5 9.5h19" />
             </svg>
-            ou 10x de <strong className="font-semibold">{br(parcela)}</strong> sem juros
+            <span>
+              ou {br(promo)} em até{" "}
+              <strong className="font-semibold">10x de {br(parcela)}</strong> sem juros
+            </span>
           </div>
         </div>
       </Link>
 
-      {/* AÇÕES */}
-      <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3">
+      {/* ====== AÇÕES ====== */}
+      <div className="mt-3 flex gap-3">
         <Link
           href={`/produto/${product.id}`}
-          className="inline-flex w-full sm:w-auto h-10 items-center justify-center rounded-xl border px-4 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 shadow-sm"
+          className="inline-flex h-10 items-center justify-center rounded-xl border px-4 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 shadow-sm"
           title="Ver detalhes"
         >
           Ver detalhes
@@ -113,7 +112,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
         <button
           onClick={() => add(product, 1)}
-          className="inline-flex w-full sm:w-auto h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700"
+          className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700"
         >
           Adicionar
         </button>
@@ -121,4 +120,3 @@ export default function ProductCard({ product }: { product: Product }) {
     </div>
   );
 }
-
