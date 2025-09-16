@@ -1,10 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import Testimonials from "@/components/Testimonials";
 import productsData from "@/data/products.json";
 
-export const revalidate = 60;
-
+// ===== tipos util =====
 type P = any;
 
 // ---------- utils ----------
@@ -59,32 +61,110 @@ function pickRandomIdsStable(list: P[], n: number, seed = 12345) {
 }
 
 export default function Page() {
-  // Base de produtos
+  // ==================== CATÁLOGO (inalterado) ====================
   const raw: P[] = productsData as any[];
 
-  // === Frete Grátis: exatamente 20 aparelhos aleatórios no site inteiro ===
+  // Frete grátis em 20 produtos (estável)
   const FREE_COUNT = 20;
   const freeIds = pickRandomIdsStable(raw, FREE_COUNT, 202409);
   const all: P[] = raw.map((p) => ({
     ...p,
-    freeShipping: freeIds.has(String(p?.id)), // só boolean aqui
+    freeShipping: freeIds.has(String(p?.id)),
   }));
 
   // 1) CELULARES EM OFERTA: 4 Samsung + 4 Apple (intercalados)
   const samsungs = pickTop(all.filter((p) => isBrand(p, "samsung")), 4);
   const apples = pickTop(all.filter((p) => isBrand(p, "apple")), 4);
-  let emOferta = interleave(samsungs, apples).slice(0, 8);
+  const emOferta = interleave(samsungs, apples).slice(0, 8);
 
   // 2) OFERTAS DO DIA | BBB — 8 melhores pontuados
   const ofertasDia = pickTop(all, 8);
 
-  // 3) OFERTAS EM DESTAQUE — 12 itens
+  // 3) OFERTAS EM DESTAQUE — 12 itens (fallback se necessário)
   const destaque = pickTop(all, 12);
   const destaqueSafe = destaque.length >= 8 ? destaque : all.slice(0, 12);
 
+  // ==================== NEWSLETTER (refinada) ====================
+  const [nlName, setNlName] = useState("");
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlMsg, setNlMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [showExport, setShowExport] = useState(false);
+
+  useEffect(() => {
+    // Só mostra o botão de exportar no localhost ou com ?admin=1
+    try {
+      const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost";
+      const isAdminParam =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).has("admin");
+      setShowExport(Boolean(isLocal || isAdminParam));
+    } catch {
+      setShowExport(false);
+    }
+  }, []);
+
+  function saveNewsletterLocal(name: string, email: string) {
+    const key = "prostore:newsletter";
+    const raw = localStorage.getItem(key);
+    let arr: Array<{ name: string; email: string; createdAt: string }> = [];
+    try {
+      arr = raw ? JSON.parse(raw) : [];
+    } catch {
+      arr = [];
+    }
+    arr.push({ name, email, createdAt: new Date().toISOString() });
+    localStorage.setItem(key, JSON.stringify(arr));
+  }
+
+  function onNewsletterSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const name = nlName.trim();
+    const email = nlEmail.trim();
+    if (!email || !email.includes("@")) {
+      setNlMsg({ type: "err", text: "Informe um e-mail válido." });
+      return;
+    }
+    try {
+      saveNewsletterLocal(name, email);
+      setNlMsg({ type: "ok", text: "Cadastro realizado com sucesso!" });
+      setNlName("");
+      setNlEmail("");
+    } catch {
+      setNlMsg({ type: "err", text: "Não foi possível cadastrar agora." });
+    }
+  }
+
+  function exportCsv() {
+    try {
+      const key = "prostore:newsletter";
+      const raw = localStorage.getItem(key);
+      const arr = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(arr) || arr.length === 0) {
+        setNlMsg({ type: "err", text: "Nenhum cadastro para exportar." });
+        return;
+      }
+      const header = ["name", "email", "createdAt"];
+      const rows = arr.map((o: any) => [o.name || "", o.email || "", o.createdAt || ""]);
+      const csv = [header, ...rows]
+        .map((r) => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `newsletter-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      setNlMsg({ type: "err", text: "Falha ao exportar." });
+    }
+  }
+
   return (
     <main className="space-y-10">
-      {/* 1) Hero simples */}
+      {/* 1) Hero simples (inalterado) */}
       <section className="mx-auto max-w-[1100px] px-4">
         <div className="rounded-2xl bg-gradient-to-r from-black to-zinc-900 px-6 py-8 text-white shadow-md ring-1 ring-zinc-800">
           <div className="grid gap-5 md:grid-cols-[1.4fr,1fr] md:items-center">
@@ -166,9 +246,9 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 6) Newsletter — verde/preto, clean (armazenamento local + export CSV) */}
+      {/* 6) Newsletter — refinada, funcional e sem botão público de export */}
       <section className="mt-12">
-        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-8 shadow-md ring-1 ring-emerald-900/20">
+        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-650 to-emerald-700 px-6 py-8 shadow-md ring-1 ring-emerald-900/20">
           <div className="grid gap-6 md:grid-cols-[1.2fr,1fr] md:items-center">
             <div>
               <h3 className="text-2xl font-extrabold text-white">Inscreva-se na nossa Newsletter</h3>
@@ -177,23 +257,30 @@ export default function Page() {
               </p>
             </div>
 
-            {/* Campos + botão */}
-            <form id="nl-form" className="flex flex-col gap-3 sm:flex-row sm:items-center" noValidate>
+            {/* Campos + botão (UI mais elegante e compacta) */}
+            <form
+              onSubmit={onNewsletterSubmit}
+              className="flex flex-col gap-3 sm:flex-row sm:items-center"
+              noValidate
+            >
               <label className="sr-only" htmlFor="nl-name">Nome</label>
               <input
                 id="nl-name"
+                value={nlName}
+                onChange={(e) => setNlName(e.target.value)}
                 type="text"
                 placeholder="Seu nome"
-                className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
-                required
+                className="w-full rounded-xl bg-white/95 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
               />
 
               <label className="sr-only" htmlFor="nl-email">E-mail</label>
               <input
                 id="nl-email"
+                value={nlEmail}
+                onChange={(e) => setNlEmail(e.target.value)}
                 type="email"
                 placeholder="Seu e-mail"
-                className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+                className="w-full rounded-xl bg-white/95 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
                 required
               />
 
@@ -213,96 +300,34 @@ export default function Page() {
                 <a href="/politica-de-cookies" className="underline underline-offset-2"> Política de Cookies</a>.
               </p>
 
-              {/* Botão para baixar CSV com os e-mails armazenados localmente */}
-              <button
-                id="nl-export"
-                type="button"
-                className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-white/20"
-                title="Exportar e-mails cadastrados (CSV)"
-              >
-                Baixar cadastros (CSV)
-              </button>
+              {/* Botão de exportação só para admin/local */}
+              {showExport && (
+                <button
+                  type="button"
+                  onClick={exportCsv}
+                  className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-white/20"
+                  title="Exportar e-mails cadastrados (CSV)"
+                >
+                  Baixar cadastros (CSV)
+                </button>
+              )}
             </div>
+
+            {/* Mensagem discreta */}
+            {nlMsg && (
+              <div
+                className={
+                  "md:col-span-2 mt-1 text-sm " +
+                  (nlMsg.type === "ok" ? "text-white/95" : "text-rose-100")
+                }
+                role="status"
+              >
+                {nlMsg.text}
+              </div>
+            )}
           </div>
         </div>
       </section>
-
-      {/* Script client-side: lida com submit/armazenamento/export sem transformar a página em Client Component */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-(function(){
-  function byId(id){ return document.getElementById(id); }
-
-  var form = byId('nl-form');
-  if(form){
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-      try{
-        var nameEl = byId('nl-name') || { value: '' };
-        var emailEl = byId('nl-email') || { value: '' };
-        var name = nameEl.value ? String(nameEl.value).trim() : '';
-        var email = emailEl.value ? String(emailEl.value).trim() : '';
-
-        if(!email || email.indexOf('@') === -1){
-          alert('E-mail inválido');
-          return;
-        }
-
-        var key = 'prostore:newsletter';
-        var raw = localStorage.getItem(key);
-        var arr = [];
-        try { arr = raw ? JSON.parse(raw) : []; } catch(_) { arr = []; }
-        arr.push({ name: name, email: email, createdAt: new Date().toISOString() });
-        localStorage.setItem(key, JSON.stringify(arr));
-
-        alert('E-mail cadastrado com sucesso!');
-        if(nameEl && 'value' in nameEl) nameEl.value = '';
-        if(emailEl && 'value' in emailEl) emailEl.value = '';
-      }catch(_){
-        alert('Erro ao salvar localmente.');
-      }
-    });
-  }
-
-  var btn = byId('nl-export');
-  if(btn){
-    btn.addEventListener('click', function(){
-      try{
-        var key = 'prostore:newsletter';
-        var raw = localStorage.getItem(key);
-        var arr = [];
-        try { arr = raw ? JSON.parse(raw) : []; } catch(_) { arr = []; }
-        if(!Array.isArray(arr) || arr.length === 0){
-          alert('Nenhum cadastro local encontrado.');
-          return;
-        }
-        var header = ['name','email','createdAt'];
-        var rows = arr.map(function(o){ return [o.name || '', o.email || '', o.createdAt || '']; });
-        var csv = [header].concat(rows).map(function(r){
-          return r.map(function(v){
-            v = String(v == null ? '' : v);
-            return '"' + v.replace(/"/g,'""') + '"';
-          }).join(',');
-        }).join('\\n');
-
-        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'newsletter-' + new Date().toISOString().slice(0,10) + '.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }catch(_){
-        alert('Não foi possível exportar agora.');
-      }
-    });
-  }
-})();`
-        }}
-      />
     </main>
   );
 }
