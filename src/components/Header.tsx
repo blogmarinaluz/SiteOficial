@@ -29,7 +29,6 @@ const idNoExt = (id: string) => id.replace(/\.[a-z0-9]+$/i, "");
 /* Componente */
 export default function Header() {
   const router = useRouter();
-  const pathname = usePathname();
   const sp = useSearchParams();
   const { items = [] }: any = useCart() ?? { items: [] };
   const cartQty = useMemo(
@@ -39,7 +38,6 @@ export default function Header() {
 
   /* ----- Busca ----- */
   const [query, setQuery] = useState(() => sp.get("q") || "");
-
   function doSearch(e?: React.FormEvent) {
     e?.preventDefault();
     const q = query.trim();
@@ -70,7 +68,8 @@ export default function Header() {
   }, [catalog]);
 
   return (
-    <header className="w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+    /* ↑ isolate cria um novo stacking context; z-[60] garante que tudo do header fique acima do conteúdo */
+    <header className="relative z-[60] isolate w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70">
       {/* Barra superior fina */}
       <div className="hidden md:block text-[11px] text-zinc-600 bg-zinc-50">
         <div className="container py-1.5">
@@ -154,8 +153,8 @@ export default function Header() {
             <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-zinc-100 cursor-pointer">
               iPhone <ChevronDown className="h-3.5 w-3.5" />
             </span>
-            {/* dropdown */}
-            <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute left-0 z-40 mt-1 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition">
+            {/* dropdown - z elevado para ficar acima das imagens */}
+            <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute left-0 mt-1 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition z-[70]">
               {menuApple.map((p) => (
                 <Link
                   key={p.id}
@@ -173,7 +172,7 @@ export default function Header() {
             <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-zinc-100 cursor-pointer">
               Samsung <ChevronDown className="h-3.5 w-3.5" />
             </span>
-            <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute left-0 z-40 mt-1 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition">
+            <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 absolute left-0 mt-1 w-[320px] rounded-xl border bg-white shadow-lg p-2 transition z-[70]">
               {menuSamsung.map((p) => (
                 <Link
                   key={p.id}
