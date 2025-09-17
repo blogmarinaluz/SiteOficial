@@ -8,7 +8,7 @@ import Testimonials from "@/components/Testimonials";
 import productsData from "@/data/products.json";
 import HeroCarousel from "@/components/HeroCarousel";
 
-// ======================= SEO (não altera o visual) =======================
+/* ======================= SEO helpers ======================= */
 function setMetaTag(name: string, content: string) {
   if (typeof document === "undefined") return;
   let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
@@ -61,24 +61,21 @@ function HomeSEO() {
       "Ofertas reais em iPhone e Samsung: 30% OFF no PIX/Boleto e até 10x sem juros. Frete grátis em produtos selecionados.";
 
     try {
-      // Title / Description / Canonical
       document.title = title;
       setMetaTag("description", description);
       setCanonical(url);
 
-      // Open Graph / Twitter
       setMetaProperty("og:title", title);
       setMetaProperty("og:description", description);
       setMetaProperty("og:type", "website");
       setMetaProperty("og:url", url);
-      setMetaProperty("og:image", absUrl("/og-home.jpg")); // opcional
+      setMetaProperty("og:image", absUrl("/og-home.jpg"));
       setMetaTag("twitter:card", "summary_large_image");
       setMetaTag("twitter:title", title);
       setMetaTag("twitter:description", description);
     } catch {}
   }, []);
 
-  // JSON-LD WebSite + Organization
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const websiteJson = {
     "@context": "https://schema.org",
@@ -102,7 +99,7 @@ function HomeSEO() {
   );
 }
 
-// ======================= Catálogo / util =======================
+/* ======================= Catálogo / util ======================= */
 type P = any;
 
 const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
@@ -112,7 +109,6 @@ const isBrand = (p: P, target: "apple" | "samsung") => {
   return b === target || n.includes(target);
 };
 
-// Escore simples: preço menor + nome mais curto
 const score = (p: P) => {
   const price = Number(p?.price || 0);
   const len = String(p?.name || "").length;
@@ -153,7 +149,6 @@ function pickRandomIdsStable(list: P[], n: number, seed = 12345) {
 }
 
 export default function Page() {
-  // ====== Catálogo ======
   const raw: P[] = productsData as any[];
 
   // Frete grátis em 20 produtos (estável)
@@ -176,7 +171,7 @@ export default function Page() {
   const destaque = pickTop(all, 12);
   const destaqueSafe = destaque.length >= 8 ? destaque : all.slice(0, 12);
 
-  // ====== Newsletter ======
+  // Newsletter
   const [nlName, setNlName] = useState("");
   const [nlEmail, setNlEmail] = useState("");
   const [nlMsg, setNlMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
@@ -255,13 +250,12 @@ export default function Page() {
 
   return (
     <main className="relative">
-      {/* SEO da Home (não afeta layout) */}
       <HomeSEO />
 
-      {/* Carrossel full‑bleed */}
+      {/* 1) Carrossel full‑bleed */}
       <HeroCarousel />
 
-      {/* 2) Celulares em oferta  → ID + scroll-mt para compensar o header fixo */}
+      {/* 2) Celulares em oferta */}
       <section id="mais-buscados" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Celulares em Oferta</h2>
@@ -274,7 +268,12 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 3) Ofertas do dia | BBB  → ID + scroll-mt */}
+      {/* 3) Depoimentos (entre Ofertas e BBB) */}
+      <section className="mt-10 mx-auto max-w-[1100px] px-4">
+        <Testimonials />
+      </section>
+
+      {/* 4) Ofertas do dia | BBB */}
       <section id="bbb" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas do dia | BBB = Bom, Bonito e Barato</h2>
@@ -287,22 +286,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 4) Depoimentos */}
-      <section className="mt-10 mx-auto max-w-[1100px] px-4">
-        <Testimonials />
-      </section>
-
-      {/* 5) Ofertas em destaque  → ID + scroll-mt */}
-      <section id="destaques" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
-        </div>
-        <div className="mt-4">
-          <ProductGrid products={destaqueSafe as any[]} />
-        </div>
-      </section>
-
-      {/* 6) Newsletter — refinada, funcional e sem botão público de export */}
+      {/* 5) Newsletter */}
       <section className="mt-12">
         <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-8 shadow-lg ring-1 ring-emerald-900/20">
           <div className="grid gap-6 md:grid-cols-[1.2fr,1fr] md:items-center">
@@ -351,7 +335,6 @@ export default function Page() {
                 <a href="/politica-de-cookies" className="underline underline-offset-2"> Política de Cookies</a>.
               </p>
 
-              {/* Botão de exportação só para admin/local */}
               {showExport && (
                 <button
                   type="button"
@@ -376,6 +359,16 @@ export default function Page() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* 6) Ofertas em Destaque */}
+      <section id="destaques" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
+        </div>
+        <div className="mt-4">
+          <ProductGrid products={destaqueSafe as any[]} />
         </div>
       </section>
     </main>
