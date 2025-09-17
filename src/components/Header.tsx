@@ -22,19 +22,19 @@ const catalog: Product[] = (productsData as Product[]) ?? [];
 
 const NAV = [
   { href: "/", label: "Início" },
-  { href: "/produtos", label: "Produtos" },
-  { href: "/contato", label: "Contato" },
+  { href: "/produtos", label: "Produtos" },      // vamos criar esta rota já já
+  { href: "/contato", label: "Contato" },        // criaremos a página para evitar 404
   { href: "/ofertas", label: "Ofertas" },
 ];
 
+// Categorias: links reais. Xiaomi / Acessórios / Wearables / Casa inteligente vão para páginas "sem estoque"
 const CATEGORIES = [
   { href: "/produtos?marca=Apple", label: "iPhone" },
   { href: "/produtos?marca=Samsung", label: "Samsung Galaxy" },
-  { href: "/produtos?marca=Xiaomi", label: "Xiaomi" },
-  { href: "/produtos?categoria=acessorios", label: "Acessórios" },
-  { href: "/produtos?categoria=wearables", label: "Wearables" },
-  { href: "/produtos?categoria=casa-inteligente", label: "Casa inteligente" },
-  { href: "/ofertas", label: "Ofertas" },
+  { href: "/sem-estoque/xiaomi", label: "Xiaomi" },
+  { href: "/sem-estoque/acessorios", label: "Acessórios" },
+  { href: "/sem-estoque/wearables", label: "Wearables" },
+  { href: "/sem-estoque/casa-inteligente", label: "Casa inteligente" },
 ];
 
 export default function Header() {
@@ -90,7 +90,7 @@ export default function Header() {
       className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      {/* Barra de avisos — atualizada */}
+      {/* Barra de avisos — 30% OFF */}
       <div className="w-full border-b border-white/10 text-[11px] sm:text-[12px]">
         <div className="container-safe flex items-center justify-center gap-4 overflow-x-auto whitespace-nowrap py-1.5 scrollbar-none">
           <span className="inline-flex items-center gap-1.5 text-white/90">
@@ -119,7 +119,7 @@ export default function Header() {
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Logo — maior e consistente */}
+        {/* Logo */}
         <Link
           href="/"
           className="font-extrabold tracking-tight text-white text-3xl sm:text-4xl leading-none"
