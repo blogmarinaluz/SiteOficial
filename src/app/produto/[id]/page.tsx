@@ -192,6 +192,13 @@ function CepModal({
             <X className="h-5 w-5" />
           </button>
         </div>
+      {/* JSON-LD Product */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+
 
         <div className="mt-3 space-y-2">
           <div className="flex gap-2">
@@ -440,7 +447,29 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
-  const galleryImages = useMemo(() => {
+  
+  // JSON-LD para SEO (Product + Offer)
+  const productSchema = useMemo(() => {
+    try {
+      const images = Array.isArray(galleryImages) && galleryImages.length ? galleryImages : (selectedImage ? [selectedImage] : []);
+      return {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product?.name,
+        image: images,
+        sku: String(product?.id ?? ""),
+        brand: product?.brand ? { "@type": "Brand", name: String(product.brand) } : undefined,
+        offers: {
+          "@type": "Offer",
+          priceCurrency: "BRL",
+          price: Number(selectedPrice || 0).toFixed(2),
+          availability: "https://schema.org/InStock",
+          url: typeof window !== "undefined" ? window.location.href : undefined,
+        },
+      };
+    } catch { return undefined; }
+  }, [product?.id, product?.name, product?.brand, selectedPrice, galleryImages, selectedImage]);
+const galleryImages = useMemo(() => {
     const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
     const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
     const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
