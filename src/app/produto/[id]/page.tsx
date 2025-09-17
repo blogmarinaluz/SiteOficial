@@ -585,12 +585,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Preço */}
-            <div className="mt-5 rounded-2xl border bg-white p-4">
-              <div className="text-sm text-zinc-600 line-through">{br(selectedPrice)}</div>
-              <div className="text-2xl font-extrabold tracking-tight text-emerald-700">
-                {br(withPix(selectedPrice))} <span className="text-base font-semibold">no PIX</span>
+            <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
+              <div className="text-[13px] text-zinc-400 line-through">{br(selectedPrice)}</div>
+              <div className="text-3xl sm:text-4xl leading-none font-extrabold tracking-tight text-emerald-700">
+                {br(withPix(selectedPrice))} <span className="text-sm sm:text-base font-semibold">no PIX</span>
               </div>
-              <div className="text-sm text-zinc-600">
+              <div className="text-[13px] text-zinc-600 mt-1">
                 ou {br(selectedPrice)} em até <b>10x sem juros</b>
               </div>
             </div>
@@ -617,7 +617,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Entrega / CEP */}
-            <div className="mt-5 rounded-2xl border bg-white p-4">
+            <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 text-sm">
                 <Truck className="h-4 w-4 text-emerald-700" />
                 <span className="font-medium">Receba em seu endereço</span>
@@ -697,8 +697,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                       <div className="mt-2 text-[13px] font-medium text-zinc-900 line-clamp-2">
                         {s.name} {st ? `${st} GB` : ""}
                       </div>
-                      <div className="text-[13px] text-zinc-500 line-through">{br(s.price)}</div>
-                      <div className="text-[14px] font-extrabold text-emerald-700">{br(withPix(s.price))} no PIX</div>
+                      <div className="text-xs text-zinc-400 line-through">{br(s.price)}</div>
+                      <div className="text-sm sm:text-base font-extrabold text-emerald-700">{br(withPix(s.price))} no PIX</div>
                     </Link>
                   );
                 })}
