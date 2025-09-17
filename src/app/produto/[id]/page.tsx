@@ -443,14 +443,21 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
   
   // JSON-LD para SEO (Product + Offer)
+  
   const productSchema = useMemo(() => {
     try {
-      const images = Array.isArray(galleryImages) && galleryImages.length ? galleryImages : (selectedImage ? [selectedImage] : []);
+      // Recalcula imagens localmente para não depender de 'galleryImages' (evita forward reference)
+      const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
+      const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
+      const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
+      const images = Array.from(new Set(arr.map(norm)));
+      const imagesFinal = images.length ? images : (selectedImage ? [selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`] : []);
+
       return {
         "@context": "https://schema.org",
         "@type": "Product",
         name: product?.name,
-        image: images,
+        image: imagesFinal,
         sku: String(product?.id ?? ""),
         brand: product?.brand ? { "@type": "Brand", name: String(product.brand) } : undefined,
         offers: {
@@ -462,7 +469,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         },
       };
     } catch { return undefined; }
-  }, [product?.id, product?.name, product?.brand, selectedPrice, galleryImages, selectedImage]);
+  }, [product?.id, product?.name, product?.brand, selectedPrice, siblings, selectedStorage, selectedImage]);
+
 const galleryImages = useMemo(() => {
     const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
     const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
