@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { CartProvider } from "@/hooks/useCart"; // ADD
 
 export const metadata: Metadata = {
   title: "proStore — Apple & Samsung",
@@ -15,9 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider>
       <html lang="pt-BR">
         <body className="min-h-screen bg-zinc-50 text-zinc-900">
-          <Header />
-          {children}
-          <Footer />
+          <CartProvider>
+            <Header />
+            {children}
+            <Footer />
+          </CartProvider>
         </body>
       </html>
     </ClerkProvider>
