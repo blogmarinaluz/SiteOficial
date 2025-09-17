@@ -441,17 +441,20 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
-  
+    if (sameStorage.length) {
+      return Math.min(...sameStorage.map((s) => s.price || product.price));
+    }
+    return product.price;
+  }, [siblings, selectedStorage, product]);
+
   // JSON-LD para SEO (Product + Offer)
-  
   const productSchema = useMemo(() => {
     try {
-      // Recalcula imagens localmente para não depender de 'galleryImages' (evita forward reference)
       const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
       const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
       const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
       const images = Array.from(new Set(arr.map(norm)));
-      const imagesFinal = images.length ? images : (selectedImage ? [selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`] : []);
+      const imagesFinal = images.length ? images : (selectedImage ? [selectedImage.startsWith('/') ? selectedImage : `/${selectedImage}`] : []);
 
       return {
         "@context": "https://schema.org",
@@ -471,18 +474,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     } catch { return undefined; }
   }, [product?.id, product?.name, product?.brand, selectedPrice, siblings, selectedStorage, selectedImage]);
 
-    const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
-    const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
-    return Array.from(new Set(arr.map(norm)));
-  }, [siblings, selectedStorage]);
 
-    if (sameStorage.length) {
-      return Math.min(...sameStorage.map((s) => s.price || product.price));
-    }
-    return product.price;
-  }, [siblings, selectedStorage, product]);
-
-  const [cepModal, setCepModal] = useState(false);
+const [cepModal, setCepModal] = useState(false);
   const [cep, setCep] = useState<string | undefined>(undefined);
   const [frete, setFrete] = useState<Frete | undefined>(undefined);
   function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) {
