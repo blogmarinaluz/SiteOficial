@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useCart } from "@/hooks/useCart";
-import { ShoppingCart, Truck, Percent } from "lucide-react";
+import { ShoppingCart, Truck } from "lucide-react";
 
 type P = {
   id: string;
@@ -38,8 +38,9 @@ export default function ProductCard({ product }: { product: P }) {
   const oldPrice = Number(product?.oldPrice ?? 0);
   const freeShipping = Boolean(product?.freeShipping);
 
-  // Política comercial: 30% no Pix/Boleto
+  // Política comercial: 30% no Pix/Boleto (exibido como referência)
   const pixPrice = useMemo(() => Math.max(0, +(price * 0.7).toFixed(2)), [price]);
+  const installment = useMemo(() => Math.max(0, +(price / 10).toFixed(2)), [price]);
 
   const unoptimized = /\.jfif(\?|$)/i.test(image);
   const href = `/produto/${id.split(".")[0]}`;
@@ -57,7 +58,7 @@ export default function ProductCard({ product }: { product: P }) {
       {/* Badges na imagem */}
       <div className="absolute left-2 top-2 z-20 flex flex-col gap-2">
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 px-2 py-1 text-[11px] font-semibold text-emerald-950 ring-1 ring-emerald-700/40">
-          <Percent className="h-3 w-3" /> 30% no Pix/Boleto
+          30% no Pix/Boleto
         </span>
       </div>
       {freeShipping && (
@@ -99,7 +100,7 @@ export default function ProductCard({ product }: { product: P }) {
             {brand}
           </span>
         )}
-        <Link href={href} className="block text-sm font-semibold leading-snug text-neutral-900 hover:underline min-h-[40px]">
+        <Link href={href} className="block min-h-[40px] text-sm font-semibold leading-snug text-neutral-900 hover:underline">
           {name}
         </Link>
 
@@ -118,6 +119,9 @@ export default function ProductCard({ product }: { product: P }) {
           <div className="text-[12px] text-neutral-700">
             <span className="font-semibold text-emerald-700">{formatBRL(pixPrice)}</span>{" "}
             no Pix/Boleto
+          </div>
+          <div className="text-[12px] text-neutral-700">
+            ou em até <span className="font-semibold">{formatBRL(installment)}</span> x 10 sem juros
           </div>
         </div>
 
