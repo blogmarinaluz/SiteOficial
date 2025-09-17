@@ -34,13 +34,12 @@ export default function Header() {
 
   // Bloqueia scroll do body quando o menu mobile está aberto
   useEffect(() => {
-    if (open) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [open]);
 
   // Cart compatível mesmo quando hook expõe count() como função
@@ -63,11 +62,6 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
-      {/* Link pular para conteúdo (a11y) */}
-      <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] rounded-2xl bg-accent px-3 py-2 text-accent-fg">
-        Pular para o conteúdo
-      </a>
-
       {/* Barra de avisos */}
       <div className="w-full border-b border-white/10 text-[12px]">
         <div className="container-safe flex items-center gap-4 py-1">
@@ -84,7 +78,7 @@ export default function Header() {
       </div>
 
       {/* Navegação principal */}
-      <div className="container-safe flex items-center gap-3 py-3">
+      <div className="container-safe flex items-center gap-3 py-2 sm:py-3">
         {/* Menu mobile */}
         <button
           type="button"
@@ -97,17 +91,17 @@ export default function Header() {
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Logo */}
+        {/* Logo — maior e consistente */}
         <Link
           href="/"
-          className="font-extrabold tracking-tight text-white text-2xl sm:text-3xl"
+          className="font-extrabold tracking-tight text-white text-3xl sm:text-4xl leading-none"
           aria-label="Ir para a página inicial"
         >
           pro<span className="text-accent">Store</span>
         </Link>
 
         {/* Navegação desktop */}
-        <nav className="ml-4 hidden items-center gap-1 lg:flex" aria-label="Primária">
+        <nav className="ml-3 hidden items-center gap-1 lg:flex" aria-label="Primária">
           {NAV.map((item) => {
             const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
             return (
@@ -133,7 +127,7 @@ export default function Header() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar iPhone, Samsung..."
+              placeholder="Buscar por modelo, marca..."
               className="flex-1 bg-transparent text-sm text-white placeholder:text-white/60 outline-none"
               aria-label="Buscar produtos"
             />
@@ -146,20 +140,13 @@ export default function Header() {
         {/* Ações: auth + carrinho */}
         <div className="ml-2 flex items-center gap-2">
           <SignedOut>
-            {/* Link garante funcionamento mesmo sem modal do Clerk */}
-            <Link
-              href="/entrar"
-              className="btn btn-ghost rounded-2xl px-3 py-2 text-sm"
-              title="Entrar ou criar conta"
-            >
+            <Link href="/entrar" className="btn btn-ghost rounded-2xl px-3 py-2 text-sm" title="Entrar ou criar conta">
               Entrar
             </Link>
           </SignedOut>
-
           <SignedIn>
             <UserButton appearance={{ elements: { userButtonPopoverCard: "rounded-2xl border shadow-xl" } }} />
           </SignedIn>
-
           <Link
             href="/carrinho"
             className="relative inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-sm font-medium hover:bg-white/5"
@@ -179,14 +166,17 @@ export default function Header() {
       {/* Busca mobile */}
       <div className="border-t border-white/10 md:hidden">
         <form onSubmit={submitSearch} className="container-safe py-2">
+          <label htmlFor="msearch" className="sr-only">Buscar produtos</label>
           <div className="flex w-full items-center rounded-full border border-white/10 bg-white/10 p-1.5 backdrop-blur">
             <Search className="mx-2 h-4 w-4 text-white/70" />
             <input
+              id="msearch"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar iPhone, Samsung..."
+              placeholder="Buscar por modelo, marca..."
               className="flex-1 bg-transparent text-sm text-white placeholder:text-white/60 outline-none"
               aria-label="Buscar produtos"
+              inputMode="search"
             />
             <button
               type="submit"
@@ -216,7 +206,7 @@ export default function Header() {
             <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
               <Link
                 href="/"
-                className="font-extrabold tracking-tight text-2xl"
+                className="font-extrabold tracking-tight text-3xl leading-none"
                 onClick={() => setOpen(false)}
                 aria-label="Ir para a página inicial"
               >
@@ -241,7 +231,7 @@ export default function Header() {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={[
-                      "block rounded-2xl px-3 py-2 text-sm",
+                      "block rounded-2xl px-3 py-3 text-base",
                       active ? "bg-black/5" : "hover:bg-black/5"
                     ].join(" ")}
                     aria-current={active ? "page" : undefined}
