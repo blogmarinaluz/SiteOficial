@@ -1,4 +1,4 @@
-// src/hooks/useCart.tsx
+// src/hooks/useCart.client.tsx
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
@@ -19,6 +19,8 @@ type CartContextType = {
   add: (item: Omit<CartItem, 'qty'> & { qty?: number }) => void;
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
+  increase: (id: string, step?: number) => void;
+  decrease: (id: string, step?: number) => void;
   clear: () => void;
   count: () => number;
   total: () => number;
@@ -71,6 +73,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  function increase(id: string, step = 1) {
+    setItems((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, qty: (p.qty || 0) + step } : p))
+    );
+  }
+
+  function decrease(id: string, step = 1) {
+    setItems((prev) =>
+      prev
+        .map((p) => (p.id === id ? { ...p, qty: (p.qty || 0) - step } : p))
+        .filter((p) => p.qty > 0)
+    );
+  }
+
   function clear() {
     setItems([]);
   }
@@ -87,6 +103,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       add,
       remove,
       setQty,
+      increase,
+      decrease,
       clear,
       count: () => countNumber,
       total: () => totalNumber,
@@ -103,13 +121,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 export function useCart(): CartContextType {
   const ctx = useContext(CartCtx);
   if (!ctx) {
-    // Fallback seguro caso o provider não esteja montado (evita crash no build/SSR)
     const noop = () => 0;
     return {
       items: [],
       add: () => {},
       remove: () => {},
       setQty: () => {},
+      increase: () => {},
+      decrease: () => {},
       clear: () => {},
       count: noop,
       total: noop,
