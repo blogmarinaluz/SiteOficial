@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import productsData from "@/data/products.json";
 import { useCart } from "@/hooks/useCart";
 import DescriptionAndSpecs from "@/components/ProductDetails/DescriptionAndSpecs";
+import MobileBuyBar from "@/components/MobileBuyBar";
 import {
   Truck,
   CheckCircle2,
@@ -705,6 +706,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           }
         }
       `}</style>
+
+      {/* Barra de compra rápida (mobile) */}
+      <MobileBuyBar product={{ id: product.id, name: product.name, price: selectedPrice }} />
 
       {/* Modal CEP */}
       <CepModal
