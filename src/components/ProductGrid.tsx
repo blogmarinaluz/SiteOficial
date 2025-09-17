@@ -97,7 +97,7 @@ export default function ProductGrid({
       <div className="relative lg:hidden">
         {/* dica de swipe */}
         {showHint && canRight && (
-          <div className="pointer-events-none absolute bottom-14 right-6 z-30 animate-pulse text-[13px] font-medium text-zinc-700">
+          <div className="pointer-events-none absolute bottom-14 right-6 z-30 animate-pulse text-[13px] font-medium text-zinc-700" aria-live="polite">
             <div className="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 shadow-sm border border-zinc-200">
               Deslize
               <svg viewBox="0 0 24 24" width="16" height="16">
@@ -145,6 +145,7 @@ export default function ProductGrid({
             no-scrollbar
             [-webkit-overflow-scrolling:touch]
             [scroll-snap-stop:always]
+            [touch-action:pan-x]
           "
         >
           {list.map((p, i) => (
