@@ -9,9 +9,9 @@ import { useEffect, useRef, useState } from "react";
  * Full‑bleed hero carousel
  * - Edge‑to‑edge (w-screen), breaks out of page container
  * - Autoplay + swipe (scroll-snap)
- * - Safe fallback when image is missing (no broken icon)
- * - Mobile-first height, larger on desktop
- * - Green/black palette to match brand
+ * - No page jump: horizontal scroll via `scrollTo`, nunca `scrollIntoView`
+ * - Pausa autoplay quando fora de viewport
+ * - Sem imagens quebradas (fallback em gradiente)
  */
 
 type Slide = {
@@ -54,15 +54,30 @@ const DEFAULT_SLIDES: Slide[] = [
 
 export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Slide[] }) {
   const [active, setActive] = useState(0);
+  const [visible, setVisible] = useState(true);
   const trackRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Autoplay
+  // Intercepta visibilidade do carrossel (pausa autoplay quando fora da tela)
   useEffect(() => {
+    const target = rootRef.current;
+    if (!target) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { threshold: 0.01 }
+    );
+    io.observe(target);
+    return () => io.disconnect();
+  }, []);
+
+  // Autoplay (somente quando visível)
+  useEffect(() => {
+    if (!visible) return stop();
     start();
     return stop;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [active, visible]);
 
   const start = () => {
     stop();
@@ -78,11 +93,11 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
     if (!el) return;
     const count = slides.length;
     const idx = ((i % count) + count) % count;
-    const child = el.children[idx] as HTMLElement | undefined;
-    if (child) child.scrollIntoView({ behavior: "smooth", inline: "start" });
+    const left = idx * el.clientWidth;
+    el.scrollTo({ left, behavior: "smooth" }); // não mexe no scroll vertical da página
   };
 
-  // Update active on scroll
+  // Atualiza ativo ao rolar
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -98,12 +113,14 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
 
   return (
     <section
-      className="relative left-1/2 right-1/2 w-screen -mx-[50vw]"
+      ref={(n) => (rootRef.current = n as any)}
+      className="relative left-1/2 right-1/2 w-screen -mx-[50vw] mt-0"
       aria-roledescription="carousel"
       aria-label="Ofertas em destaque"
+      style={{ marginTop: 0 }}
     >
       <div className="relative">
-        {/* track */}
+        {/* trilho */}
         <div
           ref={trackRef}
           className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto scroll-smooth"
@@ -119,10 +136,10 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
                 aria-roledescription="slide"
                 aria-label={`${i + 1} de ${slides.length}`}
               >
-                {/* Background gradient */}
+                {/* Fundo gradiente */}
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-neutral-900" />
 
-                {/* Optional image */}
+                {/* Imagem opcional */}
                 {Boolean(s.image) && (
                   <Image
                     src={s.image as string}
@@ -138,7 +155,7 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
                   />
                 )}
 
-                {/* Content */}
+                {/* Conteúdo */}
                 <div className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:py-14">
                   <div className="max-w-xl text-white">
                     <h2 className="text-2xl font-extrabold leading-tight sm:text-3xl lg:text-4xl">
@@ -172,7 +189,7 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
           ))}
         </div>
 
-        {/* dots */}
+        {/* pontos */}
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center gap-2">
           {slides.map((_, i) => (
             <span
