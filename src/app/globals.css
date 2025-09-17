@@ -14,56 +14,7 @@ body{ @apply bg-white text-zinc-900; }
 
 .card{ @apply rounded-2xl border border-zinc-200 p-4 shadow-sm bg-white; }
 .badge{ @apply text-xs px-2 py-1 rounded-full bg-zinc-100; }
-
-.header{ @apply sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-zinc-200 shadow-sm; }
-.menu-link{ @apply hover:text-accent; }
-.pill{ @apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs; }
-
-.whatsapp-fab{
-  position:fixed; right:16px; bottom:16px; z-index:60;
-  border-radius:9999px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.2);
-}
-
-ul.bullets li{ @apply pl-5 relative; }
-ul.bullets li:before{ content:'•'; position:absolute; left:0; }
-
-/* ===== Paleta da marca (verde + preto) =====
-   Troque os HEX do verde se quiser outro tom exato.  */
-:root{
-  --brand:      #0EB57D;  /* verde principal */
-  --brand-700:  #0A8F63;  /* verde escuro (hover/CTA) */
-
-  /* Newsletter em laranja (se quiser manter):
-     troque por verde também, se preferir tudo no verde. */
-  --accent:     #FF8C00;
-  --accent-700: #E07800;
-}
-
-/* ===== Helpers (não interferem no resto) ===== */
-.bg-brand-gradient{
-  background: linear-gradient(180deg, rgba(14,181,125,0.12), rgba(14,181,125,0.04));
-}
-.text-accent{ color: var(--brand-700); }
-.bg-accent{ background: var(--brand); }
-.ring-brand{ box-shadow: 0 0 0 1px rgba(14,181,125, .25) inset; }
-.shadow-soft{ box-shadow: 0 6px 16px rgba(0,0,0,.06); }
-
-.chip-glass{
-  background: rgba(255,255,255,.10);
-  box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset;
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-}
-/* ===== Ajuste de tamanhos por seção (variáveis CSS) ===== */
-
-/* Padrão (Celulares em Oferta fica como está) */
-:root{
-  --card-stage-h: 240px;
-  --img-h-apple: 210px;
-  --img-h-samsung: 230px;
-  --img-scale-apple: 1;
-  --img-scale-samsung: 1.22;
-}
+...
 
 /* BBB – só aumentar iPhone, Samsung permanece */
 .ctx-bbb{
@@ -79,11 +30,41 @@ ul.bullets li:before{ content:'•'; position:absolute; left:0; }
   --img-scale-apple: 1.06;
 }
 
-/* ===== Novo helper: ocultar barra de rolagem em scrollers horizontais ===== */
-.no-scrollbar {
-  -ms-overflow-style: none;    /* IE e Edge antigo */
-  scrollbar-width: none;       /* Firefox */
+
+
+/* === Utilitários adicionais usados pelos novos componentes === */
+@layer utilities {
+  /* esconde a barra de rolagem (mantém scroll funcional) */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* sombra suave para cards/botões flutuantes */
+  .shadow-soft { box-shadow: 0 1px 1px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); }
 }
-.no-scrollbar::-webkit-scrollbar { /* Chrome/Safari */
-  display: none;
+
+/* Header padrão mobile-first */
+.header{ @apply sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-zinc-200; }
+
+/* Pílula maior para chips/abas quando necessário */
+.pill-lg{ @apply inline-flex items-center rounded-full border px-3 py-1.5 text-sm; }
+
+/* Variáveis default (fallback) usadas pelos cartões/imagens */
+:root {
+  --card-stage-h: 240px;
+  --img-h-apple: 210px;
+  --img-h-samsung: 230px;
+  --img-scale-apple: 1;
+  --img-scale-samsung: 1.22;
+}
+
+/* Contextos opcionais por seção (home) */
+.ctx-bbb{
+  --card-stage-h: 248px;
+  --img-h-apple: 236px;
+  --img-scale-apple: 1.06;
+}
+.ctx-destaque{
+  --card-stage-h: 248px;
+  --img-h-apple: 236px;
+  --img-scale-apple: 1.06;
 }
