@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
 import { br, withCoupon } from "@/lib/format";
 
@@ -9,7 +10,7 @@ export type Product = {
   id: string;
   brand: "apple" | "samsung" | string;
   name: string;
-  image: string;
+  image: string; // caminho em /public ou relativo
   price: number;
   freeShipping?: boolean;
 };
@@ -34,6 +35,14 @@ export default function ProductCard({ product }: Props) {
   const isApple = brand === "apple" || product?.name?.toLowerCase()?.includes("iphone");
   const isSamsung = brand === "samsung" || product?.name?.toLowerCase()?.includes("galaxy");
 
+  // Altura dinâmica do "palco" da imagem e do container do <Image />
+  const imgHeightVar = isApple ? "var(--img-h-apple, 210px)"
+                      : isSamsung ? "var(--img-h-samsung, 230px)"
+                      : "220px";
+  const imgScaleVar = isApple ? "var(--img-scale-apple, 1)" 
+                      : isSamsung ? "var(--img-scale-samsung, 1.22)"
+                      : "1";
+
   return (
     <div className="card group shadow-soft border border-zinc-200 rounded-2xl bg-white">
       {/* PALCO DA IMAGEM (altura controlada por variáveis CSS) */}
@@ -50,12 +59,20 @@ export default function ProductCard({ product }: Props) {
           className="block w-full"
           prefetch={false}
         >
-          <img
-            src={normalizeSrc(product?.image)}
-            alt={product?.name ?? "Produto"}
-            className={`mx-auto block select-none`}
-            draggable={false}
-          />
+          <div className="relative w-full" style={{ height: imgHeightVar }}>
+            <Image
+              src={normalizeSrc(product?.image)}
+              alt={product?.name ?? "Produto"}
+              fill
+              // Tamanhos responsivos: no mobile ~82vw (carrossel), no desktop ~25–33vw
+              sizes="(max-width: 1023px) 82vw, (max-width: 1279px) 33vw, 25vw"
+              priority={false}
+              draggable={false}
+              className="object-contain select-none"
+              // Escala fina por marca; aplica via style
+              style={{ transform: `scale(${imgScaleVar})`, transformOrigin: "center bottom" } as any}
+            />
+          </div>
         </Link>
       </div>
 
@@ -99,7 +116,7 @@ export default function ProductCard({ product }: Props) {
       </div>
 
       <style jsx>{`
-        /* Alturas e escalas com variáveis e fallbacks (funciona sem globals) */
+        /* Fallbacks das variáveis (caso globals.css não esteja carregado) */
         :global(:root) {
           --card-stage-h: 240px;
           --img-h-apple: 210px;
@@ -108,8 +125,6 @@ export default function ProductCard({ product }: Props) {
           --img-scale-samsung: 1.22;
         }
 
-        /* BBB e Destaque podem sobrescrever via globals.css:
-           .ctx-bbb / .ctx-destaque já predefinidas no seu arquivo */
         .stage {
           height: var(--card-stage-h, 240px);
           background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.00));
@@ -119,24 +134,12 @@ export default function ProductCard({ product }: Props) {
           padding: 12px 8px 0 8px;
         }
 
-        img {
-          height: ${isApple ? "var(--img-h-apple, 210px)" : isSamsung ? "var(--img-h-samsung, 230px)" : "220px"};
-          width: auto;
-          transform: scale(${isApple ? "var(--img-scale-apple, 1)" : isSamsung ? "var(--img-scale-samsung, 1.22)" : "1"});
-          transform-origin: center bottom;
-          image-rendering: -webkit-optimize-contrast;
-        }
-
         @media (min-width: 1024px) {
           :global(:root) {
             --card-stage-h: 260px;
-          }
-          img {
-            height: ${isApple ? "calc(var(--img-h-apple, 210px) + 16px)" : isSamsung ? "calc(var(--img-h-samsung, 230px) + 16px)" : "236px"};
           }
         }
       `}</style>
     </div>
   );
 }
-
