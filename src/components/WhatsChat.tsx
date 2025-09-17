@@ -1,33 +1,38 @@
+// src/components/WhatsChat.tsx
 "use client";
+
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 
-const SELLER_NUMBER =
-  process.env.NEXT_PUBLIC_SELLER_NUMBER || "55999984905715";
+const SELLER_NUMBER = process.env.NEXT_PUBLIC_SELLER_NUMBER || "55999984905715";
+
+function waLink(msg: string) {
+  const text = encodeURIComponent(msg);
+  const num = SELLER_NUMBER.replace(/\D/g, "");
+  return `https://wa.me/${num}?text=${text}`;
+}
 
 export default function WhatsChat() {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
 
   useEffect(() => {
-    const n = localStorage.getItem("lead_name");
+    const n = typeof window !== "undefined" ? localStorage.getItem("lead_name") : null;
     if (n) setNome(n);
   }, []);
 
-  function toWhats() {
-    localStorage.setItem("lead_name", nome || "");
-    const msg = encodeURIComponent(
-      `Olá, sou ${nome || "cliente"} e quero falar sobre as ofertas no boleto.`
-    );
-    window.open(`https://api.whatsapp.com/send?phone=${SELLER_NUMBER}&text=${msg}`, "_blank");
-  }
+  const defaultMsg = nome
+    ? `Olá, sou ${nome}. Quero atendimento pelo WhatsApp.`
+    : "Olá, quero atendimento pelo WhatsApp.";
 
   return (
     <>
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 z-[1000] rounded-full p-4 bg-green-500 text-white shadow-xl"
+          className="fixed right-4 z-[1000] rounded-full p-4 bg-green-500 text-white shadow-xl
+                     bottom-[88px] lg:bottom-4"
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 16px)" } as any}
           aria-label="Falar no WhatsApp"
         >
           <MessageCircle className="w-6 h-6" />
@@ -35,24 +40,44 @@ export default function WhatsChat() {
       )}
 
       {open && (
-        <div className="fixed bottom-4 right-4 z-[1000] w-80 rounded-2xl border bg-white shadow-xl">
-          <div className="p-4 border-b">
-            <div className="font-semibold">Fale com a proStore</div>
-            <div className="text-xs text-zinc-600">Atendimento via WhatsApp</div>
+        <div
+          className="fixed right-4 z-[1000] w-80 rounded-2xl border bg-white shadow-xl
+                     bottom-[88px] lg:bottom-4"
+          style={{ marginBottom: "env(safe-area-inset-bottom)" } as any}
+        >
+          <div className="p-4 border-b flex items-center justify-between">
+            <div className="font-semibold">Atendimento</div>
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-2 py-1 text-zinc-500 hover:bg-zinc-100"
+              aria-label="Fechar chat"
+            >
+              ✕
+            </button>
           </div>
-          <div className="p-4 space-y-2">
-            <input
-              className="input w-full"
-              placeholder="Seu nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-            <button className="btn-primary w-full" onClick={toWhats}>
-              Abrir WhatsApp
-            </button>
-            <button className="btn-outline w-full" onClick={() => setOpen(false)}>
-              Fechar
-            </button>
+
+          <div className="p-4 space-y-3">
+            <label className="block text-sm text-zinc-600">
+              Seu nome
+              <input
+                className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Como devemos te chamar?"
+                value={nome}
+                onChange={(e) => {
+                  setNome(e.target.value);
+                  try { localStorage.setItem("lead_name", e.target.value); } catch {}
+                }}
+              />
+            </label>
+
+            <a
+              href={waLink(defaultMsg)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center rounded-xl bg-green-600 text-white py-2.5 font-medium hover:bg-green-700"
+            >
+              Abrir conversa no WhatsApp
+            </a>
           </div>
         </div>
       )}
