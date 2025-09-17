@@ -23,27 +23,46 @@ export default function ProductGrid({
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [active, setActive] = useState(0);
+
+  const GAP = 16; // px — manter em sincronia com 'gap-4'
+  const ITEM_RATIO = 0.82; // 82% da largura da viewport do track
+
+  const calcStep = () => {
+    const el = trackRef.current;
+    if (!el) return 0;
+    const item = el.querySelector<HTMLElement>("[data-item]");
+    return (item?.offsetWidth ?? Math.ceil(el.clientWidth * ITEM_RATIO)) + GAP;
+  };
+
+  const updateScrollState = () => {
+    const el = trackRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanLeft(scrollLeft > 8);
+    setCanRight(scrollLeft + clientWidth < scrollWidth - 8);
+
+    const step = calcStep();
+    if (step > 0) {
+      const idx = Math.round(scrollLeft / step);
+      setActive(Math.min(Math.max(idx, 0), Math.max(0, list.length - 1)));
+    }
+  };
 
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
 
-    const update = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      setCanLeft(scrollLeft > 8);
-      setCanRight(scrollLeft + clientWidth < scrollWidth - 8);
-    };
-
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    const ro = new ResizeObserver(update);
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
     ro.observe(el);
 
     return () => {
-      el.removeEventListener("scroll", update);
+      el.removeEventListener("scroll", updateScrollState);
       ro.disconnect();
     };
-  }, []);
+  }, [list.length]);
 
   // Dica "Deslize →" somente uma vez por sessão e apenas em telas pequenas
   useEffect(() => {
@@ -62,10 +81,7 @@ export default function ProductGrid({
   const scrollByOne = (dir: 1 | -1) => {
     const el = trackRef.current;
     if (!el) return;
-    // Tenta usar a largura do primeiro item como passo
-    const item = el.querySelector<HTMLElement>("[data-item]");
-    const gap = 16; // gap aproximado (px) — mantém em sincronia com classe 'gap-4'
-    const step = (item?.offsetWidth ?? Math.ceil(el.clientWidth * 0.82)) + gap;
+    const step = calcStep();
     el.scrollBy({ left: dir * step, behavior: "smooth" });
   };
 
@@ -73,9 +89,11 @@ export default function ProductGrid({
     return <p className="mt-6 text-zinc-600">{emptyMessage}</p>;
   }
 
+  const showDots = list.length > 1 && list.length <= 8;
+
   return (
     <div className={className}>
-      {/* MOBILE/TABLET: carrossel horizontal com setas e gradientes */}
+      {/* MOBILE/TABLET: carrossel horizontal com setas, gradientes e dots */}
       <div className="relative lg:hidden">
         {/* dica de swipe */}
         {showHint && canRight && (
@@ -129,18 +147,31 @@ export default function ProductGrid({
             [scroll-snap-stop:always]
           "
         >
-          {list.map((p) => (
+          {list.map((p, i) => (
             <div
               key={String(p.id)}
               data-item
               className="flex-[0_0_82%] snap-start"
               role="option"
               aria-label={p?.name}
+              aria-selected={i === active}
             >
               <ProductCard product={p} />
             </div>
           ))}
         </div>
+
+        {/* Dots indicadores (apenas quando poucos itens, para não poluir) */}
+        {showDots && (
+          <div className="mt-2 flex items-center justify-center gap-1.5">
+            {Array.from({ length: list.length }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${i === active ? "w-4 bg-zinc-800" : "w-2 bg-zinc-300"}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* DESKTOP: grid como antes */}
