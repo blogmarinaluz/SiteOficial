@@ -1,4 +1,4 @@
-// src/hooks/useCart.ts
+// src/hooks/useCart.tsx
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
