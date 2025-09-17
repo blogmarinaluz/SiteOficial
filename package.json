@@ -1,33 +1,26 @@
 {
-  "name": "site_celulares",
+  "name": "site-oficial",
   "private": true,
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint || echo 'skip lint'"
+    "start": "next start"
   },
   "dependencies": {
+    "@clerk/nextjs": "^5.7.1",
+    "autoprefixer": "^10.4.20",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.441.0",
     "next": "14.2.5",
+    "postcss": "^8.4.47",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "lucide-react": "0.441.0",
-    "zustand": "4.5.5"
+    "tailwindcss": "^3.4.10"
   },
   "devDependencies": {
-    "eslint": "8.57.0",
-    "eslint-config-next": "14.2.5",
-    "typescript": "^5.4.0",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0",
-    "@types/react": "18.3.3",
-    "@types/node": "20.14.2"
-  },
-  "overrides": {
-    "eslint": "8.57.0"
-  },
-  "engines": {
-    "node": ">=18.17.0"
+    "typescript": "^5.5.4"
   }
 }
