@@ -1,3 +1,4 @@
+// src/components/ProductCard.tsx
 "use client";
 
 import Link from "next/link";
@@ -13,16 +14,11 @@ export type Product = {
   freeShipping?: boolean;
 };
 
-function capBrand(brand: string) {
-  const b = (brand || "").toLowerCase();
-  if (b === "apple") return "Apple";
-  if (b === "samsung") return "Samsung";
-  return brand?.charAt(0).toUpperCase() + brand?.slice(1);
-}
+type Props = {
+  product: Product;
+};
 
-type Props = { product: Product };
-
-// garante caminho absoluto para /public (não altera tamanho)
+/** Normaliza caminho para /public sem quebrar imagens existentes */
 function normalizeSrc(src: string) {
   if (!src) return "/";
   return src.startsWith("/") ? src : `/${src}`;
@@ -30,100 +26,117 @@ function normalizeSrc(src: string) {
 
 export default function ProductCard({ product }: Props) {
   const { add } = useCart();
-
   const original = Number(product?.price) || 0;
-  const promo = withCoupon(original); // 30% OFF
+  const promo = withCoupon(original); // 30% OFF (mesma regra já usada)
   const parcela = promo / 10;
 
-  const isSamsung = (product?.brand || "").toLowerCase() === "samsung";
-  const imgSrc = normalizeSrc(product.image);
+  const brand = (product?.brand || "").toLowerCase();
+  const isApple = brand === "apple" || product?.name?.toLowerCase()?.includes("iphone");
+  const isSamsung = brand === "samsung" || product?.name?.toLowerCase()?.includes("galaxy");
 
   return (
-    <div className="card relative overflow-hidden">
-      {product.freeShipping && (
-        <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm ring-1 ring-emerald-700/30">
-          Frete grátis
-        </span>
-      )}
+    <div className="card group shadow-soft border border-zinc-200 rounded-2xl bg-white">
+      {/* PALCO DA IMAGEM (altura controlada por variáveis CSS) */}
+      <div className="stage relative flex items-end justify-center">
+        {/* badge frete grátis */}
+        {product?.freeShipping && (
+          <span className="absolute left-2 top-2 rounded-full bg-emerald-600 text-white text-[11px] px-2 py-0.5 shadow-sm">
+            frete grátis
+          </span>
+        )}
 
-      <Link href={`/produto/${product.id}`} className="group block">
-        {/* ====== IMAGEM (tamanho controlado por variáveis CSS) ====== */}
-        <div className="mb-3">
-          <div className="w-full rounded-xl bg-white ring-1 ring-zinc-200 p-2">
-            {/* palco fixo; por padrão 240px (pode ser sobrescrito por seção) */}
-            <div
-              className="w-full flex items-center justify-center overflow-hidden"
-              style={{ height: "var(--card-stage-h, 240px)" }}
-            >
-              <img
-                src={imgSrc}
-                alt={product.name}
-                style={{
-                  height: isSamsung
-                    ? "var(--img-h-samsung, 230px)" // Samsung (padrão definido por você)
-                    : "var(--img-h-apple, 210px)",  // Apple (padrão definido por você)
-                  width: "auto",
-                  maxWidth: "none",
-                  objectFit: "contain",
-                  transform: isSamsung
-                    ? "scale(var(--img-scale-samsung, 1.22))"
-                    : "scale(var(--img-scale-apple, 1))",
-                }}
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </div>
-        </div>
-        {/* ========================================================== */}
-
-        <div className="mb-1 text-xs text-zinc-500">{capBrand(product.brand)}</div>
-        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 min-h-[40px]">
-          {product.name}
-        </h3>
-
-        <div className="mt-2">
-          <div className="text-[13px] text-zinc-500 line-through">{br(original)}</div>
-          <div className="mt-0.5 text-[15px] font-extrabold text-emerald-700">
-            A partir de {br(promo)}{" "}
-            <span className="font-normal text-zinc-700">no pix ou boleto</span>
-          </div>
-
-          <div className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
-            <svg
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              aria-hidden="true"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-            >
-              <rect x="2.5" y="5" width="19" height="14" rx="2.2" />
-              <path d="M2.5 9.5h19" />
-            </svg>
-            <span>
-              ou {br(promo)} em até{" "}
-              <strong className="font-semibold">10x de {br(parcela)}</strong> sem juros
-            </span>
-          </div>
-        </div>
-      </Link>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
         <Link
-          href={`/produto/${product.id}`}
-          className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+          href={`/produto/${encodeURIComponent(product?.id ?? "")}`}
+          className="block w-full"
+          prefetch={false}
         >
-          Ver detalhes
+          <img
+            src={normalizeSrc(product?.image)}
+            alt={product?.name ?? "Produto"}
+            className={`mx-auto block select-none`}
+            draggable={false}
+          />
+        </Link>
+      </div>
+
+      {/* CONTEÚDO */}
+      <div className="p-3">
+        <Link
+          href={`/produto/${encodeURIComponent(product?.id ?? "")}`}
+          className="line-clamp-2 font-medium leading-snug hover:underline"
+          prefetch={false}
+        >
+          {product?.name ?? "Produto"}
         </Link>
 
-        <button
-          onClick={() => add(product, 1)}
-          className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700"
-        >
-          Adicionar
-        </button>
+        <div className="mt-2">
+          <div className="text-zinc-400 text-sm line-through">
+            {br(original)}
+          </div>
+          <div className="text-lg font-bold">
+            {br(promo)}
+          </div>
+          <div className="text-zinc-500 text-[13px]">
+            em 10x de <strong>{br(parcela)}</strong> sem juros
+          </div>
+        </div>
+
+        <div className="mt-3 flex gap-2">
+          <Link
+            href={`/produto/${encodeURIComponent(product?.id ?? "")}`}
+            className="flex-1 h-10 inline-flex items-center justify-center rounded-xl border border-zinc-300 hover:bg-zinc-50 transition text-sm"
+            prefetch={false}
+          >
+            Ver detalhes
+          </Link>
+          <button
+            onClick={() => add(product, 1)}
+            className="flex-1 h-10 inline-flex items-center justify-center rounded-xl text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700 text-sm"
+          >
+            Adicionar
+          </button>
+        </div>
       </div>
+
+      <style jsx>{`
+        /* Alturas e escalas com variáveis e fallbacks (funciona sem globals) */
+        :global(:root) {
+          --card-stage-h: 240px;
+          --img-h-apple: 210px;
+          --img-h-samsung: 230px;
+          --img-scale-apple: 1;
+          --img-scale-samsung: 1.22;
+        }
+
+        /* BBB e Destaque podem sobrescrever via globals.css:
+           .ctx-bbb / .ctx-destaque já predefinidas no seu arquivo */
+        .stage {
+          height: var(--card-stage-h, 240px);
+          background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.00));
+          border-bottom: 1px solid rgba(0,0,0,0.06);
+          border-top-left-radius: 1rem;
+          border-top-right-radius: 1rem;
+          padding: 12px 8px 0 8px;
+        }
+
+        img {
+          height: ${isApple ? "var(--img-h-apple, 210px)" : isSamsung ? "var(--img-h-samsung, 230px)" : "220px"};
+          width: auto;
+          transform: scale(${isApple ? "var(--img-scale-apple, 1)" : isSamsung ? "var(--img-scale-samsung, 1.22)" : "1"});
+          transform-origin: center bottom;
+          image-rendering: -webkit-optimize-contrast;
+        }
+
+        @media (min-width: 1024px) {
+          :global(:root) {
+            --card-stage-h: 260px;
+          }
+          img {
+            height: ${isApple ? "calc(var(--img-h-apple, 210px) + 16px)" : isSamsung ? "calc(var(--img-h-samsung, 230px) + 16px)" : "236px"};
+          }
+        }
+      `}</style>
     </div>
   );
 }
+
