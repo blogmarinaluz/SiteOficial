@@ -308,6 +308,16 @@ export default function Page() {
       </section>
 
       {/* 2) Celulares em oferta  → ID + scroll-mt para compensar o header fixo */}
+      
+      {/* Mobile: mini abas para navegar entre as seções */}
+      <nav className="lg:hidden sticky top-14 z-40 bg-white/95 backdrop-blur px-4 py-2 border-b border-zinc-200">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+          <a href="#mais-buscados" className="snap-start pill">Ofertas</a>
+          <a href="#bbb" className="snap-start pill">BBB</a>
+          <a href="#destaques" className="snap-start pill">Destaques</a>
+        </div>
+      </nav>
+
       <section id="mais-buscados" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Celulares em Oferta</h2>
