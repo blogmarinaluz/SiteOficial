@@ -342,7 +342,7 @@ export default function Page() {
       <section id="destaques" className="ctx-destaque mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
-        </div>
+        <Link href="/ofertas" className="text-sm text-emerald-700 hover:underline">Ver todas</Link></div>
         <div className="mt-4">
           <ProductGrid products={destaqueSafe as any[]} />
         </div>
@@ -427,4 +427,3 @@ export default function Page() {
     </main>
   );
 }
-
