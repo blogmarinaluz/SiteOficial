@@ -22,6 +22,7 @@ export default function ProductGrid({
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -44,6 +45,20 @@ export default function ProductGrid({
     };
   }, []);
 
+  // Dica "Deslize →" somente uma vez por sessão e apenas em telas pequenas
+  useEffect(() => {
+    try {
+      const isSmall = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+      const already = typeof window !== "undefined" ? sessionStorage.getItem("swipeHintShown") === "1" : true;
+      if (isSmall && !already && canRight) {
+        setShowHint(true);
+        sessionStorage.setItem("swipeHintShown", "1");
+        const t = setTimeout(() => setShowHint(false), 2200);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, [canRight]);
+
   const scrollByOne = (dir: 1 | -1) => {
     const el = trackRef.current;
     if (!el) return;
@@ -62,12 +77,24 @@ export default function ProductGrid({
     <div className={className}>
       {/* MOBILE/TABLET: carrossel horizontal com setas e gradientes */}
       <div className="relative lg:hidden">
+        {/* dica de swipe */}
+        {showHint && canRight && (
+          <div className="pointer-events-none absolute bottom-14 right-6 z-30 animate-pulse text-[13px] font-medium text-zinc-700">
+            <div className="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1 shadow-sm border border-zinc-200">
+              Deslize
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path d="M8 5l8 7-8 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        )}
+
         {/* botões de navegação (apenas se houver overflow) */}
         {canLeft && (
           <button
             aria-label="Anterior"
             onClick={() => scrollByOne(-1)}
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-white/90 shadow-sm border border-zinc-200 active:translate-y-[-50%]"
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-white/90 shadow-sm border border-zinc-200"
           >
             <svg viewBox="0 0 24 24" width="20" height="20" className="mx-auto">
               <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
