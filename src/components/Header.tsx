@@ -7,7 +7,16 @@ import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
 import productsData from "@/data/products.json";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { Menu, X, ShieldCheck, Percent, Truck, Search, ShoppingCart } from "lucide-react";
+import {
+  Menu,
+  X,
+  ShieldCheck,
+  Percent,
+  Truck,
+  Search,
+  ShoppingCart,
+  UserRound
+} from "lucide-react";
 
 type Product = { id: string; name: string; brand?: string; price?: number };
 
@@ -20,14 +29,14 @@ const norm = (v: unknown) =>
 const idNoExt = (id: string) => String(id).split(".")[0];
 const catalog: Product[] = (productsData as Product[]) ?? [];
 
+// Mantemos o topo minimalista e profissional
 const NAV = [
   { href: "/", label: "Início" },
-  { href: "/produtos", label: "Produtos" },      // vamos criar esta rota já já
-  { href: "/contato", label: "Contato" },        // criaremos a página para evitar 404
-  { href: "/ofertas", label: "Ofertas" },
+  { href: "/produtos", label: "Produtos" }, // página virá a seguir
+  { href: "/contato", label: "Contato" },   // página virá a seguir
 ];
 
-// Categorias: links reais. Xiaomi / Acessórios / Wearables / Casa inteligente vão para páginas "sem estoque"
+// Categorias só no drawer mobile (desktop fica limpo)
 const CATEGORIES = [
   { href: "/produtos?marca=Apple", label: "iPhone" },
   { href: "/produtos?marca=Samsung", label: "Samsung Galaxy" },
@@ -35,6 +44,7 @@ const CATEGORIES = [
   { href: "/sem-estoque/acessorios", label: "Acessórios" },
   { href: "/sem-estoque/wearables", label: "Wearables" },
   { href: "/sem-estoque/casa-inteligente", label: "Casa inteligente" },
+  { href: "/ofertas", label: "Ofertas" },
 ];
 
 export default function Header() {
@@ -44,25 +54,19 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   // Fecha drawer ao navegar
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+  useEffect(() => setOpen(false), [pathname]);
 
   // Bloqueia scroll do body quando o menu mobile está aberto
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return () => { document.body.style.overflow = prev; };
   }, [open]);
 
-  // Fechar com ESC
+  // ESC fecha
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -90,11 +94,11 @@ export default function Header() {
       className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      {/* Barra de avisos — 30% OFF */}
+      {/* Barra de avisos — texto correto */}
       <div className="w-full border-b border-white/10 text-[11px] sm:text-[12px]">
         <div className="container-safe flex items-center justify-center gap-4 overflow-x-auto whitespace-nowrap py-1.5 scrollbar-none">
           <span className="inline-flex items-center gap-1.5 text-white/90">
-            <Percent className="h-3.5 w-3.5" /> <strong className="font-semibold">30% OFF</strong> no <span className="hidden xs:inline">Boleto e</span> Pix
+            <Percent className="h-3.5 w-3.5" /> <strong className="font-semibold">30% OFF</strong> no boleto e Pix
           </span>
           <span className="inline-flex items-center gap-1.5 text-white/90">
             <Truck className="h-3.5 w-3.5" /> Frete grátis*
@@ -128,7 +132,7 @@ export default function Header() {
           pro<span className="text-accent">Store</span>
         </Link>
 
-        {/* Navegação desktop */}
+        {/* Navegação desktop minimalista */}
         <nav className="ml-2 hidden items-center gap-1 lg:flex" aria-label="Primária">
           {NAV.map((item) => {
             const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
@@ -172,12 +176,14 @@ export default function Header() {
         {/* Ações: auth + carrinho */}
         <div className="ml-auto flex items-center gap-2 md:ml-2">
           <SignedOut>
+            {/* Ícone elegante de usuário leva para /entrar */}
             <Link
               href="/entrar"
-              className="inline-flex items-center rounded-2xl border border-white/15 px-3 py-2 text-sm font-medium hover:bg-white/5"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 hover:bg-white/5"
               title="Entrar ou criar conta"
+              aria-label="Entrar ou criar conta"
             >
-              Entrar
+              <UserRound className="h-5 w-5" />
             </Link>
           </SignedOut>
 
@@ -198,21 +204,6 @@ export default function Header() {
               </span>
             )}
           </Link>
-        </div>
-      </div>
-
-      {/* Faixa de categorias (desktop) */}
-      <div className="hidden border-t border-white/10 lg:block">
-        <div className="container-safe flex items-center gap-2 overflow-x-auto py-2">
-          {CATEGORIES.map((c) => (
-            <Link
-              key={c.href}
-              href={c.href}
-              className="rounded-full border border-white/10 px-3 py-1 text-sm text-white/90 hover:bg-white/5"
-            >
-              {c.label}
-            </Link>
-          ))}
         </div>
       </div>
 
@@ -242,7 +233,7 @@ export default function Header() {
         </form>
       </div>
 
-      {/* Drawer Mobile */}
+      {/* Drawer Mobile com categorias */}
       {open && (
         <>
           <div
@@ -276,7 +267,7 @@ export default function Header() {
               </button>
             </div>
 
-            {/* Seção: Navegação */}
+            {/* Navegação */}
             <nav className="px-2 py-2" aria-label="Primária (mobile)">
               {NAV.map((item) => {
                 const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
@@ -297,7 +288,7 @@ export default function Header() {
               })}
             </nav>
 
-            {/* Seção: Categorias */}
+            {/* Categorias */}
             <div className="mt-2 border-t border-black/10 px-2 pt-2" aria-label="Categorias">
               <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-black/60">Categorias</p>
               {CATEGORIES.map((c) => (
@@ -312,7 +303,7 @@ export default function Header() {
               ))}
             </div>
 
-            {/* Seção: Conta */}
+            {/* Conta */}
             <div className="mt-2 border-t border-black/10 px-2 pt-2">
               <SignedOut>
                 <Link
