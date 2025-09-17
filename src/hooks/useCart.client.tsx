@@ -12,6 +12,7 @@ export type CartItem = {
   color?: string;
   storage?: string;
   variantId?: string;
+  freeShipping?: boolean; // compatível com carrinho/page.tsx
 };
 
 type CartContextType = {
@@ -31,7 +32,7 @@ type CartContextType = {
 const KEY = 'prostore:cart';
 const CartCtx = createContext<CartContextType | null>(null);
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
   // Carrega do localStorage
