@@ -192,12 +192,6 @@ function CepModal({
             <X className="h-5 w-5" />
           </button>
         </div>
-      {/* JSON-LD Product */}
-      <script
-        type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-      />
 
 
         <div className="mt-3 space-y-2">
@@ -747,6 +741,13 @@ const galleryImages = useMemo(() => {
           }
         }
       `}</style>
+
+      {/* JSON-LD Product (depois de definir productSchema) */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
 
       {/* Barra de compra rápida (mobile) */}
       <MobileBuyBar product={{ id: product.id, name: product.name, price: selectedPrice }} />
