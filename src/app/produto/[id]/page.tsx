@@ -542,7 +542,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               <div className="text-sm text-zinc-700">
                 Cor: <b>{selectedColor}</b>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory [touch-action:pan-x] sm:flex-wrap">
                 {colorOptions.map((c) => {
                   const css = colorToHex(c.name);
                   const selected = norm(c.name) === norm(selectedColor);
@@ -551,7 +551,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     <button
                       key={c.name}
                       onClick={() => setSelectedColor(c.name)}
-                      className={`h-8 w-8 rounded-full border ${
+                      className={`h-10 w-10 sm:h-8 sm:w-8 rounded-full border ${
                         selected ? "border-emerald-600 ring-2 ring-emerald-300" : isVeryLight ? "border-zinc-300" : "border-transparent"
                       }`}
                       style={{ backgroundColor: css }}
@@ -566,14 +566,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             {/* Armazenamento */}
             <div className="mt-4">
               <div className="text-sm text-zinc-700">Armazenamento</div>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory [touch-action:pan-x] sm:flex-wrap">
                 {storageOptions.map((s) => {
                   const selected = s === selectedStorage;
                   return (
                     <button
                       key={s}
                       onClick={() => setSelectedStorage(s)}
-                      className={`rounded-xl border px-3 py-1.5 text-sm ${
+                      className={`h-10 min-w-[64px] inline-flex items-center justify-center rounded-xl border px-3 text-sm ${
                         selected ? "border-emerald-600 ring-2 ring-emerald-300" : "border-zinc-300"
                       }`}
                     >
