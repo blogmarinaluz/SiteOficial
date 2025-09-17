@@ -32,6 +32,11 @@ export default function Header() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
+  // Fecha drawer ao navegar
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   // Bloqueia scroll do body quando o menu mobile está aberto
   useEffect(() => {
     if (!open) return;
@@ -41,6 +46,15 @@ export default function Header() {
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  // Fechar com ESC
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Cart compatível mesmo quando hook expõe count() como função
   const cart: any = useCart();
@@ -61,24 +75,27 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
-      {/* Barra de avisos */}
-      <div className="w-full border-b border-white/10 text-[12px]">
-        <div className="container-safe flex items-center gap-4 py-1">
+    <header
+      className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      {/* Barra de avisos — compacta e elegante no mobile */}
+      <div className="w-full border-b border-white/10 text-[11px] sm:text-[12px]">
+        <div className="container-safe flex items-center justify-center gap-4 overflow-x-auto whitespace-nowrap py-1.5 scrollbar-none">
           <span className="inline-flex items-center gap-1.5 text-white/90">
             <Percent className="h-3.5 w-3.5" /> 12% OFF no Pix
           </span>
           <span className="inline-flex items-center gap-1.5 text-white/90">
             <Truck className="h-3.5 w-3.5" /> Frete grátis*
           </span>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-white/90">
+          <span className="inline-flex items-center gap-1.5 text-white/90">
             <ShieldCheck className="h-3.5 w-3.5" /> 90 dias de garantia
           </span>
         </div>
       </div>
 
       {/* Navegação principal */}
-      <div className="container-safe flex items-center gap-3 py-2 sm:py-3">
+      <div className="container-safe flex items-center gap-3 py-2.5 sm:py-3">
         {/* Menu mobile */}
         <button
           type="button"
@@ -101,7 +118,7 @@ export default function Header() {
         </Link>
 
         {/* Navegação desktop */}
-        <nav className="ml-3 hidden items-center gap-1 lg:flex" aria-label="Primária">
+        <nav className="ml-2 hidden items-center gap-1 lg:flex" aria-label="Primária">
           {NAV.map((item) => {
             const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
             return (
@@ -121,7 +138,11 @@ export default function Header() {
         </nav>
 
         {/* Busca desktop */}
-        <form onSubmit={submitSearch} className="ml-auto hidden min-w-[320px] max-w-lg flex-1 md:block">
+        <form
+          onSubmit={submitSearch}
+          className="ml-auto hidden min-w-[320px] max-w-lg flex-1 md:block"
+          aria-label="Busca"
+        >
           <div className="flex w-full items-center rounded-2xl border border-white/10 bg-white/10 p-1.5 backdrop-blur">
             <Search className="mx-2 h-4 w-4 text-white/70" />
             <input
@@ -138,16 +159,22 @@ export default function Header() {
         </form>
 
         {/* Ações: auth + carrinho */}
-        <div className="ml-2 flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 md:ml-2">
           <SignedOut>
-            <Link href="/entrar" className="btn btn-ghost rounded-2xl px-3 py-2 text-sm" title="Entrar ou criar conta">
+            <Link
+              href="/entrar"
+              className="inline-flex items-center rounded-2xl border border-white/15 px-3 py-2 text-sm font-medium hover:bg-white/5"
+              title="Entrar ou criar conta"
+            >
               Entrar
             </Link>
           </SignedOut>
+
           <SignedIn>
             <UserButton appearance={{ elements: { userButtonPopoverCard: "rounded-2xl border shadow-xl" } }} />
           </SignedIn>
-          <Link
+
+        <Link
             href="/carrinho"
             className="relative inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-sm font-medium hover:bg-white/5"
             title="Meu carrinho"
@@ -165,7 +192,7 @@ export default function Header() {
 
       {/* Busca mobile */}
       <div className="border-t border-white/10 md:hidden">
-        <form onSubmit={submitSearch} className="container-safe py-2">
+        <form onSubmit={submitSearch} className="container-safe py-2" aria-label="Busca (mobile)">
           <label htmlFor="msearch" className="sr-only">Buscar produtos</label>
           <div className="flex w-full items-center rounded-full border border-white/10 bg-white/10 p-1.5 backdrop-blur">
             <Search className="mx-2 h-4 w-4 text-white/70" />
@@ -202,6 +229,7 @@ export default function Header() {
             className="fixed inset-y-0 left-0 z-50 w-[86%] max-w-xs bg-white text-black shadow-2xl lg:hidden"
             role="dialog"
             aria-modal="true"
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
           >
             <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
               <Link
