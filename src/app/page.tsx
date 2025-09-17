@@ -321,7 +321,7 @@ export default function Page() {
       </section>
 
       {/* 3) Ofertas do dia | BBB  → ID + scroll-mt */}
-      <section id="bbb" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
+      <section id="bbb" className="ctx-bbb mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas do dia | BBB = Bom, Bonito e Barato</h2>
           <Link href="/bbb-do-dia" className="text-sm text-emerald-700 hover:underline">
