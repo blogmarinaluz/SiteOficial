@@ -2,104 +2,38 @@
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import MobileDock from "@/components/MobileDock";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-// Util simples e local (sem criar novo arquivo) para obter a base URL
-function getBaseUrl(): string {
-  const env =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.VERCEL_URL ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL;
-
-  if (env) {
-    const url = env.startsWith("http") ? env : `https://${env}`;
-    return url.replace(/\/+$/, "");
-  }
-  return "http://localhost:3000";
-}
-
-const SITE_NAME = "proStore";
-const DEFAULT_TITLE = "proStore — Apple & Samsung";
-const DEFAULT_DESCRIPTION =
-  "Catálogo Apple e Samsung com 30% OFF. Boleto para negativados.";
-
 export const metadata: Metadata = {
-  // Base usada para compor URLs absolutas de OG/alternates quando necessário
-  metadataBase: new URL(getBaseUrl()),
-
-  // Título padrão e template para páginas que definirem title próprio
   title: {
-    default: DEFAULT_TITLE,
-    template: "%s | proStore",
+    default: "proStore — Apple & Samsung",
+    template: "%s — proStore",
   },
-
-  description: DEFAULT_DESCRIPTION,
-
-  // Melhora rastreabilidade
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
-    },
-  },
-
-  // Palavras-chave relevantes (não exagerar)
-  keywords: [
-    "iPhone",
-    "Samsung",
-    "Apple",
-    "Galaxy",
-    "smartphone",
-    "parcelamento",
-    "boleto",
-    "negativado",
-    "promoção",
-    "desconto",
-  ],
-
-  // Open Graph básico (sem imagens para não depender de assets inexistentes)
-  openGraph: {
-    type: "website",
-    url: "/",
-    siteName: SITE_NAME,
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-    locale: "pt_BR",
-  },
-
-  // Cart do Twitter
-  twitter: {
-    card: "summary_large_image",
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-  },
-
-  // Canonical base (nas dinâmicas podemos refinar depois, sem criar arquivos)
-  alternates: {
-    canonical: "/",
-  },
+  description: "Catálogo Apple e Samsung com 30% OFF. Boleto para negativados.",
+  applicationName: "proStore",
+  metadataBase: new URL("https://prostore.example"), // ajuste se tiver domínio
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
-      <body>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className="min-h-screen bg-white text-zinc-900">
+        {/* Header sticky com suspense para evitar layout shift */}
         <Suspense fallback={<div className="h-16" />}>
           <Header />
         </Suspense>
 
-        {/* Algumas páginas/slots podem usar hooks de navigation também */}
+        {/* Conteúdo principal: espaço extra no bottom para não ficar sob a dock mobile */}
         <Suspense fallback={<main className="container py-8" />}>
-          <main className="container py-8">{children}</main>
+          <main className="container py-8 pb-24 lg:pb-8">{children}</main>
         </Suspense>
 
         <Footer />
+
+        {/* Barra fixa inferior — mobile only */}
+        <MobileDock />
       </body>
     </html>
   );
