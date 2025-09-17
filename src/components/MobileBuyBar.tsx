@@ -1,47 +1,80 @@
 // src/components/MobileBuyBar.tsx
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCart } from '@/hooks/useCart';
-import { br, withCoupon } from '@/lib/format';
+import { useRouter } from "next/navigation";
+import { useCart } from "@/hooks/useCart";
+import { useMemo } from "react";
 
-export type BuyBarProduct = {
+type MobileProduct = {
   id: string;
   name: string;
-  image?: string;
   price: number;
+  image?: string;
+  color?: string;
+  storage?: string;
+  variantId?: string;
   freeShipping?: boolean;
 };
 
-export default function MobileBuyBar({ product }: { product: BuyBarProduct }) {
+interface Props {
+  product: MobileProduct;
+  className?: string;
+}
+
+export default function MobileBuyBar({ product, className = "" }: Props) {
   const router = useRouter();
   const { add } = useCart();
 
-  const original = Number(product?.price) || 0;
-  const promo = useMemo(() => withCoupon(original), [original]);
-  const parcela = useMemo(() => promo / 10, [promo]);
+  const priceBRL = useMemo(
+    () =>
+      (product?.price ?? 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        maximumFractionDigits: 2,
+      }),
+    [product?.price]
+  );
 
-  const onBuyNow = () => {
-    add(product as any, 1);
-    router.push('/carrinho');
-  };
+  function onAddToCart() {
+    if (!product) return;
+    add({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      color: product.color,
+      storage: product.storage,
+      variantId: product.variantId,
+      freeShipping: product.freeShipping,
+      qty: 1, // <<< quantidade aqui
+    });
+  }
+
+  function onBuyNow() {
+    onAddToCart();
+    router.push("/carrinho");
+  }
 
   return (
-    <div
-      className="lg:hidden fixed inset-x-0 z-[49] bg-white/95 backdrop-blur border-t border-zinc-200"
-      style={{ bottom: '88px', paddingBottom: 'max(env(safe-area-inset-bottom), 6px)' } as any}
-      aria-label="Barra de compra rápida"
-    >
-      <div className="mx-auto max-w-[1100px] px-4 py-2 flex items-center gap-3">
-        <div className="min-w-0">
-          <div className="text-xs text-zinc-500 line-through">{br(original)}</div>
-          <div className="text-lg font-bold leading-tight">{br(promo)}</div>
-          <div className="text-[11px] text-zinc-500">em 10x de <strong>{br(parcela)}</strong> sem juros</div>
+    <div className={`fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white lg:hidden ${className}`}>
+      <div className="mx-auto flex max-w-[1100px] items-center gap-3 px-4 py-3">
+        <div className="flex flex-col">
+          <span className="text-[11px] text-zinc-500 leading-none">à vista</span>
+          <strong className="text-lg leading-none">{priceBRL}</strong>
         </div>
+
+        <button
+          onClick={onAddToCart}
+          className="ml-auto rounded-xl border border-zinc-300 px-4 py-2 text-sm font-semibold hover:bg-zinc-50"
+          aria-label="Adicionar ao carrinho"
+        >
+          Adicionar
+        </button>
+
         <button
           onClick={onBuyNow}
-          className="ml-auto h-11 px-5 rounded-xl bg-emerald-600 text-white font-medium shadow-sm active:scale-[0.99]"
+          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          aria-label="Comprar agora"
         >
           Comprar agora
         </button>
