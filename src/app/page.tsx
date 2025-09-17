@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import Testimonials from "@/components/Testimonials";
 import productsData from "@/data/products.json";
@@ -71,7 +71,7 @@ function HomeSEO() {
       setMetaProperty("og:description", description);
       setMetaProperty("og:type", "website");
       setMetaProperty("og:url", url);
-      setMetaProperty("og:image", absUrl("/og-home.jpg")); // opcional, usa se existir
+      setMetaProperty("og:image", absUrl("/og-home.jpg")); // opcional
       setMetaTag("twitter:card", "summary_large_image");
       setMetaTag("twitter:title", title);
       setMetaTag("twitter:description", description);
@@ -236,7 +236,6 @@ export default function Page() {
       }
       const header = ["name", "email", "createdAt"];
       const rows = arr.map((o: any) => [o.name || "", o.email || "", o.createdAt || ""]);
-      // ✅ corrigido: parênteses/colchetes do map
       const csv = [header, ...rows]
         .map((r: any[]) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
         .join("\n");
@@ -255,65 +254,15 @@ export default function Page() {
   }
 
   return (
-    <main className="space-y-10">
-      {/* SEO da Home */}
+    <main className="relative">
+      {/* SEO da Home (não afeta layout) */}
       <HomeSEO />
 
-      {/* Carrossel de propaganda (mobile/desktop) */}
+      {/* Carrossel full‑bleed */}
       <HeroCarousel />
 
-
-      {/* 1) Hero — visual premium e discreto (substituído pelo carrossel) */}
-      <section className="mx-auto max-w-[1100px] px-4">
-        <div className="relative overflow-hidden rounded-3xl ring-1 ring-zinc-800/60 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black shadow-lg">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_300px_at_15%_15%,rgba(16,185,129,0.14),transparent)]" />
-          <div className="relative grid gap-6 md:grid-cols-[1.35fr,1fr] md:items-center px-6 py-8">
-            <div>
-              <h1 className="text-3xl md:text-[34px] font-extrabold tracking-tight text-white">
-                Apple & Samsung com 30% OFF
-              </h1>
-              <p className="mt-2 text-[15px] text-white/80">
-                Pague no PIX ou Boleto (30% OFF). Até 10x sem juros no cartão.
-              </p>
-              <div className="mt-5 flex gap-2">
-                <Link
-                  href="/ofertas"
-                  className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-                >
-                  Ver ofertas
-                </Link>
-                <Link
-                  href="/#mais-buscados"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
-                >
-                  Mais buscados
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/90">
-              <p className="mb-2 font-semibold">Condição exclusiva</p>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-                  <span>30% OFF no PIX/Boleto</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-                  <span>Em até 10x sem juros</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-                  <span>Frete grátis em produtos selecionados</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 2) Celulares em oferta  → ID + scroll-mt para compensar o header fixo */}
-      <section id="mais-buscados" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
+      <section id="mais-buscados" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Celulares em Oferta</h2>
           <Link href="/ofertas" className="text-sm text-emerald-700 hover:underline">
@@ -326,7 +275,7 @@ export default function Page() {
       </section>
 
       {/* 3) Ofertas do dia | BBB  → ID + scroll-mt */}
-      <section id="bbb" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
+      <section id="bbb" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas do dia | BBB = Bom, Bonito e Barato</h2>
           <Link href="/bbb-do-dia" className="text-sm text-emerald-700 hover:underline">
@@ -339,12 +288,12 @@ export default function Page() {
       </section>
 
       {/* 4) Depoimentos */}
-      <section className="mx-auto max-w-[1100px] px-4">
+      <section className="mt-10 mx-auto max-w-[1100px] px-4">
         <Testimonials />
       </section>
 
       {/* 5) Ofertas em destaque  → ID + scroll-mt */}
-      <section id="destaques" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
+      <section id="destaques" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
         </div>
@@ -432,4 +381,3 @@ export default function Page() {
     </main>
   );
 }
-
