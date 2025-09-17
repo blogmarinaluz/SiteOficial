@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
 import { useMemo } from "react";
 
-type Product = {
+export type Product = {
   id: string;
   name: string;
   brand?: string;
@@ -51,7 +51,6 @@ export default function ProductCard({ product, className = "" }: Props) {
   }, [product.name, product.storage, product.color]);
 
   function onAddToCart() {
-    // AQUI o add recebe um objeto com qty
     add({
       id: String(product.id),
       name: String(product.name),
