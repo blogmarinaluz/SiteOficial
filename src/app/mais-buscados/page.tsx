@@ -1,6 +1,4 @@
 // src/app/mais-buscados/page.tsx
-'use client';
-
 import Link from 'next/link';
 import productsData from '@/data/products.json';
 import ProductCard, { Product } from '@/components/ProductCard';
