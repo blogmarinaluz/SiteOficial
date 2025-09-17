@@ -6,24 +6,30 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
 import productsData from "@/data/products.json";
-import { SignedIn, SignedOut, UserButton, SignInButton } from "@clerk/nextjs";
-import { Menu, ShieldCheck, Percent, Truck, Search, ShoppingCart } from "lucide-react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { Menu, X, ShieldCheck, Percent, Truck, Search, ShoppingCart } from "lucide-react";
 
 type Product = { id: string; name: string; brand?: string; price?: number };
 
-const norm = (v: unknown) => String(v ?? "").toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+const norm = (v: unknown) =>
+  String(v ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+
 const idNoExt = (id: string) => String(id).split(".")[0];
 const catalog: Product[] = (productsData as Product[]) ?? [];
 
 export default function Header() {
   const router = useRouter();
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
 
-  // Cart: compatível mesmo quando hook expõe count() como função
+  // Cart compatível mesmo quando hook expõe count() como função
   const cart: any = useCart();
   const rawCount = cart?.count;
-  const count = typeof rawCount === "function" ? Number(rawCount() ?? 0) : Number(rawCount ?? 0);
-
-  const [q, setQ] = useState("");
+  const count =
+    typeof rawCount === "function" ? Number(rawCount() ?? 0) : Number(rawCount ?? 0);
 
   function submitSearch(e?: React.FormEvent) {
     if (e) e.preventDefault();
@@ -34,10 +40,11 @@ export default function Header() {
     );
     if (r[0]) router.push(`/produto/${idNoExt(r[0].id)}`);
     else router.push(`/buscar?q=${encodeURIComponent(term)}`);
+    setOpen(false);
   }
 
   return (
-    <header className="header bg-brand-gradient text-white">
+    <header className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
       {/* Barra de avisos */}
       <div className="w-full border-b border-white/10 text-[12px]">
         <div className="container-safe flex items-center gap-4 py-1">
@@ -55,13 +62,24 @@ export default function Header() {
 
       {/* Navegação principal */}
       <div className="container-safe flex items-center gap-3 py-3">
-        {/* Menu mobile (placeholder) */}
-        <button className="rounded-2xl p-2 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:hidden" aria-label="Menu">
+        {/* Menu mobile */}
+        <button
+          onClick={() => setOpen(true)}
+          className="rounded-2xl p-2 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:hidden"
+          aria-label="Abrir menu"
+          aria-expanded={open}
+          aria-controls="mobile-drawer"
+        >
           <Menu className="h-5 w-5" />
         </button>
 
         {/* Logo */}
-        <Link href="/" prefetch={false} className="font-extrabold tracking-tight text-white">
+        <Link
+          href="/"
+          prefetch={false}
+          className="font-extrabold tracking-tight text-white text-2xl sm:text-3xl"
+          aria-label="Ir para a página inicial"
+        >
           pro<span className="text-accent">Store</span>
         </Link>
 
@@ -74,11 +92,9 @@ export default function Header() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar iPhone, Samsung..."
               className="flex-1 bg-transparent text-sm text-white placeholder:text-white/60 outline-none"
+              aria-label="Buscar produtos"
             />
-            <button
-              type="submit"
-              className="btn btn-primary rounded-2xl px-4 py-1.5 text-sm"
-            >
+            <button type="submit" className="btn btn-primary rounded-2xl px-4 py-1.5 text-sm">
               Buscar
             </button>
           </div>
@@ -87,18 +103,25 @@ export default function Header() {
         {/* Ações: auth + carrinho */}
         <nav className="ml-2 flex items-center gap-2">
           <SignedOut>
-            <SignInButton mode="modal">
-              <button className="btn btn-ghost rounded-2xl px-3 py-2 text-sm" title="Entrar ou criar conta">
-                Entrar
-              </button>
-            </SignInButton>
+            {/* Usamos Link para garantir funcionamento mesmo sem modal do Clerk */}
+            <Link
+              href="/entrar"
+              className="btn btn-ghost rounded-2xl px-3 py-2 text-sm"
+              title="Entrar ou criar conta"
+            >
+              Entrar
+            </Link>
           </SignedOut>
 
           <SignedIn>
             <UserButton appearance={{ elements: { userButtonPopoverCard: "rounded-2xl border shadow-xl" } }} />
           </SignedIn>
 
-          <Link href="/carrinho" className="relative inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-sm font-medium hover:bg-white/5" title="Meu carrinho">
+          <Link
+            href="/carrinho"
+            className="relative inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-sm font-medium hover:bg-white/5"
+            title="Meu carrinho"
+          >
             <ShoppingCart className="h-4 w-4" />
             <span className="hidden sm:inline">Carrinho</span>
             {count > 0 && (
@@ -120,13 +143,90 @@ export default function Header() {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar iPhone, Samsung..."
               className="flex-1 bg-transparent text-sm text-white placeholder:text-white/60 outline-none"
+              aria-label="Buscar produtos"
             />
-            <button type="submit" className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-fg hover:bg-emerald-600">
+            <button
+              type="submit"
+              className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-fg hover:bg-emerald-600"
+            >
               Buscar
             </button>
           </div>
         </form>
       </div>
+
+      {/* Drawer Mobile */}
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/60 lg:hidden"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <aside
+            id="mobile-drawer"
+            className="fixed inset-y-0 left-0 z-50 w-[86%] max-w-xs bg-white text-black shadow-2xl lg:hidden"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
+              <Link
+                href="/"
+                className="font-extrabold tracking-tight text-2xl"
+                onClick={() => setOpen(false)}
+              >
+                pro<span className="text-[#10b981]">Store</span>
+              </Link>
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-2xl p-2 hover:bg-black/5"
+                aria-label="Fechar menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <nav className="px-2 py-2">
+              <Link href="/" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
+                Início
+              </Link>
+              <Link href="/produtos" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
+                Produtos
+              </Link>
+              <Link href="/carrinho" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
+                Carrinho
+              </Link>
+              <Link href="/minha-conta" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
+                Minha conta
+              </Link>
+              <Link href="/contato" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
+                Contato
+              </Link>
+
+              <div className="mt-2 border-t border-black/10 pt-2">
+                <SignedOut>
+                  <Link
+                    href="/entrar"
+                    onClick={() => setOpen(false)}
+                    className="btn btn-primary w-full rounded-2xl"
+                  >
+                    Entrar / Cadastrar
+                  </Link>
+                </SignedOut>
+                <SignedIn>
+                  <Link
+                    href="/minha-conta"
+                    onClick={() => setOpen(false)}
+                    className="btn w-full rounded-2xl border border-black/10 bg-white hover:bg-black/5"
+                  >
+                    Minha conta
+                  </Link>
+                </SignedIn>
+              </div>
+            </nav>
+          </aside>
+        </>
+      )}
     </header>
   );
 }
