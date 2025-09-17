@@ -2,8 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
 import productsData from "@/data/products.json";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
@@ -20,10 +20,28 @@ const norm = (v: unknown) =>
 const idNoExt = (id: string) => String(id).split(".")[0];
 const catalog: Product[] = (productsData as Product[]) ?? [];
 
+const NAV = [
+  { href: "/", label: "Início" },
+  { href: "/produtos", label: "Produtos" },
+  { href: "/contato", label: "Contato" },
+];
+
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+
+  // Bloqueia scroll do body quando o menu mobile está aberto
+  useEffect(() => {
+    if (open) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [open]);
 
   // Cart compatível mesmo quando hook expõe count() como função
   const cart: any = useCart();
@@ -45,6 +63,11 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
+      {/* Link pular para conteúdo (a11y) */}
+      <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] rounded-2xl bg-accent px-3 py-2 text-accent-fg">
+        Pular para o conteúdo
+      </a>
+
       {/* Barra de avisos */}
       <div className="w-full border-b border-white/10 text-[12px]">
         <div className="container-safe flex items-center gap-4 py-1">
@@ -64,6 +87,7 @@ export default function Header() {
       <div className="container-safe flex items-center gap-3 py-3">
         {/* Menu mobile */}
         <button
+          type="button"
           onClick={() => setOpen(true)}
           className="rounded-2xl p-2 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:hidden"
           aria-label="Abrir menu"
@@ -76,12 +100,31 @@ export default function Header() {
         {/* Logo */}
         <Link
           href="/"
-          prefetch={false}
           className="font-extrabold tracking-tight text-white text-2xl sm:text-3xl"
           aria-label="Ir para a página inicial"
         >
           pro<span className="text-accent">Store</span>
         </Link>
+
+        {/* Navegação desktop */}
+        <nav className="ml-4 hidden items-center gap-1 lg:flex" aria-label="Primária">
+          {NAV.map((item) => {
+            const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={[
+                  "rounded-2xl px-3 py-2 text-sm font-medium transition-colors",
+                  active ? "bg-white/10" : "hover:bg-white/5"
+                ].join(" ")}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Busca desktop */}
         <form onSubmit={submitSearch} className="ml-auto hidden min-w-[320px] max-w-lg flex-1 md:block">
@@ -101,9 +144,9 @@ export default function Header() {
         </form>
 
         {/* Ações: auth + carrinho */}
-        <nav className="ml-2 flex items-center gap-2">
+        <div className="ml-2 flex items-center gap-2">
           <SignedOut>
-            {/* Usamos Link para garantir funcionamento mesmo sem modal do Clerk */}
+            {/* Link garante funcionamento mesmo sem modal do Clerk */}
             <Link
               href="/entrar"
               className="btn btn-ghost rounded-2xl px-3 py-2 text-sm"
@@ -130,7 +173,7 @@ export default function Header() {
               </span>
             )}
           </Link>
-        </nav>
+        </div>
       </div>
 
       {/* Busca mobile */}
@@ -148,6 +191,7 @@ export default function Header() {
             <button
               type="submit"
               className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-fg hover:bg-emerald-600"
+              aria-label="Buscar"
             >
               Buscar
             </button>
@@ -174,10 +218,12 @@ export default function Header() {
                 href="/"
                 className="font-extrabold tracking-tight text-2xl"
                 onClick={() => setOpen(false)}
+                aria-label="Ir para a página inicial"
               >
                 pro<span className="text-[#10b981]">Store</span>
               </Link>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 className="rounded-2xl p-2 hover:bg-black/5"
                 aria-label="Fechar menu"
@@ -186,22 +232,24 @@ export default function Header() {
               </button>
             </div>
 
-            <nav className="px-2 py-2">
-              <Link href="/" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
-                Início
-              </Link>
-              <Link href="/produtos" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
-                Produtos
-              </Link>
-              <Link href="/carrinho" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
-                Carrinho
-              </Link>
-              <Link href="/minha-conta" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
-                Minha conta
-              </Link>
-              <Link href="/contato" onClick={() => setOpen(false)} className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5">
-                Contato
-              </Link>
+            <nav className="px-2 py-2" aria-label="Primária (mobile)">
+              {NAV.map((item) => {
+                const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={[
+                      "block rounded-2xl px-3 py-2 text-sm",
+                      active ? "bg-black/5" : "hover:bg-black/5"
+                    ].join(" ")}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
 
               <div className="mt-2 border-t border-black/10 pt-2">
                 <SignedOut>
