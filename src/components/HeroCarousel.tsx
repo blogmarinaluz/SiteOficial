@@ -21,7 +21,7 @@ type Slide = {
   bullets?: string[];
   ctaText?: string;
   ctaHref?: string;
-  image?: string;     // optional, e.g. "/banners/iphone.jpg"
+  image?: string;
   imageAlt?: string;
 };
 
@@ -55,21 +55,22 @@ const DEFAULT_SLIDES: Slide[] = [
 export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Slide[] }) {
   const [active, setActive] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Autoplay
   useEffect(() => {
     start();
     return stop;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   const start = () => {
     stop();
-    timerRef.value = setTimeout(() => goTo(active + 1), 4500) as any;
+    timerRef.current = setTimeout(() => goTo(active + 1), 4500);
   };
   const stop = () => {
-    if (timerRef.value) clearTimeout(timerRef.value as any);
-    timerRef.value = null;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
   };
 
   const goTo = (i: number) => {
@@ -91,8 +92,8 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
       const idx = Math.round(x / w);
       setActive(idx);
     };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
+    el.addEventListener("scroll", onScroll, { passive: true } as any);
+    return () => el.removeEventListener("scroll", onScroll as any);
   }, []);
 
   return (
@@ -121,7 +122,7 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
                 {/* Background gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-neutral-900" />
 
-                {/* Optional image (render only if provided) */}
+                {/* Optional image */}
                 {Boolean(s.image) && (
                   <Image
                     src={s.image as string}
@@ -131,9 +132,8 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
                     sizes="100vw"
                     priority={i === 0}
                     onError={(e) => {
-                      // hide element on error to avoid broken icon
                       const el = (e.target as HTMLImageElement).parentElement;
-                      if (el) el.style.display = "none";
+                      if (el) (el as HTMLElement).style.display = "none";
                     }}
                   />
                 )}
@@ -177,9 +177,7 @@ export default function HeroCarousel({ slides = DEFAULT_SLIDES }: { slides?: Sli
           {slides.map((_, i) => (
             <span
               key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === active ? "w-6 bg-white" : "w-2 bg-white/60"
-              }`}
+              className={`h-1.5 rounded-full transition-all ${i === active ? "w-6 bg-white" : "w-2 bg-white/60"}`}
             />
           ))}
         </div>
