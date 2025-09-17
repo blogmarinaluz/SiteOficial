@@ -11,7 +11,6 @@ import {
   Menu,
   X,
   ShieldCheck,
-  Percent,
   Truck,
   Search,
   ShoppingCart,
@@ -29,14 +28,12 @@ const norm = (v: unknown) =>
 const idNoExt = (id: string) => String(id).split(".")[0];
 const catalog: Product[] = (productsData as Product[]) ?? [];
 
-// Mantemos o topo minimalista e profissional
 const NAV = [
   { href: "/", label: "Início" },
-  { href: "/produtos", label: "Produtos" }, // página virá a seguir
-  { href: "/contato", label: "Contato" },   // página virá a seguir
+  { href: "/produtos", label: "Produtos" },
+  { href: "/contato", label: "Contato" },
 ];
 
-// Categorias só no drawer mobile (desktop fica limpo)
 const CATEGORIES = [
   { href: "/produtos?marca=Apple", label: "iPhone" },
   { href: "/produtos?marca=Samsung", label: "Samsung Galaxy" },
@@ -44,7 +41,6 @@ const CATEGORIES = [
   { href: "/sem-estoque/acessorios", label: "Acessórios" },
   { href: "/sem-estoque/wearables", label: "Wearables" },
   { href: "/sem-estoque/casa-inteligente", label: "Casa inteligente" },
-  { href: "/ofertas", label: "Ofertas" },
 ];
 
 export default function Header() {
@@ -53,10 +49,8 @@ export default function Header() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
-  // Fecha drawer ao navegar
   useEffect(() => setOpen(false), [pathname]);
 
-  // Bloqueia scroll do body quando o menu mobile está aberto
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -64,14 +58,12 @@ export default function Header() {
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
-  // ESC fecha
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Cart compatível mesmo quando hook expõe count() como função
   const cart: any = useCart();
   const rawCount = cart?.count;
   const count =
@@ -94,11 +86,11 @@ export default function Header() {
       className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      {/* Barra de avisos — texto correto */}
+      {/* Barra de avisos — sem ícone % */}
       <div className="w-full border-b border-white/10 text-[11px] sm:text-[12px]">
         <div className="container-safe flex items-center justify-center gap-4 overflow-x-auto whitespace-nowrap py-1.5 scrollbar-none">
           <span className="inline-flex items-center gap-1.5 text-white/90">
-            <Percent className="h-3.5 w-3.5" /> <strong className="font-semibold">30% OFF</strong> no boleto e Pix
+            <strong className="font-semibold">30% OFF</strong> no boleto e Pix
           </span>
           <span className="inline-flex items-center gap-1.5 text-white/90">
             <Truck className="h-3.5 w-3.5" /> Frete grátis*
@@ -132,7 +124,7 @@ export default function Header() {
           pro<span className="text-accent">Store</span>
         </Link>
 
-        {/* Navegação desktop minimalista */}
+        {/* Navegação desktop */}
         <nav className="ml-2 hidden items-center gap-1 lg:flex" aria-label="Primária">
           {NAV.map((item) => {
             const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
@@ -176,14 +168,15 @@ export default function Header() {
         {/* Ações: auth + carrinho */}
         <div className="ml-auto flex items-center gap-2 md:ml-2">
           <SignedOut>
-            {/* Ícone elegante de usuário leva para /entrar */}
+            {/* Ícone de usuário com o MESMO tamanho visual do botão do carrinho */}
             <Link
               href="/entrar"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 hover:bg-white/5"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-3 py-2 text-sm hover:bg-white/5"
               title="Entrar ou criar conta"
               aria-label="Entrar ou criar conta"
             >
-              <UserRound className="h-5 w-5" />
+              <UserRound className="h-4 w-4" />
+              <span className="hidden sm:inline">Entrar</span>
             </Link>
           </SignedOut>
 
@@ -330,4 +323,3 @@ export default function Header() {
     </header>
   );
 }
-
