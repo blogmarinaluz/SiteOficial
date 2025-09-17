@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import productsData from "@/data/products.json";
 import { useCart } from "@/hooks/useCart";
 import DescriptionAndSpecs from "@/components/ProductDetails/DescriptionAndSpecs";
+import ProductGalleryMobile from "@/components/ProductGalleryMobile";
 import MobileBuyBar from "@/components/MobileBuyBar";
 import {
   Truck,
@@ -439,6 +440,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
+  const galleryImages = useMemo(() => {
+    const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
+    const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
+    const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
+    return Array.from(new Set(arr.map(norm)));
+  }, [siblings, selectedStorage]);
+
     if (sameStorage.length) {
       return Math.min(...sameStorage.map((s) => s.price || product.price));
     }
@@ -495,8 +503,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
              - Some o "vazio" à direita pois a coluna não expande além de ~460px
         */}
         <div className="grid gap-6 lg:grid-cols-[minmax(320px,460px)_1fr]">
-          {/* Imagem principal */}
-          <div className="rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
+          {/* Imagem principal (desktop) + galeria (mobile) */}
+          {/* Mobile gallery */}
+          <div className="lg:hidden"><ProductGalleryMobile images={galleryImages} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div>
+
+          {/* Desktop image */}
+          <div className="hidden lg:block rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
             <div className="flex items-center justify-center rounded-xl bg-white ring-1 ring-zinc-200 p-2">
               <div
                 className="w-full flex items-center justify-center overflow-hidden"
