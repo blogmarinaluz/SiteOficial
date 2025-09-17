@@ -339,7 +339,7 @@ export default function Page() {
       </section>
 
       {/* 5) Ofertas em destaque  → ID + scroll-mt */}
-      <section id="destaques" className="mx-auto max-w-[1100px] px-4 scroll-mt-24">
+      <section id="destaques" className="ctx-destaque mx-auto max-w-[1100px] px-4 scroll-mt-24">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
         </div>
