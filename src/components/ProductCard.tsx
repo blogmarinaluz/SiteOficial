@@ -1,125 +1,121 @@
 // src/components/ProductCard.tsx
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 import { useCart } from "@/hooks/useCart";
-import { useMemo, useState } from "react";
+import { ShoppingCart } from "lucide-react";
 
-export type Product = {
+type P = {
   id: string;
   name: string;
   brand?: string;
-  price: number;
   image?: string;
-  color?: string;
-  storage?: string;
-  model?: string;
+  price?: number;
+  oldPrice?: number;
   variantId?: string;
   freeShipping?: boolean;
+  [key: string]: any;
 };
 
-const idNoExt = (id: string) => String(id).split(".")[0];
-
-function formatBRL(n: number) {
-  return n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 2,
-  });
-}
-
-interface Props {
-  product: Product;
-  className?: string;
-}
-
-export default function ProductCard({ product, className = "" }: Props) {
-  const { add } = useCart();
+export default function ProductCard({ product }: { product: P }) {
+  const cart: any = useCart();
   const [imgOk, setImgOk] = useState(true);
 
-  const href = useMemo(() => `/produto/${idNoExt(product.id)}`, [product.id]);
-  const priceBRL = useMemo(() => formatBRL(product.price), [product.price]);
+  const id = String(product?.id ?? "");
+  const name = String(product?.name ?? "");
+  const image = String(product?.image ?? "");
+  const price = Number(product?.price ?? 0);
 
-  const alt = useMemo(() => {
-    const parts = [product.name, product.storage ? `${product.storage}GB` : "", product.color || ""]
-      .filter(Boolean)
-      .join(" ");
-    return parts || product.name || "Produto";
-  }, [product.name, product.storage, product.color]);
+  // Next não otimiza .jfif — servir sem optimizer
+  const unoptimized = /\.jfif(\?|$)/i.test(image);
 
-  function onAddToCart() {
-    add({
-      id: String(product.id),
-      name: String(product.name),
-      price: Number(product.price || 0),
-      image: product.image,
-      color: product.color,
-      model: product.model,
-      variantId: product.variantId,
-      freeShipping: product.freeShipping,
+  function addToCart() {
+    if (!id) return;
+    // Enviar somente campos que com certeza existem em CartItem
+    const item = {
+      id,
+      name,
+      price,
+      image,
+      // qty é aceito como opcional em Omit<CartItem, 'qty'> & { qty?: number }
       qty: 1,
-    });
+    };
+    try {
+      cart?.add?.(item);
+    } catch {}
   }
 
+  const href = `/produto/${id.split(".")[0]}`;
+
   return (
-    <div className={`group rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm hover:shadow-md transition ${className}`}>
+    <article className="group rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition hover:shadow-md">
       <Link href={href} className="block">
-        <div className="relative aspect-[1/1] w-full overflow-hidden rounded-xl bg-zinc-50">
-          {product.image && imgOk ? (
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-neutral-100">
+          {imgOk && image ? (
             <Image
-              src={product.image}
-              alt={alt}
+              src={image}
+              alt={name}
               fill
-              className="object-contain transition duration-300 group-hover:scale-[1.02]"
-              sizes="(max-width: 768px) 50vw, 300px"
+              sizes="(max-width: 768px) 80vw, 33vw"
+              className="object-contain transition-transform duration-300 group-hover:scale-[1.02]"
               priority={false}
-              // Importante: evita o otimizador do Next (que não reconhece .jfif)
-              unoptimized
+              unoptimized={unoptimized}
               onError={() => setImgOk(false)}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-200 text-xs text-neutral-500">
-              sem imagem
+            <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-neutral-100 to-neutral-200">
+              <span className="rounded-full bg-neutral-300 px-3 py-1 text-xs text-neutral-700">
+                imagem indisponível
+              </span>
             </div>
           )}
         </div>
       </Link>
 
       <div className="mt-3 space-y-1.5">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-          {String(product.brand || "").toUpperCase()}
-        </div>
-        <h3 className="line-clamp-2 text-sm font-semibold text-zinc-900">{product.name}</h3>
-        <div className="text-lg font-extrabold text-zinc-900">{priceBRL}</div>
+        {product?.brand && (
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+            {product.brand}
+          </span>
+        )}
+        <Link href={href} className="block text-sm font-semibold text-neutral-900 hover:underline">
+          {name}
+        </Link>
 
-        <div className="text-[11px] text-zinc-500">
-          {product.storage ? <span className="mr-1">{product.storage}GB</span> : null}
-          {product.color ? <span>• {product.color}</span> : null}
-          {product.freeShipping && (
-            <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700 ring-1 ring-emerald-200">
-              frete grátis
+        <div className="flex items-baseline gap-2">
+          <span className="text-base font-extrabold text-neutral-900">
+            {price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </span>
+          {product?.oldPrice && product.oldPrice > price && (
+            <span className="text-xs text-neutral-500 line-through">
+              {Number(product.oldPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </span>
           )}
         </div>
-      </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <Link
-          href={href}
-          className="h-10 flex-1 inline-flex items-center justify-center rounded-xl border border-zinc-300 text-sm font-medium hover:bg-zinc-50"
-        >
-          Ver detalhes
-        </Link>
+        {product?.freeShipping && (
+          <div className="text-[11px] font-medium text-emerald-700">Frete grátis*</div>
+        )}
 
-        <button
-          type="button"
-          onClick={onAddToCart}
-          className="h-10 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600"
-        >
-          Adicionar
-        </button>
+        <div className="mt-2 flex gap-2">
+          <Link
+            href={href}
+            className="inline-flex flex-1 items-center justify-center rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium hover:bg-neutral-50"
+          >
+            Ver detalhes
+          </Link>
+          <button
+            type="button"
+            onClick={addToCart}
+            className="inline-flex items-center gap-1 rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Adicionar
+          </button>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
