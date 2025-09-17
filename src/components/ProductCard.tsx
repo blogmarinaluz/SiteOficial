@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export type Product = {
   id: string;
@@ -14,18 +14,15 @@ export type Product = {
   image?: string;
   color?: string;
   storage?: string;
+  model?: string;
   variantId?: string;
   freeShipping?: boolean;
-  // Campos extras (se existirem no seu JSON) não quebram
-  [k: string]: any;
 };
 
-function idNoExt(id: string) {
-  return String(id).replace(/\.[a-z0-9]+$/i, "");
-}
+const idNoExt = (id: string) => String(id).split(".")[0];
 
-function formatBRL(value: number) {
-  return (value ?? 0).toLocaleString("pt-BR", {
+function formatBRL(n: number) {
+  return n.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
     maximumFractionDigits: 2,
@@ -39,6 +36,7 @@ interface Props {
 
 export default function ProductCard({ product, className = "" }: Props) {
   const { add } = useCart();
+  const [imgOk, setImgOk] = useState(true);
 
   const href = useMemo(() => `/produto/${idNoExt(product.id)}`, [product.id]);
   const priceBRL = useMemo(() => formatBRL(product.price), [product.price]);
@@ -57,7 +55,7 @@ export default function ProductCard({ product, className = "" }: Props) {
       price: Number(product.price || 0),
       image: product.image,
       color: product.color,
-      storage: product.storage,
+      model: product.model,
       variantId: product.variantId,
       freeShipping: product.freeShipping,
       qty: 1,
@@ -65,12 +63,10 @@ export default function ProductCard({ product, className = "" }: Props) {
   }
 
   return (
-    <div
-      className={`group rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm hover:shadow-md transition ${className}`}
-    >
+    <div className={`group rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm hover:shadow-md transition ${className}`}>
       <Link href={href} className="block">
         <div className="relative aspect-[1/1] w-full overflow-hidden rounded-xl bg-zinc-50">
-          {product.image ? (
+          {product.image && imgOk ? (
             <Image
               src={product.image}
               alt={alt}
@@ -78,9 +74,12 @@ export default function ProductCard({ product, className = "" }: Props) {
               className="object-contain transition duration-300 group-hover:scale-[1.02]"
               sizes="(max-width: 768px) 50vw, 300px"
               priority={false}
+              // Importante: evita o otimizador do Next (que não reconhece .jfif)
+              unoptimized
+              onError={() => setImgOk(false)}
             />
           ) : (
-            <div className="grid h-full w-full place-items-center text-zinc-400 text-sm">
+            <div className="flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-200 text-xs text-neutral-500">
               sem imagem
             </div>
           )}
@@ -88,23 +87,18 @@ export default function ProductCard({ product, className = "" }: Props) {
       </Link>
 
       <div className="mt-3 space-y-1.5">
-        {product.brand && (
-          <span className="inline-block text-[11px] font-medium uppercase tracking-wide text-emerald-700">
-            {product.brand}
-          </span>
-        )}
-        <Link
-          href={href}
-          className="line-clamp-2 font-semibold leading-snug text-zinc-900 hover:underline"
-        >
-          {product.name}
-        </Link>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+          {String(product.brand || "").toUpperCase()}
+        </div>
+        <h3 className="line-clamp-2 text-sm font-semibold text-zinc-900">{product.name}</h3>
+        <div className="text-lg font-extrabold text-zinc-900">{priceBRL}</div>
 
-        <div className="mt-1">
-          <span className="text-lg font-bold">{priceBRL}</span>
+        <div className="text-[11px] text-zinc-500">
+          {product.storage ? <span className="mr-1">{product.storage}GB</span> : null}
+          {product.color ? <span>• {product.color}</span> : null}
           {product.freeShipping && (
-            <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-              Frete grátis
+            <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700 ring-1 ring-emerald-200">
+              frete grátis
             </span>
           )}
         </div>
@@ -119,8 +113,9 @@ export default function ProductCard({ product, className = "" }: Props) {
         </Link>
 
         <button
+          type="button"
           onClick={onAddToCart}
-          className="flex-1 h-10 inline-flex items-center justify-center rounded-xl text-white shadow-sm transition bg-emerald-600 hover:bg-emerald-700 text-sm"
+          className="h-10 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600"
         >
           Adicionar
         </button>
