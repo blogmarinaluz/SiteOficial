@@ -1,70 +1,82 @@
+/* src/app/globals.css
+ * Paleta: preto (#0a0a0a) + verde (#10b981)
+ * Inclui: gradiente de marca, foco acessível, utilitários mobile-first e componentes base.
+*/
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Base que você já tinha ===== */
-:root{ --radius:1rem; }
-
-body{ @apply bg-white text-zinc-900; }
-.container{ @apply max-w-7xl mx-auto px-4; }
-
-.btn{ @apply inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium shadow-sm; }
-.btn-primary{ @apply btn bg-accent text-white hover:opacity-90; }
-.btn-outline{ @apply btn border border-zinc-300 hover:bg-zinc-50; }
-
-.card{ @apply rounded-2xl border border-zinc-200 p-4 shadow-sm bg-white; }
-.badge{ @apply text-xs px-2 py-1 rounded-full bg-zinc-100; }
-...
-
-/* BBB – só aumentar iPhone, Samsung permanece */
-.ctx-bbb{
-  --card-stage-h: 248px;       /* palco um pouco maior só nessa seção */
-  --img-h-apple: 236px;        /* iPhone maior (ficará do mesmo porte do que vc curtiu) */
-  --img-scale-apple: 1.06;     /* leve ajuste para compensar bordas no arquivo da imagem */
-}
-
-/* Destaque – iPhone maior; Samsung já aprovado no tamanho atual */
-.ctx-destaque{
-  --card-stage-h: 248px;
-  --img-h-apple: 236px;
-  --img-scale-apple: 1.06;
-}
-
-
-
-/* === Utilitários adicionais usados pelos novos componentes === */
-@layer utilities {
-  /* esconde a barra de rolagem (mantém scroll funcional) */
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-  /* sombra suave para cards/botões flutuantes */
-  .shadow-soft { box-shadow: 0 1px 1px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); }
-}
-
-/* Header padrão mobile-first */
-.header{ @apply sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-zinc-200; }
-
-/* Pílula maior para chips/abas quando necessário */
-.pill-lg{ @apply inline-flex items-center rounded-full border px-3 py-1.5 text-sm; }
-
-/* Variáveis default (fallback) usadas pelos cartões/imagens */
+/* ===== Tokens ===== */
 :root {
-  --card-stage-h: 240px;
-  --img-h-apple: 210px;
-  --img-h-samsung: 230px;
-  --img-scale-apple: 1;
-  --img-scale-samsung: 1.22;
+  --bg: #0a0a0a;
+  --accent: #10b981;
+  --radius: 1rem; /* mantém consistência com o projeto */
 }
 
-/* Contextos opcionais por seção (home) */
-.ctx-bbb{
-  --card-stage-h: 248px;
-  --img-h-apple: 236px;
-  --img-scale-apple: 1.06;
+html { scroll-behavior: smooth; }
+* { -webkit-tap-highlight-color: transparent; }
+::selection { background-color: rgba(16,185,129,.25); color: #fff; }
+
+body {
+  background-color: var(--bg);
+  color: #fafafa;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-.ctx-destaque{
-  --card-stage-h: 248px;
-  --img-h-apple: 236px;
-  --img-scale-apple: 1.06;
+
+/* Foco global sem quebrar utilitários do Tailwind */
+:where(a, button, input, textarea, select, [role="button"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
+
+/* Links */
+a { text-underline-offset: 3px; }
+a:hover { text-decoration-color: rgba(16,185,129,.6); }
+
+/* ===== Utilities ===== */
+@layer utilities {
+  /* Gradiente preto→verde sutil para headers/footers/hero */
+  .bg-brand-gradient {
+    background:
+      radial-gradient(1000px 500px at 100% -10%, rgba(16,185,129,0.18), transparent 60%),
+      linear-gradient(180deg, rgba(16,185,129,0.08) 0%, rgba(10,10,10,1) 30%),
+      #0a0a0a;
+  }
+
+  .container-safe {
+    @apply max-w-7xl mx-auto px-4 sm:px-6;
+  }
+
+  /* Padding seguro para iPhone com notch quando usar elementos fixos */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ===== Components (opt-in via classes) ===== */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium transition-colors duration-200 active:scale-[.98];
+  }
+  .btn-primary {
+    @apply bg-accent text-accent-fg hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+  .btn-ghost {
+    @apply hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+
+  .input {
+    @apply w-full rounded-2xl bg-white/5 border border-white/10 px-3 py-2 text-white placeholder-white/40
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+
+  .card {
+    @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur;
+  }
+}
+
+/* Pequenas melhorias de mídia/imagem em cards responsivos */
+img { content-visibility: auto; }
