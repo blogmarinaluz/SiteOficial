@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { useCart } from "@/hooks/useCart";
 import { br, withCoupon } from "@/lib/format";
 
@@ -39,19 +40,28 @@ export default function ProductCard({ product }: Props) {
   const imgHeightVar = isApple ? "var(--img-h-apple, 210px)"
                       : isSamsung ? "var(--img-h-samsung, 230px)"
                       : "220px";
-  const imgScaleVar = isApple ? "var(--img-scale-apple, 1)" 
+  const imgScaleVar = isApple ? "var(--img-scale-apple, 1)"
                       : isSamsung ? "var(--img-scale-samsung, 1.22)"
                       : "1";
+
+  const [loaded, setLoaded] = useState(false);
 
   return (
     <div className="card group shadow-soft border border-zinc-200 rounded-2xl bg-white">
       {/* PALCO DA IMAGEM (altura controlada por variáveis CSS) */}
-      <div className="stage relative flex items-end justify-center">
+      <div className="stage relative flex items-end justify-center overflow-hidden">
         {/* badge frete grátis */}
         {product?.freeShipping && (
           <span className="absolute left-2 top-2 rounded-full bg-emerald-600 text-white text-[11px] px-2 py-0.5 shadow-sm">
             frete grátis
           </span>
+        )}
+
+        {/* skeleton shimmer enquanto a imagem carrega */}
+        {!loaded && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="skeleton w-20 h-20 rounded-full" aria-hidden />
+          </div>
         )}
 
         <Link
@@ -68,9 +78,9 @@ export default function ProductCard({ product }: Props) {
               sizes="(max-width: 1023px) 82vw, (max-width: 1279px) 33vw, 25vw"
               priority={false}
               draggable={false}
-              className="object-contain select-none"
-              // Escala fina por marca; aplica via style
+              className="object-contain select-none transition-transform duration-300"
               style={{ transform: `scale(${imgScaleVar})`, transformOrigin: "center bottom" } as any}
+              onLoadingComplete={() => setLoaded(true)}
             />
           </div>
         </Link>
@@ -132,6 +142,19 @@ export default function ProductCard({ product }: Props) {
           border-top-left-radius: 1rem;
           border-top-right-radius: 1rem;
           padding: 12px 8px 0 8px;
+        }
+
+        /* shimmer */
+        .skeleton {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(100deg, #f1f5f9 40%, #e5e7eb 50%, #f1f5f9 60%);
+          background-size: 200% 100%;
+          animation: shimmer 1.2s infinite;
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
         }
 
         @media (min-width: 1024px) {
