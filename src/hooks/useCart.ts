@@ -1,28 +1,121 @@
-// src/app/layout.tsx
-import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { CartProvider } from "@/hooks/useCart";
+// src/hooks/useCart.ts
+'use client';
 
-export const metadata: Metadata = {
-  title: "proStore — Apple & Samsung",
-  description: "Loja mobile-first de Apple & Samsung",
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+
+export type CartItem = {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+  image?: string;
+  color?: string;
+  storage?: string;
+  variantId?: string;
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ClerkProvider>
-      <html lang="pt-BR">
-        <body className="min-h-screen bg-zinc-50 text-zinc-900">
-          <CartProvider>
-            <Header />
-            {children}
-            <Footer />
-          </CartProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+type CartContextType = {
+  items: CartItem[];
+  add: (item: Omit<CartItem, 'qty'> & { qty?: number }) => void;
+  remove: (id: string) => void;
+  setQty: (id: string, qty: number) => void;
+  clear: () => void;
+  count: () => number;
+  total: () => number;
+  countNumber: number;
+  totalNumber: number;
+};
+
+const KEY = 'prostore:cart';
+const CartCtx = createContext<CartContextType | null>(null);
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>([]);
+
+  // Carrega do localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) setItems(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  // Persiste no localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(items));
+    } catch {}
+  }, [items]);
+
+  function add(item: Omit<CartItem, 'qty'> & { qty?: number }) {
+    setItems((prev) => {
+      const idx = prev.findIndex((p) => p.id === item.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], qty: (copy[idx].qty || 0) + (item.qty ?? 1) };
+        return copy;
+      }
+      return [...prev, { ...item, qty: item.qty ?? 1 }];
+    });
+  }
+
+  function remove(id: string) {
+    setItems((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function setQty(id: string, qty: number) {
+    setItems((prev) =>
+      prev
+        .map((p) => (p.id === id ? { ...p, qty: Math.max(0, Math.floor(qty)) } : p))
+        .filter((p) => p.qty > 0)
+    );
+  }
+
+  function clear() {
+    setItems([]);
+  }
+
+  const countNumber = useMemo(() => items.reduce((a, b) => a + (b.qty || 0), 0), [items]);
+  const totalNumber = useMemo(
+    () => items.reduce((a, b) => a + (b.qty || 0) * (b.price || 0), 0),
+    [items]
   );
+
+  const value: CartContextType = useMemo(
+    () => ({
+      items,
+      add,
+      remove,
+      setQty,
+      clear,
+      count: () => countNumber,
+      total: () => totalNumber,
+      countNumber,
+      totalNumber,
+    }),
+    [items, countNumber, totalNumber]
+  );
+
+  return <CartCtx.Provider value={value}>{children}</CartCtx.Provider>;
+}
+
+// Hook de acesso
+export function useCart(): CartContextType {
+  const ctx = useContext(CartCtx);
+  if (!ctx) {
+    // Fallback seguro caso o provider não esteja montado (evita crash no build/SSR)
+    const noop = () => 0;
+    return {
+      items: [],
+      add: () => {},
+      remove: () => {},
+      setQty: () => {},
+      clear: () => {},
+      count: noop,
+      total: noop,
+      countNumber: 0,
+      totalNumber: 0,
+    };
+  }
+  return ctx;
 }
