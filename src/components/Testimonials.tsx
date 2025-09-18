@@ -3,13 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * Depoimentos — v3
- * Melhorias:
- * - Visual premium, alinhamento e fundo elegante (neutral-950 + sutil gradient overlay).
- * - Dots sem "scale" (evita micro saltos de layout).
- * - Autoplay NÃO desloca a página: usa scrollLeft do viewport, nunca scrollIntoView.
- * - Autoplay só roda se o carrossel estiver visível (≥40% na tela) e pausa ao interagir.
- * - Somente swipe (sem setas), acessível.
+ * Depoimentos — v3 (fix TS)
+ * - Corrige o erro de tipo no Vercel: <article> é HTMLElement (não HTMLDivElement).
+ * - Restante igual: sem scroll jump, swipe-only, dots elegantes.
  */
 
 type Testimonial = {
@@ -20,60 +16,19 @@ type Testimonial = {
 };
 
 const ALL_TESTIMONIALS: Testimonial[] = [
-  {
-    name: "Sabrina Alencar",
-    label: "Fortaleza • CE",
-    text:
-      "Atendimento excelente no WhatsApp e entrega antes do prazo. Recomendo!",
-    rating: 5,
-  },
-  {
-    name: "Carlos Andrade",
-    label: "São Paulo • SP",
-    text:
-      "Preço no Pix imbatível e produto lacrado. Estou muito satisfeito com o iPhone.",
-    rating: 5,
-  },
-  {
-    name: "João Pereira",
-    label: "Goiânia • GO",
-    text:
-      "Chegou bem embalado, com nota e garantia. Suporte respondeu rápido.",
-    rating: 5,
-  },
-  {
-    name: "Ana Paula",
-    label: "Salvador • BA",
-    text:
-      "Pedi no domingo e chegou na terça. Experiência de compra 10/10!",
-    rating: 5,
-  },
-  {
-    name: "Marcos Vinícius",
-    label: "Rio de Janeiro • RJ",
-    text:
-      "Site fácil de usar no celular e opções claras de pagamento.",
-    rating: 5,
-  },
-  {
-    name: "Letícia Souza",
-    label: "Belo Horizonte • MG",
-    text:
-      "Equipe atenciosa, tirou todas as dúvidas. Voltarei a comprar.",
-    rating: 5,
-  },
+  { name: "Sabrina Alencar", label: "Fortaleza • CE", text: "Atendimento excelente no WhatsApp e entrega antes do prazo. Recomendo!", rating: 5 },
+  { name: "Carlos Andrade", label: "São Paulo • SP", text: "Preço no Pix imbatível e produto lacrado. Estou muito satisfeito com o iPhone.", rating: 5 },
+  { name: "João Pereira", label: "Goiânia • GO", text: "Chegou bem embalado, com nota e garantia. Suporte respondeu rápido.", rating: 5 },
+  { name: "Ana Paula", label: "Salvador • BA", text: "Pedi no domingo e chegou na terça. Experiência de compra 10/10!", rating: 5 },
+  { name: "Marcos Vinícius", label: "Rio de Janeiro • RJ", text: "Site fácil de usar no celular e opções claras de pagamento.", rating: 5 },
+  { name: "Letícia Souza", label: "Belo Horizonte • MG", text: "Equipe atenciosa, tirou todas as dúvidas. Voltarei a comprar.", rating: 5 },
 ];
 
 function Stars({ n = 5 }: { n?: number }) {
   return (
     <div className="flex gap-1 text-accent" aria-label={`${n} de 5 estrelas`}>
       {Array.from({ length: n }).map((_, i) => (
-        <svg
-          key={i}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="h-4 w-4 fill-current"
-        >
+        <svg key={i} viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
           <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
         </svg>
       ))}
@@ -85,12 +40,11 @@ export default function Testimonials() {
   const items = useMemo(() => ALL_TESTIMONIALS, []);
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const slideRefs = useRef<HTMLDivElement[]>([]);
+  const slideRefs = useRef<HTMLElement[]>([]); // FIX: HTMLElement[]
   const [index, setIndex] = useState(0);
   const count = items.length;
   const autoplayMs = 6000;
 
-  // Atualiza índice ativo conforme visibilidade dos cards no viewport horizontal
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -112,7 +66,6 @@ export default function Testimonials() {
     return () => observer.disconnect();
   }, []);
 
-  // Autoplay: usa scrollLeft para NÃO mexer no scroll da página
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -133,7 +86,6 @@ export default function Testimonials() {
     viewport.addEventListener("mouseleave", onPointerUp, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
 
-    // Pausa autoplay se o carrossel estiver pouco visível na janela (menos de 40%)
     const rootObserver = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
@@ -167,7 +119,7 @@ export default function Testimonials() {
     const slide = slideRefs.current[next];
     if (!slide) return;
 
-    const left = slide.offsetLeft - (viewport.clientWidth - slide.clientWidth) / 2;
+    const left = (slide as HTMLElement).offsetLeft - (viewport.clientWidth - (slide as HTMLElement).clientWidth) / 2;
     viewport.scrollTo({
       left,
       behavior: opts.smooth ? "smooth" : "auto",
@@ -175,24 +127,15 @@ export default function Testimonials() {
   }
 
   return (
-    <section
-      aria-labelledby="depoimentos_heading"
-      className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8"
-    >
+    <section aria-labelledby="depoimentos_heading" className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8">
       <div className="mb-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Confiança
-        </p>
-        <h2
-          id="depoimentos_heading"
-          className="text-2xl font-bold text-brand-black sm:text-3xl"
-        >
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">Confiança</p>
+        <h2 id="depoimentos_heading" className="text-2xl font-bold text-brand-black sm:text-3xl">
           O que nossos clientes dizem
         </h2>
       </div>
 
       <div className="relative">
-        {/* Viewport com scroll-snap horizontal */}
         <div
           ref={viewportRef}
           className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
@@ -210,9 +153,7 @@ export default function Testimonials() {
               className="relative min-w-[88%] snap-center rounded-2xl bg-neutral-950 px-4 py-5 text-white shadow-md ring-1 ring-white/10 sm:min-w-[520px]"
               style={{ contain: "content" }}
             >
-              {/* overlay de brilho suave */}
               <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_60%_at_10%_0%,rgba(255,255,255,0.06),transparent)]" />
-
               <div className="relative flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold">{t.name}</h3>
@@ -220,23 +161,14 @@ export default function Testimonials() {
                 </div>
                 <Stars n={t.rating ?? 5} />
               </div>
-              <p className="relative mt-3 text-sm leading-relaxed text-neutral-100">
-                {t.text}
-              </p>
-
-              {/* aspas decorativas discretas */}
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="pointer-events-none absolute -right-1 -top-1 h-7 w-7 text-white/10"
-              >
+              <p className="relative mt-3 text-sm leading-relaxed text-neutral-100">{t.text}</p>
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="pointer-events-none absolute -right-1 -top-1 h-7 w-7 text-white/10">
                 <path d="M10 7H6a4 4 0 0 0-4 4v6h6V7Zm12 0h-4a4 4 0 0 0-4 4v6h6V7Z" fill="currentColor" />
               </svg>
             </article>
           ))}
         </div>
 
-        {/* Dots centralizados sem escala (evita 'pulo') */}
         <div className="mt-3 flex w-full items-center justify-center gap-2" aria-label="Navegação dos depoimentos">
           {items.map((_, i) => (
             <button
@@ -249,10 +181,7 @@ export default function Testimonials() {
           ))}
         </div>
 
-        {/* Dica */}
-        <p className="mt-2 text-center text-[11px] text-neutral-500">
-          Deslize para ver mais • troca automática a cada 6s
-        </p>
+        <p className="mt-2 text-center text-[11px] text-neutral-500">Deslize para ver mais • troca automática a cada 6s</p>
       </div>
     </section>
   );
