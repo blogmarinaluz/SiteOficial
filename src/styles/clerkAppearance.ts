@@ -1,12 +1,13 @@
 // src/styles/clerkAppearance.ts
 import type { Appearance } from "@clerk/types";
 
+// Aparência enxuta + classes Tailwind para visual profissional
 export const clerkAppearance: Appearance = {
   layout: {
-    shimmer: true,
+    shimmer: false,
     socialButtonsPlacement: "top",
     socialButtonsVariant: "blockButton",
-    logoPlacement: "inside",
+    logoPlacement: "none",
     helpPageUrl: "/central-de-ajuda",
     privacyPageUrl: "/politica-de-privacidade",
     termsPageUrl: "/termos-de-uso",
@@ -14,27 +15,27 @@ export const clerkAppearance: Appearance = {
   variables: {
     colorPrimary: "#10b981",
     colorText: "#e5e7eb",
-    colorBackground: "#0b1412",
-    borderRadius: "16px",
+    colorBackground: "#0a0a0a",
+    borderRadius: "14px",
     fontSize: "16px",
   },
   elements: {
     rootBox: "w-full",
-    card: "backdrop-blur-xl bg-white/5 border border-white/10 shadow-2xl rounded-2xl p-6 sm:p-8 max-w-[420px]",
+    card: "bg-black/35 backdrop-blur-md border border-white/10 shadow-xl rounded-2xl p-5 sm:p-6 max-w-[400px]",
     header: "hidden",
     form: "space-y-4",
     formField: "space-y-2",
     formFieldLabel: "text-sm text-gray-300",
-    formFieldInput: "bg-gray-900/60 border border-white/10 text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
-    footer: "hidden md:hidden",
-    formButtonPrimary: "h-12 rounded-xl font-medium transition active:scale-[0.99] bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-600 text-white",
+    formFieldInput: "bg-[#111416] border border-white/10 text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 h-11 rounded-xl",
+    footer: "hidden",
+    formButtonPrimary: "h-12 rounded-xl font-medium transition active:scale-[0.99] bg-emerald-600 hover:bg-emerald-500 text-white",
     button: "rounded-xl",
-    dividerRow: "my-4",
+    dividerRow: "my-3",
     dividerLine: "bg-white/10",
     dividerText: "text-xs text-gray-400",
     identityPreview: "rounded-xl bg-white/5",
     avatarBox: "ring-2 ring-white/10",
-    socialButtonsBlockButton: "h-11 rounded-xl bg-white/90 text-gray-900 hover:bg-white",
+    socialButtonsBlockButton: "h-11 rounded-xl bg-white text-gray-900 hover:bg-white/90",
     alternativeMethodsBlockButton: "h-11 rounded-xl",
     formFieldError: "text-red-400 text-sm",
   },
