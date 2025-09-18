@@ -1,90 +1,75 @@
-export const metadata = {
+// src/app/termos-de-uso/page.tsx
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "Termos de Uso | proStore",
   description:
-    "Termos de uso e condições gerais de compra e navegação do site proStore.",
+    "Condições de uso do site, responsabilidades, compras, pagamentos, entregas e limitações de responsabilidade.",
 };
 
-export default function Page() {
+export default function TermsPage() {
   return (
-    <main className="container py-10">
-      <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900">
-        Termos de Uso
-      </h1>
-      <p className="mt-2 max-w-3xl text-zinc-600">
-        Ao acessar e comprar na <strong>proStore</strong>, você concorda com os
-        termos abaixo. Recomendamos a leitura atenta antes de finalizar a compra.
-      </p>
+    <main className="container px-5 sm:px-6 py-10">
+      <header className="mb-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Institucional</p>
+        <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Termos de Uso</h1>
+        <p className="mt-2 max-w-prose text-zinc-600">
+          Ao acessar e utilizar este site, você concorda com os termos abaixo. Leia com atenção.
+        </p>
+      </header>
 
-      <Section title="1. Cadastro e conta">
-        As informações cadastrais devem ser verdadeiras e atualizadas. A
-        confidencialidade de login e senha é de responsabilidade do usuário.
-      </Section>
+      <article className="mx-auto max-w-2xl space-y-8 rounded-2xl border border-zinc-200 bg-white p-6">
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">1) Conta e cadastro</h2>
+          <p className="mt-2 text-sm text-zinc-700">
+            Você é responsável por manter a confidencialidade de suas credenciais. Informações
+            fornecidas devem ser verdadeiras, completas e atualizadas.
+          </p>
+        </section>
 
-      <Section title="2. Preços, promoções e cupons">
-        Preços e condições podem mudar sem aviso. Cupons e campanhas têm regras
-        próprias informadas nas respectivas páginas. Erros de precificação podem
-        ser cancelados com reembolso integral.
-      </Section>
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">2) Compras e pagamentos</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
+            <li>Preços, promoções e condições podem ser alterados sem aviso;</li>
+            <li>Pedidos estão sujeitos à aprovação de pagamento e antifraude;</li>
+            <li>Em caso de divergência, prevalece a NF‑e emitida.</li>
+          </ul>
+        </section>
 
-      <Section title="3. Pagamentos">
-        Aceitamos Pix, Boleto e Cartão (em até 10x sem juros). Processamento e
-        segurança de transações são realizados por parceiros certificados.
-      </Section>
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">3) Entregas</h2>
+          <p className="mt-2 text-sm text-zinc-700">
+            O prazo exibido no checkout é uma estimativa. Acompanhamos o transporte com rastreio
+            e notificações. Em caso de atraso significativo, você pode optar por
+            <strong> reembolso integral</strong>.
+          </p>
+        </section>
 
-      <Section title="4. Entrega">
-        Envio mediante confirmação de pagamento. O prazo e o código de rastreio
-        são informados após a postagem. Em caso de atraso logístico, nossa
-        equipe acompanha com a transportadora.
-      </Section>
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">4) Propriedade intelectual</h2>
+          <p className="mt-2 text-sm text-zinc-700">
+            Marcas, nomes, layout e conteúdos deste site não podem ser utilizados sem autorização.
+          </p>
+        </section>
 
-      <Section title="5. Direito de arrependimento">
-        Compras on-line podem ser canceladas em até <strong>7 dias corridos</strong>{" "}
-        após o recebimento (CDC, art. 49), com reembolso conforme meio de
-        pagamento, desde que o produto esteja sem uso e com acessórios originais.
-      </Section>
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">5) Limitação de responsabilidade</h2>
+          <p className="mt-2 text-sm text-zinc-700">
+            Em nenhuma hipótese seremos responsáveis por danos indiretos decorrentes do uso deste
+            site, na máxima extensão permitida pela legislação aplicável.
+          </p>
+        </section>
 
-      <Section title="6. Garantia">
-        Garantia de fábrica conforme o fabricante. Para defeitos de fabricação
-        dentro do prazo legal, entre em contato com nosso suporte para
-        orientação sobre acionamento.
-      </Section>
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">6) Contato e foro</h2>
+          <p className="mt-2 text-sm text-zinc-700">
+            Dúvidas? Fale com <a className="underline underline-offset-2" href="mailto:contato@prostore.com.br">contato@prostore.com.br</a>.
+            Fica eleito o foro do domicílio do consumidor para dirimir controvérsias.
+          </p>
+        </section>
 
-      <Section title="7. Responsabilidades">
-        Não nos responsabilizamos por mau uso, danos acidentais, modificações
-        não autorizadas ou perda de dados do usuário.
-      </Section>
-
-      <Section title="8. Propriedade intelectual">
-        Marcas e conteúdos exibidos pertencem aos respectivos titulares.
-        Reprodução não autorizada é proibida.
-      </Section>
-
-      <Section title="9. Suporte e contato">
-        Dúvidas? Fale com{" "}
-        <a className="underline" href="mailto:suporte@proStore.com">
-          suporte@proStore.com
-        </a>{" "}
-        ou WhatsApp comercial informado no site.
-      </Section>
-
-      <div className="mt-8 rounded-2xl bg-zinc-50 p-5 text-sm text-zinc-700">
-        Última atualização: {new Date().toLocaleDateString("pt-BR")}
-      </div>
+        <p className="text-xs text-zinc-500">Última atualização: {new Date().toLocaleDateString()}</p>
+      </article>
     </main>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="mt-8">
-      <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
-      <p className="mt-2 leading-relaxed text-zinc-700">{children}</p>
-    </section>
   );
 }
