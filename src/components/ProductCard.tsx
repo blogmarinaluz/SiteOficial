@@ -54,27 +54,25 @@ export default function ProductCard({ product }: { product: P }) {
 
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:shadow-md">
-      {/* Badges na imagem */}
-      <div className="absolute left-2 top-2 z-20 flex flex-col gap-2">
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 px-2 py-1 text-[11px] font-semibold text-emerald-950 ring-1 ring-emerald-700/40">
-          30% no Pix/Boleto
-        </span>
-      </div>
-      {freeShipping && (
-        <div className="absolute right-2 top-2 z-20">
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-600/30">
-            <Truck className="h-3.5 w-3.5" /> Frete grátis*
-          </span>
-        </div>
-      )}
-
-      {/* Imagem do produto – frame consistente */}
+      {/* Imagem / frame */}
       <Link href={href} className="block">
-        {/* Altura fixa responsiva + moldura branca para padronizar */}
         <div className="relative w-full h-[240px] sm:h-[230px] md:h-[220px] bg-white">
-          {/* Moldura com padding, borda e leve sombra para destacar */}
+          {/* Badges alinhados no topo da imagem */}
+          <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 px-2.5 py-1 text-[11px] font-semibold text-emerald-950 ring-1 ring-emerald-700/40">
+              30% no Pix/Boleto
+            </span>
+
+            {freeShipping && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-600/30">
+                <Truck className="h-3.5 w-3.5" /> Frete grátis*
+              </span>
+            )}
+          </div>
+
+          {/* Moldura */}
           <div className="absolute inset-3 rounded-xl bg-white ring-1 ring-neutral-200/70 shadow-[0_1px_6px_rgba(0,0,0,0.04)]" />
-          {/* Área útil para a imagem (respeita o padding da moldura) */>
+          {/* Área de imagem */}
           <div className="absolute inset-3 rounded-xl overflow-hidden">
             {imgOk && image ? (
               <Image
@@ -111,12 +109,10 @@ export default function ProductCard({ product }: { product: P }) {
 
         {/* Preços */}
         <div className="space-y-1.5">
-          {/* Preço com desconto (Pix/Boleto) como principal */}
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-extrabold text-emerald-700">
               {formatBRL(pixPrice)}
             </span>
-            {/* Preço original riscado (base/cartão) */}
             {price > pixPrice && (
               <span className="text-xs text-neutral-500 line-through">
                 {formatBRL(price)}
@@ -126,24 +122,23 @@ export default function ProductCard({ product }: { product: P }) {
           <div className="text-[12px] text-neutral-700">
             no Pix/Boleto • <span className="font-medium text-neutral-900">30% OFF</span>
           </div>
-          {/* Parcelamento no cartão (fiel ao preço base) */}
           <div className="text-[12px] text-neutral-700">
             ou <span className="font-semibold">{formatBRL(installment)}</span> x 10 sem juros no cartão
           </div>
         </div>
 
-        {/* Ações */}
+        {/* Ações – tamanho consistente */}
         <div className="mt-3 flex gap-2">
           <Link
             href={href}
-            className="inline-flex flex-1 items-center justify-center rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium hover:bg-neutral-50"
+            className="inline-flex flex-1 items-center justify-center rounded-xl border border-emerald-600/40 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
           >
             Ver detalhes
           </Link>
           <button
             type="button"
             onClick={addToCart}
-            className="inline-flex items-center gap-1 rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
             aria-label={`Adicionar ${name} ao carrinho`}
           >
             <ShoppingCart className="h-4 w-4" />
