@@ -12,13 +12,9 @@ export const clerkAppearance: Appearance = {
     termsPageUrl: "/termos-de-uso",
   },
   variables: {
-    colorPrimary: "#10b981", // verde proStore
+    colorPrimary: "#10b981",
     colorText: "#e5e7eb",
-    colorTextOnPrimaryBackground: "#0b1412",
     colorBackground: "#0b1412",
-    colorInputBackground: "#111827",
-    colorInputText: "#e5e7eb",
-    colorAlphaShade: "#0b1412",
     borderRadius: "16px",
     fontSize: "16px",
   },
@@ -30,7 +26,7 @@ export const clerkAppearance: Appearance = {
     formField: "space-y-2",
     formFieldLabel: "text-sm text-gray-300",
     formFieldInput: "bg-gray-900/60 border border-white/10 text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
-    footer: "hidden md:hidden", // se aparecer selo do Clerk, remova esta linha
+    footer: "hidden md:hidden",
     formButtonPrimary: "h-12 rounded-xl font-medium transition active:scale-[0.99] bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-600 text-white",
     button: "rounded-xl",
     dividerRow: "my-4",
