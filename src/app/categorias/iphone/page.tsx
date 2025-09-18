@@ -21,7 +21,7 @@ const families = ["Pro Max", "Pro", "Plus", "SE"];
 
 /** Extrai a família do iPhone a partir do nome */
 function familyOf(name: string) {
-  const n = name.toLowerCase();
+  const n = String(name || "").toLowerCase();
   if (n.includes("pro max")) return "Pro Max";
   if (n.includes("pro")) return "Pro";
   if (n.includes("plus")) return "Plus";
@@ -85,9 +85,10 @@ export default function IphoneCategoryPage() {
   }, [items]);
 
   return (
-    <main className="container px-5 sm:px-6 py-10">
-      <header className="mb-6 sm:mb-8">
+    <main className="container px-5 sm:px-6 py-8 sm:py-10">
+      <header className="mb-5 sm:mb-7">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Categorias</p>
+
         <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
           <h1 className="text-2xl font-semibold text-zinc-900">iPhone</h1>
 
@@ -118,14 +119,16 @@ export default function IphoneCategoryPage() {
               placeholder="Buscar por modelo, cor, capacidade..."
               className="flex-1 bg-transparent px-2 text-sm text-zinc-800 placeholder:text-zinc-500 focus:outline-none"
             />
-            <button
-              type="button"
-              onClick={() => setQ("")}
-              className="rounded-xl px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
-              aria-label="Limpar busca"
-            >
-              Limpar
-            </button>
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="rounded-xl px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
+                aria-label="Limpar busca"
+              >
+                Limpar
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -138,12 +141,24 @@ export default function IphoneCategoryPage() {
       ) : (
         <div className="space-y-10">
           {grouped.map(([fam, list]) => (
-            <section key={fam}>
+            <section key={fam} className="scroll-mt-20">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-zinc-900">{fam}</h2>
                 <div className="text-sm text-zinc-500">{list.length} {list.length === 1 ? "item" : "itens"}</div>
               </div>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+
+              {/* Mobile: carrossel horizontal elegante; Desktop: grid */}
+              <div className="lg:hidden">
+                <ul className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1.5">
+                  {list.map((p) => (
+                    <li key={p.id} className="min-w-[78%] snap-center sm:min-w-[360px]">
+                      <Card product={p} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <ul className="hidden grid-cols-3 gap-4 lg:grid xl:grid-cols-4">
                 {list.map((p) => (
                   <li key={p.id}>
                     <Card product={p} />
@@ -166,9 +181,9 @@ function Card({ product }: { product: Product }) {
   return (
     <Link
       href={`/produto/${idNoExt(String(product.id))}`}
-      className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:shadow-sm"
+      className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md"
     >
-      <div className="aspect-[4/3] w-full overflow-hidden bg-zinc-50">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-100">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -180,7 +195,13 @@ function Card({ product }: { product: Product }) {
         ) : (
           <div className="grid h-full place-items-center text-xs text-zinc-400">Sem imagem</div>
         )}
+
+        {/* Selo */}
+        <span className="absolute left-3 top-3 rounded-md bg-emerald-600/90 px-2 py-1 text-[11px] font-semibold text-white shadow-sm">
+          NF‑e & Garantia
+        </span>
       </div>
+
       <div className="p-3">
         <h3 className="line-clamp-2 min-h-[2.75rem] text-sm font-medium text-zinc-900">{product.name}</h3>
         <div className="mt-1 text-[13px] text-zinc-600">Apple iPhone</div>
@@ -192,8 +213,8 @@ function Card({ product }: { product: Product }) {
           ) : (
             <span className="text-sm font-medium text-zinc-500">Consultar</span>
           )}
-          <span className="rounded-md bg-emerald-600/10 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-            NF‑e & Garantia
+          <span className="rounded-full border border-zinc-300 px-2 py-1 text-[11px] font-medium text-zinc-700">
+            Ver detalhes
           </span>
         </div>
       </div>
