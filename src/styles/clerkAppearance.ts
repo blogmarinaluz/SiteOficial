@@ -1,11 +1,11 @@
 // src/styles/clerkAppearance.ts
 import type { Appearance } from "@clerk/types";
 
-// Tema branco, sem cartões/gradientes. Foco em legibilidade mobile.
+// Tema definitivo: branco, tipografia preta, inputs e botões profissionais.
 export const clerkAppearance: Appearance = {
   layout: {
     shimmer: false,
-    socialButtonsPlacement: "top",
+    socialButtonsPlacement: "top", // manter padrão, mas escondemos via elements
     socialButtonsVariant: "blockButton",
     logoPlacement: "none",
     helpPageUrl: "/central-de-ajuda",
@@ -20,24 +20,26 @@ export const clerkAppearance: Appearance = {
     fontSize: "16px",
   },
   elements: {
-    // Sem card visual do Clerk
+    // Nada de cartão do Clerk
+    rootBox: "w-full",
     card: "bg-transparent border-0 shadow-none p-0",
     header: "hidden",
-    form: "space-y-3",
+    // Grid compacto e consistente
+    form: "space-y-4",
     formField: "space-y-1.5",
-    // LABELS PRETOS
-    formFieldLabel: "text-[13px] font-medium text-black",
-    // INPUT branco com texto escuro e borda cinza
-    formFieldInput: "h-12 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 border border-gray-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600",
-    // BOTÃO sólido, sem gradiente, compacto
-    formButtonPrimary: "h-12 rounded-lg font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm active:scale-[0.99]",
-    button: "rounded-lg h-11",
-    // Social button discreto (fundo branco, borda cinza)
-    socialButtonsBlockButton: "h-11 rounded-lg bg-white text-gray-900 border border-gray-300 hover:bg-gray-50",
-    alternativeMethodsBlockButton: "h-11 rounded-lg",
-    dividerRow: "my-2",
-    dividerLine: "bg-gray-200",
-    dividerText: "text-xs text-gray-500",
+    // Label PRETA e legível
+    formFieldLabel: "text-[14px] font-medium text-black",
+    // Input branco, borda cinza, padding correto, texto escuro
+    formFieldInput: "w-full h-12 rounded-md bg-white text-gray-900 placeholder:text-gray-500 border border-gray-300 px-3 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600",
+    // Botão sólido, altura 48, cantos md (não corta), sem gradiente
+    formButtonPrimary: "w-full h-12 rounded-md font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm active:scale-[0.99]",
+    button: "rounded-md h-11",
+    // Esconder botões sociais e divisor para não poluir a UI
+    socialButtons: "hidden",
+    socialButtonsBlockButton: "hidden",
+    alternativeMethods: "hidden",
+    dividerRow: "hidden",
+    // Erros visíveis
     formFieldError: "text-red-600 text-sm",
     footer: "hidden",
   },
