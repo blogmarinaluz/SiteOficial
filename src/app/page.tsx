@@ -360,74 +360,79 @@ export default function Page() {
       </section>
 
       {/* 5) Newsletter */}
-      <section aria-labelledby="newsletter_heading" className="mt-10">
-  <div className="mx-auto max-w-6xl rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-600 px-4 py-5 sm:px-6 sm:py-6 text-white shadow-md ring-1 ring-white/10">
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="max-w-xl">
-        <p className="text-[11px] uppercase tracking-wide text-emerald-200">Novidades</p>
-        <h3 id="newsletter_heading" className="text-xl font-semibold sm:text-2xl">
-          Receba ofertas da <span className="text-white/90">pro</span><span className="text-white">Store</span>
-        </h3>
-        <p className="mt-1 text-[13px] text-emerald-100">
-          Descontos exclusivos e lançamentos direto no seu e‑mail.
-        </p>
-      </div>
+      <section className="mt-12">
+        <div className="mx-auto max-w-[1100px] rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-8 shadow-lg ring-1 ring-emerald-900/20">
+          <div className="grid gap-6 md:grid-cols-[1.2fr,1fr] md:items-center">
+            <div>
+              <h3 className="text-2xl font-extrabold text-white">Inscreva-se na nossa Newsletter</h3>
+              <p className="mt-1 text-sm text-white/90">
+                Promoções exclusivas e novidades da <span className="font-semibold">proStore</span> direto no seu e-mail.
+              </p>
+            </div>
 
-      <form onSubmit={onNewsletterSubmit} className="w-full md:w-auto">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr,1fr,auto] sm:items-center">
-          <label className="sr-only" htmlFor="nl-name">Nome</label>
-          <input
-            id="nl-name"
-            value={nlName}
-            onChange={(e) => setNlName(e.target.value)}
-            type="text"
-            placeholder="Seu nome"
-            autoComplete="name"
-            className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-sm text-white placeholder-white/70 outline-none backdrop-blur-sm focus:border-white/25"
-          />
+            <form onSubmit={onNewsletterSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center" noValidate>
+              <label className="sr-only" htmlFor="nl-name">Nome</label>
+              <input
+                id="nl-name"
+                value={nlName}
+                onChange={(e) => setNlName(e.target.value)}
+                type="text"
+                placeholder="Seu nome"
+                className="w-full rounded-xl bg-white/95 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+              />
 
-          <label className="sr-only" htmlFor="nl-email">E-mail</label>
-          <input
-            id="nl-email"
-            value={nlEmail}
-            onChange={(e) => setNlEmail(e.target.value)}
-            type="email"
-            inputMode="email"
-            placeholder="Seu e‑mail"
-            autoComplete="email"
-            required
-            className="w-full rounded-xl border border-white/15 bg_white/10 px-3 py-3 text-sm text-white placeholder-white/70 outline-none backdrop-blur-sm focus:border-white/25".replace("_","/")
-          />
+              <label className="sr-only" htmlFor="nl-email">E-mail</label>
+              <input
+                id="nl-email"
+                value={nlEmail}
+                onChange={(e) => setNlEmail(e.target.value)}
+                type="email"
+                placeholder="Seu e-mail"
+                className="w-full rounded-xl bg-white/95 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none ring-1 ring-white/40 focus:ring-2 focus:ring-white"
+                required
+              />
 
-          <button
-            type="submit"
-            className="h-[42px] rounded-xl bg-brand-black px-5 text-sm font-semibold text-white shadow-sm transition active:scale-[.99] hover:bg-black/90"
-          >
-            Cadastrar
-          </button>
-        </div>
+              <button
+                type="submit"
+                className="w-full sm:w-auto rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+              >
+                Cadastrar
+              </button>
+            </form>
 
-        {nlMsg && (
-          <div
-            className={
-              "mt-2 text-[12px] " + (nlMsg.type === "ok" ? "text-white" : "text-rose-100")
-            }
-            role="status"
-          >
-            {nlMsg.text}
+            <div className="md:col-span-2 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+              <p className="text-[11px] leading-relaxed text-white/90">
+                *Ao clicar em cadastrar você autoriza a coleta e o tratamento dos dados conforme nossa
+                <a href="/politica-de-privacidade" className="underline underline-offset-2"> Política de Privacidade</a>,
+                <a href="/termos-de-uso" className="underline underline-offset-2"> Termos de Uso</a> e
+                <a href="/politica-de-cookies" className="underline underline-offset-2"> Política de Cookies</a>.
+              </p>
+
+              {showExport && (
+                <button
+                  type="button"
+                  onClick={exportCsv}
+                  className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-white/20"
+                >
+                  Baixar cadastros (CSV)
+                </button>
+              )}
+            </div>
+
+            {nlMsg && (
+              <div
+                className={
+                  "md:col-span-2 mt-1 text-sm " +
+                  (nlMsg.type === "ok" ? "text-white/95" : "text-rose-100")
+                }
+                role="status"
+              >
+                {nlMsg.text}
+              </div>
+            )}
           </div>
-        )}
-
-        <p className="mt-2 text-[11px] leading-relaxed text-emerald-100/90">
-          Ao cadastrar, você concorda com nossa
-          {" "}<a className="underline underline-offset-2" href="/politica-de-privacidade">Política de Privacidade</a>,
-          {" "}<a className="underline underline-offset-2" href="/termos">Termos de Uso</a> e
-          {" "}<a className="underline underline-offset-2" href="/cookies">Política de Cookies</a>.
-        </p>
-      </form>
-    </div>
-  </div>
-</section>
+        </div>
+      </section>
 
       {/* 6) Ofertas em Destaque */}
       <section id="destaques" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
