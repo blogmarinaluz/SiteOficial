@@ -3,22 +3,21 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 /**
- * Footer — v4 (padrão grande e‑commerce BR/Global)
- * - Mobile: seções em <details> (accordions) para não virar "listão".
- * - Desktop: 4 colunas sempre visíveis.
- * - Linha de pagamentos + selos de segurança.
- * - Social e WhatsApp condicionais por ENV; CNPJ opcional.
- * - Totalmente alinhado à `.container`, sem faixas escuras.
+ * Footer — v4.1
+ * - Leve recuo lateral: container com px-5 (mobile) / px-6 (sm+).
+ * - "Ajuda" e "Institucional" apontam para páginas reais do projeto.
+ * - Atendimento: e-mail contato@prostore.com.br e WhatsApp clicável.
+ * - Bandeiras (Visa/Mastercard/Elo) sem caixinhas.
  */
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
-  // WhatsApp comercial (apenas se definido)
-  const wa = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "").replace(/\D/g, "");
-  const waHref = wa ? `https://wa.me/${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.` : "";
+  // WhatsApp comercial — usa ENV se houver; senão, fallback para seu número
+  const wa = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "99984905715").replace(/\D/g, "");
+  const waHref = `https://wa.me/55${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.`;
 
-  // Redes sociais via ENV
+  // Redes sociais via ENV (opcional)
   const SOCIAL = [
     { key: "INSTAGRAM", label: "Instagram", Icon: InstaIcon },
     { key: "FACEBOOK", label: "Facebook", Icon: FbIcon },
@@ -35,18 +34,16 @@ export default function Footer() {
   return (
     <footer className="mt-16 border-t border-zinc-200 bg-white">
       {/* Grid principal */}
-      <div className="container py-10">
+      <div className="container px-5 sm:px-6 py-10">
         {/* Desktop: 4 colunas; Mobile: accordions */}
         <div className="hidden gap-10 md:grid md:grid-cols-4">
           <BrandCol />
           <LinksCol
             title="Ajuda"
             items={[
-              { href: "/como-comprar", label: "Como comprar" },
-              { href: "/rastrear-pedido", label: "Rastrear pedido" },
-              { href: "/trocas-e-devolucoes", label: "Trocas e Devoluções" },
-              { href: "/garantia", label: "Garantia e Assistência" },
               { href: "/faq", label: "Perguntas frequentes (FAQ)" },
+              { href: "/garantia", label: "Garantia e Assistência" },
+              { href: "/trocas-e-devolucoes", label: "Trocas e Devoluções" },
             ]}
           />
           <LinksCol
@@ -54,7 +51,7 @@ export default function Footer() {
             items={[
               { href: "/quem-somos", label: "Quem somos" },
               { href: "/politica-de-privacidade", label: "Política de Privacidade" },
-              { href: "/termos", label: "Termos de Uso" },
+              { href: "/termos-de-uso", label: "Termos de Uso" },
               { href: "/politica-de-cookies", label: "Política de Cookies" },
             ]}
           />
@@ -67,11 +64,9 @@ export default function Footer() {
 
           <Accordion title="Ajuda">
             <List>
-              <Item href="/como-comprar">Como comprar</Item>
-              <Item href="/rastrear-pedido">Rastrear pedido</Item>
-              <Item href="/trocas-e-devolucoes">Trocas e Devoluções</Item>
-              <Item href="/garantia">Garantia e Assistência</Item>
               <Item href="/faq">Perguntas frequentes (FAQ)</Item>
+              <Item href="/garantia">Garantia e Assistência</Item>
+              <Item href="/trocas-e-devolucoes">Trocas e Devoluções</Item>
             </List>
           </Accordion>
 
@@ -79,7 +74,7 @@ export default function Footer() {
             <List>
               <Item href="/quem-somos">Quem somos</Item>
               <Item href="/politica-de-privacidade">Política de Privacidade</Item>
-              <Item href="/termos">Termos de Uso</Item>
+              <Item href="/termos-de-uso">Termos de Uso</Item>
               <Item href="/politica-de-cookies">Política de Cookies</Item>
             </List>
           </Accordion>
@@ -97,9 +92,10 @@ export default function Footer() {
               <PayPix />
               <PayBoleto />
               <PayCard />
-              <PayVisa />
-              <PayMaster />
-              <PayElo />
+              {/* Bandeiras sem caixas */}
+              <BrandText>Visa</BrandText>
+              <BrandText>Mastercard</BrandText>
+              <BrandText>Elo</BrandText>
             </div>
             <p className="mt-2 text-xs text-zinc-600">Parcele em até 10x sem juros.</p>
           </div>
@@ -116,7 +112,7 @@ export default function Footer() {
 
       {/* Linha legal */}
       <div className="border-t border-zinc-200">
-        <div className="container flex flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center">
+        <div className="container px-5 sm:px-6 flex flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center">
           <p className="text-[12px] text-zinc-600">
             © {year} proStore — Todos os direitos reservados.
             {CNPJ ? ` CNPJ ${CNPJ} • Vendas para todo o Brasil` : ""}
@@ -169,29 +165,19 @@ function ContactInner({ waHref, social }: { waHref: string; social: any[] }) {
   return (
     <div className="space-y-4">
       <ul className="grid grid-cols-1 gap-3 text-sm">
-        {waHref && (
-          <li>
-            <FooterA href={waHref} target="_blank" rel="noopener noreferrer">
-              <span className="inline-flex items-center gap-2">
-                <WaIcon className="h-4 w-4 text-zinc-700" />
-                WhatsApp comercial
-              </span>
-            </FooterA>
-          </li>
-        )}
         <li>
-          <FooterA href="mailto:contato@proStore.com">
+          <FooterA href={waHref} target="_blank" rel="noopener noreferrer">
             <span className="inline-flex items-center gap-2">
-              <MailIcon className="h-4 w-4 text-zinc-700" />
-              contato@proStore.com
+              <WaIcon className="h-4 w-4 text-zinc-700" />
+              WhatsApp comercial
             </span>
           </FooterA>
         </li>
         <li>
-          <FooterA href="mailto:suporte@proStore.com">
+          <FooterA href="mailto:contato@prostore.com.br">
             <span className="inline-flex items-center gap-2">
               <MailIcon className="h-4 w-4 text-zinc-700" />
-              suporte@proStore.com
+              contato@prostore.com.br
             </span>
           </FooterA>
         </li>
@@ -287,7 +273,7 @@ function Social({ href, label, children }: { href: string; label: string; childr
   );
 }
 
-/* -------------------------- Payment & Trust Badges (SVGs neutros) -------------------------- */
+/* -------------------------- Payment & Trust Badges -------------------------- */
 
 function PayPix() {
   return (
@@ -310,16 +296,8 @@ function PayCard() {
     </span>
   );
 }
-function PayVisa() { return <BrandMono label="Visa" />; }
-function PayMaster() { return <BrandMono label="Mastercard" />; }
-function PayElo() { return <BrandMono label="Elo" />; }
-
-function BrandMono({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center rounded-md border border-zinc-200 px-2 py-1 text-[10px] text-zinc-600">
-      {label}
-    </span>
-  );
+function BrandText({ children }: { children: ReactNode }) {
+  return <span className="text-xs text-zinc-600">{children}</span>;
 }
 
 function SealSSL() {
