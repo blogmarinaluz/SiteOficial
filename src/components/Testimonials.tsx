@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * Depoimentos — carrossel mobile-first com scroll-snap
- * - Sem dependências externas.
- * - Autoplay suave (pausa ao interagir / reduzido se prefers-reduced-motion).
- * - Dots acessíveis e botões compactos.
- * - Paleta preto + verde do projeto (brand.black / accent).
+ * Depoimentos — carrossel mobile-first (somente swipe)
+ * - Sem setas/botões: navegação por deslize e dots.
+ * - Autoplay a cada 6s (pausa ao interagir; respeita prefers-reduced-motion).
+ * - Visual preto + verde; acessível com ARIA.
  */
 
 type Testimonial = {
@@ -64,7 +63,7 @@ const ALL_TESTIMONIALS: Testimonial[] = [
 
 function Stars({ n = 5 }: { n?: number }) {
   return (
-    <div className="flex gap-1" aria-label={`${n} de 5 estrelas`}>
+    <div className="flex gap-1 text-accent" aria-label={`${n} de 5 estrelas`}>
       {Array.from({ length: n }).map((_, i) => (
         <svg
           key={i}
@@ -82,13 +81,12 @@ function Stars({ n = 5 }: { n?: number }) {
 export default function Testimonials() {
   const items = useMemo(() => ALL_TESTIMONIALS, []);
 
-  // ===== Scroll-snap refs & state =====
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
   const count = items.length;
   const autoplayMs = 6000;
 
-  // Detecta slide ativo pelo scroll (mais robusto que computation pura)
+  // Atualiza índice ativo pelo IntersectionObserver
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -96,7 +94,6 @@ export default function Testimonials() {
     const slides = Array.from(viewport.querySelectorAll<HTMLElement>("[data-slide]"));
     const io = new IntersectionObserver(
       (entries) => {
-        // o que está mais visível vira o ativo
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
@@ -148,17 +145,9 @@ export default function Testimonials() {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const slides = viewport.querySelectorAll<HTMLElement>("[data-slide]");
-    const next = ((i % count) + count) % count; // wrap
+    const next = ((i % count) + count) % count;
     const el = slides[next];
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }
-
-  function prev() {
-    goTo(index - 1);
-  }
-
-  function next() {
-    goTo(index + 1);
   }
 
   return (
@@ -178,11 +167,11 @@ export default function Testimonials() {
         </h2>
       </div>
 
+      {/* Viewport */}
       <div className="relative">
-        {/* Viewport com scroll-snap horizontal */}
         <div
           ref={viewportRef}
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [-webkit-overflow-scrolling:touch]"
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
           role="list"
           aria-label="Depoimentos"
         >
@@ -192,16 +181,14 @@ export default function Testimonials() {
               data-slide
               data-index={i}
               role="listitem"
-              className="min-w-[88%] snap-center rounded-2xl bg-brand-black px-4 py-5 text-white shadow-md sm:min-w-[520px]"
+              className="min-w-[88%] snap-center rounded-2xl bg-brand-black px-4 py-5 text-white shadow-md ring-1 ring-black/10 sm:min-w-[520px]"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold">{t.name}</h3>
                   <p className="text-xs text-neutral-300">{t.label}</p>
                 </div>
-                <div className="text-accent" aria-hidden="true">
-                  <Stars n={t.rating ?? 5} />
-                </div>
+                <Stars n={t.rating ?? 5} />
               </div>
               <p className="mt-3 text-sm leading-relaxed text-neutral-100">
                 {t.text}
@@ -210,64 +197,22 @@ export default function Testimonials() {
           ))}
         </div>
 
-        {/* Controles */}
-        <div className="mt-2 flex items-center justify-between">
-          {/* Dots */}
-          <div className="flex items-center gap-2" aria-label="Navegação dos depoimentos">
-            {items.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i)}
-                aria-label={`Ir para depoimento ${i + 1}`}
-                aria-current={index === i ? "true" : "false"}
-                className={`h-2 w-2 rounded-full transition-transform ${
-                  index === i ? "scale-125 bg-accent" : "bg-neutral-400"
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Botões prev/next compactos */}
-          <div className="flex items-center gap-2">
+        {/* Dots centralizados */}
+        <div className="mt-3 flex w-full items-center justify-center gap-2" aria-label="Navegação dos depoimentos">
+          {items.map((_, i) => (
             <button
-              onClick={prev}
-              className="rounded-full bg-brand-black px-3 py-2 text-xs font-medium text-white shadow-sm active:scale-[.98]"
-              aria-label="Anterior"
-            >
-              <span className="sr-only">Anterior</span>
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
-                <path
-                  d="M15.5 19 8.5 12l7-7"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-
-            <button
-              onClick={next}
-              className="rounded-full bg-brand-black px-3 py-2 text-xs font-medium text-white shadow-sm active:scale-[.98]"
-              aria-label="Próximo"
-            >
-              <span className="sr-only">Próximo</span>
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
-                <path
-                  d="M8.5 5 15.5 12l-7 7"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
+              key={i}
+              onClick={() => goTo(i)}
+              aria-label={`Ir para depoimento ${i + 1}`}
+              aria-current={index === i ? "true" : "false"}
+              className={`h-2 w-2 rounded-full transition-transform ${
+                index === i ? "scale-125 bg-accent" : "bg-neutral-400"
+              }`}
+            />
+          ))}
         </div>
 
-        {/* Dica de interação */}
+        {/* Dica */}
         <p className="mt-2 text-center text-[11px] text-neutral-500">
           Deslize para ver mais • troca automática a cada 6s
         </p>
