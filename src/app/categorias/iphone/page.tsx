@@ -1,15 +1,9 @@
 // src/app/categorias/iphone/page.tsx
 "use client";
 
-import type { Metadata } from "next";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import productsData from "@/data/products.json";
-
-export const metadata: Metadata = {
-  title: "iPhone | proStore",
-  description: "Compre iPhone com garantia e Nota Fiscal. Veja modelos disponíveis por nome e variações.",
-};
 
 type Product = {
   id: string;
