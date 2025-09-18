@@ -49,17 +49,54 @@ function storageOf(p: Product): string {
   return m ? m[0].replace(/\s+/g, " ") : "";
 }
 
+/**
+ * colorOf com prioridade para composições de Titânio (Titânio Azul, Titânio Natural, etc.).
+ * Se detectar "titânio/titanium" junto com uma cor secundária, retorna a composição.
+ * Caso contrário, retorna a cor simples mais específica.
+ */
 function colorOf(p: Product): string {
   const explicit = String(p.color ?? "");
   if (explicit) return explicit;
-  const n = norm(p.name);
-  const colors = [
-    "preto","black","meia-noite","midnight","grafite","graphite","cinza","starlight",
-    "branco","white","prata","silver","dourado","gold","rosa","pink",
-    "roxo","purple","verde","green","azul","blue","amarelo","yellow","vermelho","red","titanium","titânio",
-    "ultramarino","ultramarine","estelar","natural","deserto","acinzentado"
+
+  const raw = String(p.name || "");
+  const n = norm(raw);
+
+  // 1) Composições com Titânio primeiro (prioridade)
+  const hasTitanium = /\btit[aâ]nio\b|\btitanium\b/.test(n);
+  if (hasTitanium) {
+    const pairs: [RegExp, string][] = [
+      [/\bazul\b|\bblue\b/, "Titânio Azul"],
+      [/\bpreto\b|\bblack\b/, "Titânio Preto"],
+      [/\bbranco\b|\bwhite\b/, "Titânio Branco"],
+      [/\bnatural\b/, "Titânio Natural"],
+      [/\bdeserto\b|\bdesert\b/, "Titânio Deserto"],
+      [/\bacinzentad[oa]\b/, "Titânio Cinza"],
+    ];
+    for (const [re, label] of pairs) {
+      if (re.test(n)) return label;
+    }
+    // sem secundária → "Titânio"
+    return "Titânio";
+  }
+
+  // 2) Cores simples (ordem por popularidade Apple)
+  const simple: [RegExp, string][] = [
+    [/\bmeia[-\s]?noite\b|\bmidnight\b/, "Meia Noite"],
+    [/\bestelar\b|\bstarlight\b/, "Estelar"],
+    [/\brosa\b|\bpink\b/, "Rosa"],
+    [/\brox[oa]\b|\bpurple\b/, "Roxo"],
+    [/\bazul\b|\bblue\b|\bultramarino\b|\bultramarine\b/, "Azul"],
+    [/\bverde\b/, "Verde"],
+    [/\bamarelo\b|\byellow\b/, "Amarelo"],
+    [/\bvermelh[oa]\b|\bred\b/, "Vermelho"],
+    [/\bpreto\b|\bblack\b|\bgrafite\b|\bgraphite\b/, "Preto"],
+    [/\bbranc[oa]\b|\bwhite\b|\bprata\b|\bsilver\b/, "Branco"],
+    [/\bdourad[oa]\b|\bgold\b/, "Dourado"],
   ];
-  for (const c of colors) if (n.includes(c)) return capitalize(c.replace("-", " "));
+  for (const [re, label] of simple) {
+    if (re.test(n)) return label;
+  }
+
   return "";
 }
 
@@ -104,7 +141,7 @@ export default function IphoneCategoryPage() {
       const passQ = !q || name.includes(norm(q));
       const passFam = fam === "all" || familyOf(p.name) === fam;
       const passGb = gb === "all" || storageOf(p) === gb;
-      const passCol = col === "all" || colorOf(p).toLowerCase() === norm(col);
+      const passCol = col === "all" || norm(colorOf(p)) === norm(col);
       return passQ && passFam && passGb && passCol;
     });
     if (sort === PRICE_ASC) arr.sort((a, b) => (Number(a.price ?? 0) - Number(b.price ?? 0)));
@@ -162,7 +199,7 @@ export default function IphoneCategoryPage() {
           {total} {total === 1 ? "modelo" : "modelos"} •
           {" "}{fam === "all" ? "Todos os modelos" : `Modelo: ${fam}`}
           {gb !== "all" && ` • ${gb}`}
-          {col !== "all" && ` • ${capitalize(col)}`}
+          {col !== "all" && ` • ${col}`}
           {(fam !== "all" || gb !== "all" || col !== "all" || q) && (
             <button onClick={clearAll} className="ml-2 underline underline-offset-2">Limpar</button>
           )}
@@ -233,7 +270,7 @@ export default function IphoneCategoryPage() {
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Ex.: 15 Pro 256 GB Titânio Azul"
+                  placeholder="Ex.: 15 Plus 256 GB Titânio Azul"
                   className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800"
                 />
               </div>
