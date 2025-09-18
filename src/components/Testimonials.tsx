@@ -73,121 +73,144 @@ const PAGE_SIZE = 6;       // 6 cards por página
 const INTERVAL_MS = 8000;  // troca automática a cada 8s
 
 export default function Testimonials() {
-  // Embaralha uma vez no cliente pra variar a ordem
-  const pool = useMemo(() => shuffle(ALL_TESTIMONIALS), []);
+  // Mantém a mesma base de depoimentos já declarada acima
   const [index, setIndex] = useState(0);
+  const total = ALL_TESTIMONIALS.length;
+
+  // autoplay a cada 6s, pausa em hover
   const [paused, setPaused] = useState(false);
-
-  // calcula a página atual (com wrap)
-  const currentPage = useMemo(() => {
-    const out: Testimonial[] = [];
-    for (let i = 0; i < PAGE_SIZE; i++) {
-      out.push(pool[(index + i) % pool.length]);
-    }
-    return out;
-  }, [pool, index]);
-
-  // autoplay com pausa no hover
   useEffect(() => {
-    if (paused) return;
-    const id = setInterval(() => {
-      setIndex((i) => (i + PAGE_SIZE) % pool.length);
-    }, INTERVAL_MS);
+    if (paused || total <= 1) return;
+    const id = setInterval(() => setIndex((i) => (i + 1) % total), 6000);
     return () => clearInterval(id);
-  }, [paused, pool.length]);
+  }, [paused, total]);
 
+  // acessibilidade: rols e labels
   return (
-    <section className="relative" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      {/* faixa sutil no topo com a paleta */}
-      <div className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-r from-emerald-600/20 via-emerald-500/10 to-emerald-600/20 blur-sm" />
-
-      <div className="mx-auto max-w-7xl">
-        {/* Cabeçalho */}
-        <div className="text-center">
-          <h2 className="text-[22px] font-semibold tracking-tight text-neutral-900">
-            Depoimentos de quem comprou
-          </h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-neutral-600">
-            Atendimento rápido, aparelhos lacrados com garantia e entrega no prazo.
-          </p>
-
-        {/* Selo de avaliação */}
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5">
-            <div className="flex">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 text-emerald-600" />
-              ))}
-            </div>
-            <span className="text-xs font-medium text-emerald-800">Avaliação média 5/5</span>
-          </div>
+    <section
+      id="depoimentos"
+      aria-label="Depoimentos de clientes"
+      className="mx-auto mt-14 max-w-[1100px] px-4"
+    >
+      <header className="mb-4 flex items-end justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-emerald-400">Confiança</p>
+          <h2 className="text-xl font-extrabold">O que nossos clientes dizem</h2>
         </div>
-
-        {/* Grade de depoimentos (6 por página) */}
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-          {currentPage.map((t, idx) => (
-            <article
-              key={`${t.name}-${idx}`}
-              className="relative rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:shadow-md"
-            >
-              <QuoteMarks />
-
-              {/* Cabeçalho do card */}
-              <div className="flex items-center gap-3">
-                {/* Avatar com iniciais na paleta */}
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-600 to-emerald-500 text-sm font-bold text-white ring-2 ring-emerald-200">
-                  {initials(t.name)}
-                </div>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <h3 className="truncate text-sm font-semibold text-neutral-900">{t.name}</h3>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-600/20">
-                      <Check className="h-3 w-3" />
-                      Verificado
-                    </span>
-                  </div>
-                  <p className="truncate text-xs text-neutral-500">{t.label}</p>
-                </div>
-              </div>
-
-              {/* Estrelas individuais */}
-              <div className="mt-3 flex items-center gap-1">
-                {Array.from({ length: t.rating ?? 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 text-emerald-600" />
-                ))}
-              </div>
-
-              {/* Texto */}
-              <p className="mt-3 text-[13px] leading-relaxed text-neutral-700">
-                {t.text}
-              </p>
-            </article>
-          ))}
-        </div>
-
-        {/* Controles simples (acessíveis) */}
-        <div className="mt-5 flex items-center justify-center gap-2">
+        <div className="hidden gap-2 lg:flex">
           <button
             type="button"
-            onClick={() => setIndex((i) => (i - PAGE_SIZE + pool.length) % pool.length)}
-            className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
-            aria-label="Depoimentos anteriores"
+            onClick={() => setIndex((i) => (i - 1 + total) % total)}
+            className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800"
+            aria-label="Slide anterior"
           >
             Anterior
           </button>
           <button
             type="button"
-            onClick={() => setIndex((i) => (i + PAGE_SIZE) % pool.length)}
-            className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
-            aria-label="Próximos depoimentos"
+            onClick={() => setIndex((i) => (i + 1) % total)}
+            className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800"
+            aria-label="Próximo slide"
           >
-            Próximos
+            Próximo
           </button>
         </div>
+      </header>
 
-        {/* dica sutil de autoplay/pausa */}
+      {/* CARROSSEL */}
+      <div
+        role="region"
+        aria-roledescription="carrossel"
+        aria-label="Carrossel de depoimentos"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        className="relative"
+      >
+        <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-black">
+          <div
+            className="flex transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(-${index * 100}%)`, width: `${total * 100}%` }}
+          >
+            {ALL_TESTIMONIALS.map((t, idx) => (
+              <article
+                key={idx}
+                className="w-full flex-shrink-0 px-6 py-8 lg:px-10"
+                style={{ width: `${100 / total}%` }}
+                aria-roledescription="slide"
+                aria-label={`${idx + 1} de ${total}`}
+              >
+                <div className="mx-auto max-w-[820px]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-emerald-500/20 ring-1 ring-emerald-500/40" />
+                    <div>
+                      <p className="font-semibold">{t.name}</p>
+                      <p className="text-xs text-neutral-400">{t.label}</p>
+                    </div>
+                  </div>
+
+                  <blockquote className="mt-4 text-[15px] leading-relaxed text-neutral-200">
+                    “{t.text}”
+                  </blockquote>
+
+                  {typeof t.rating === "number" && (
+                    <div className="mt-3 flex items-center gap-1" aria-label={`Avaliação ${t.rating} de 5`}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <svg
+                          key={i}
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          className={`h-4 w-4 ${i < (t.rating ?? 0) ? "fill-emerald-400" : "fill-neutral-700"}`}
+                          aria-hidden="true"
+                        >
+                          <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                        </svg>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        {/* Dots + controles mobile */}
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex gap-2">
+            {ALL_TESTIMONIALS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setIndex(i)}
+                className={`h-1.5 w-6 rounded-full transition-all ${
+                  i === index ? "bg-emerald-400" : "bg-neutral-700"
+                }`}
+                aria-label={`Ir para depoimento ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          <div className="flex gap-2 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setIndex((i) => (i - 1 + total) % total)}
+              className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white"
+              aria-label="Anterior"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => setIndex((i) => (i + 1) % total)}
+              className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white"
+              aria-label="Próximo"
+            >
+              Próximo
+            </button>
+          </div>
+        </div>
+
+        {/* instrução sutil */}
         <p className="mt-2 text-center text-[11px] text-neutral-500">
-          Passa automaticamente a cada 8s — passe o mouse para pausar.
+          Deslize para ver mais depoimentos • troca automática a cada 6s.
         </p>
       </div>
     </section>
