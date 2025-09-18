@@ -3,22 +3,22 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 /**
- * Footer — v2 (clean & aligned)
- * - Alinhamento consistente com o restante do site (usa .container).
- * - Tipografia mais discreta; labels em uppercase pequenas.
- * - Ícones minimalistas, mesma espessura; espaçamento confortável.
- * - Social/WhatsApp só aparecem se tiver URL/número (sem botões mortos).
- * - Links institucionais como <Link>; e-mails em mailto:.
+ * Footer — v3
+ * - Remove a faixa preta (sem barra escura no topo do footer).
+ * - Layout limpo, alinhado à .container, espaçamento confortável.
+ * - 3 blocos: Marca + pagamento | Institucional | Contato & Social.
+ * - Ícones minimalistas, consistentes; targets de toque confortáveis.
+ * - Links só rendem se tiver destino (WhatsApp/social via ENV).
  */
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
-  // WhatsApp comercial (mostra apenas se definido)
+  // WhatsApp comercial (apenas se definido)
   const wa = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "").replace(/\D/g, "");
   const waHref = wa ? `https://wa.me/${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.` : "";
 
-  // Redes sociais por ENV
+  // Redes sociais via ENV (somente se houver URL)
   const SOCIAL = [
     { key: "INSTAGRAM", label: "Instagram", Icon: InstaIcon },
     { key: "FACEBOOK", label: "Facebook", Icon: FbIcon },
@@ -34,20 +34,11 @@ export default function Footer() {
 
   return (
     <footer className="mt-16 border-t border-zinc-200 bg-white">
-      {/* Faixa superior */}
-      <div className="bg-brand-gradient text-white">
-        <div className="container flex flex-col gap-2 py-3 sm:grid sm:grid-cols-3">
-          <Feature>Até <strong>10x sem juros</strong> no cartão</Feature>
-          <Feature><strong>Frete Grátis</strong> em aparelhos selecionados</Feature>
-          <Feature>Atendimento humano via <strong>WhatsApp</strong></Feature>
-        </div>
-      </div>
-
-      {/* Conteúdo principal */}
-      <div className="container grid grid-cols-1 gap-10 py-10 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Coluna 1: Sobre */}
+      <div className="container grid grid-cols-1 gap-10 py-10 md:grid-cols-3">
+        {/* Bloco 1 — Marca e pagamento */}
         <div className="space-y-4">
-          <h3 className="text-2xl font-bold text-brand-black">proStore</h3>
+          <Brand />
+
           <p className="text-sm text-zinc-600">
             Especialista em celulares novos com garantia.
           </p>
@@ -63,10 +54,10 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Coluna 2: Institucional */}
+        {/* Bloco 2 — Institucional */}
         <nav aria-label="Institucional" className="space-y-4">
           <Label>Institucional</Label>
-          <ul className="space-y-3 text-sm">
+          <ul className="grid grid-cols-1 gap-3 text-sm">
             <li><FooterLink href="/quem-somos">Quem somos</FooterLink></li>
             <li><FooterLink href="/politica-de-privacidade">Política de Privacidade</FooterLink></li>
             <li><FooterLink href="/termos">Termos de Uso</FooterLink></li>
@@ -74,11 +65,10 @@ export default function Footer() {
           </ul>
         </nav>
 
-        {/* Coluna 3: Atendimento */}
+        {/* Bloco 3 — Contato & Social */}
         <div className="space-y-4">
           <Label>Atendimento</Label>
-
-          <ul className="space-y-3 text-sm">
+          <ul className="grid grid-cols-1 gap-3 text-sm">
             {waHref && (
               <li>
                 <FooterA href={waHref} target="_blank" rel="noopener noreferrer">
@@ -89,7 +79,6 @@ export default function Footer() {
                 </FooterA>
               </li>
             )}
-
             <li>
               <FooterA href="mailto:contato@proStore.com">
                 <span className="inline-flex items-center gap-2">
@@ -98,7 +87,6 @@ export default function Footer() {
                 </span>
               </FooterA>
             </li>
-
             <li>
               <FooterA href="mailto:suporte@proStore.com">
                 <span className="inline-flex items-center gap-2">
@@ -109,12 +97,10 @@ export default function Footer() {
             </li>
           </ul>
 
-          <p className="text-sm text-zinc-600">Seg–Sex, 9h às 18h</p>
-
           {hasSocial && (
-            <div className="pt-2">
-              <p className="text-sm font-medium text-zinc-700">Siga a proStore</p>
-              <div className="mt-3 flex gap-2">
+            <div>
+              <Label>Redes sociais</Label>
+              <div className="mt-2 flex gap-2">
                 {SOCIAL.map(({ href, label, Icon }, i) =>
                   href ? (
                     <Social key={i} href={href} label={label}>
@@ -126,15 +112,14 @@ export default function Footer() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Coluna 4: Selo & Legal */}
-        <div className="space-y-4">
-          <div className="rounded-lg border border-zinc-200 p-3">
-            <p className="text-[11px] text-zinc-600">
-              Site seguro • Certificado SSL ativo
-            </p>
+      {/* Linha legal */}
+      <div className="border-t border-zinc-200">
+        <div className="container flex flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center">
+          <div className="rounded-lg border border-zinc-200 px-3 py-2">
+            <p className="text-[11px] text-zinc-600">Site seguro • Certificado SSL ativo</p>
           </div>
-
           <div className="text-[12px] text-zinc-600">
             <p>© {year} proStore — Todos os direitos reservados.</p>
             {CNPJ && <p>CNPJ {CNPJ} • Vendas para todo o Brasil</p>}
@@ -145,22 +130,23 @@ export default function Footer() {
   );
 }
 
-/* -------------------------- Pequenos componentes -------------------------- */
+/* -------------------------- UI atoms -------------------------- */
+
+function Brand() {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-2xl font-bold text-brand-black">
+        pro<span className="text-accent">Store</span>
+      </span>
+    </div>
+  );
+}
 
 function Label({ children }: { children: ReactNode }) {
   return (
     <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
       {children}
     </p>
-  );
-}
-
-function Feature({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <Check />
-      <span>{children}</span>
-    </div>
   );
 }
 
@@ -206,22 +192,7 @@ function Social({ href, label, children }: { href: string; label: string; childr
   );
 }
 
-function Check({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={`h-5 w-5 flex-none text-white ${className}`}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
+/* -------------------------- Ícones (traço consistente) -------------------------- */
 
 function WaIcon({ className = "" }: { className?: string }) {
   return (
