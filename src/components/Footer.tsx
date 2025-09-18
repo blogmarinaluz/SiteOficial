@@ -2,14 +2,23 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+/**
+ * Footer — v2 (clean & aligned)
+ * - Alinhamento consistente com o restante do site (usa .container).
+ * - Tipografia mais discreta; labels em uppercase pequenas.
+ * - Ícones minimalistas, mesma espessura; espaçamento confortável.
+ * - Social/WhatsApp só aparecem se tiver URL/número (sem botões mortos).
+ * - Links institucionais como <Link>; e-mails em mailto:.
+ */
+
 export default function Footer() {
   const year = new Date().getFullYear();
 
-  // WhatsApp comercial (só mostra se número existir)
+  // WhatsApp comercial (mostra apenas se definido)
   const wa = (process.env.NEXT_PUBLIC_SELLER_NUMBER || "").replace(/\D/g, "");
   const waHref = wa ? `https://wa.me/${wa}?text=Ol%C3%A1%2C%20quero%20atendimento%20pelo%20boleto.` : "";
 
-  // Redes sociais (só renderiza se tiver URL)
+  // Redes sociais por ENV
   const SOCIAL = [
     { key: "INSTAGRAM", label: "Instagram", Icon: InstaIcon },
     { key: "FACEBOOK", label: "Facebook", Icon: FbIcon },
@@ -25,37 +34,26 @@ export default function Footer() {
 
   return (
     <footer className="mt-16 border-t border-zinc-200 bg-white">
-      {/* Faixa de features */}
+      {/* Faixa superior */}
       <div className="bg-brand-gradient text-white">
-        <div className="container grid grid-cols-1 gap-3 py-3 sm:grid-cols-3">
-          <div className="flex items-center gap-2 text-sm">
-            <Check />
-            <span>Até <strong>10x sem juros</strong> no cartão</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Check />
-            <span><strong>Frete Grátis</strong> em aparelhos selecionados</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Check />
-            <span>Atendimento humano via <strong>WhatsApp</strong></span>
-          </div>
+        <div className="container flex flex-col gap-2 py-3 sm:grid sm:grid-cols-3">
+          <Feature>Até <strong>10x sem juros</strong> no cartão</Feature>
+          <Feature><strong>Frete Grátis</strong> em aparelhos selecionados</Feature>
+          <Feature>Atendimento humano via <strong>WhatsApp</strong></Feature>
         </div>
       </div>
 
       {/* Conteúdo principal */}
-      <div className="container grid grid-cols-1 gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Sobre */}
-        <div className="space-y-3">
+      <div className="container grid grid-cols-1 gap-10 py-10 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Coluna 1: Sobre */}
+        <div className="space-y-4">
           <h3 className="text-2xl font-bold text-brand-black">proStore</h3>
           <p className="text-sm text-zinc-600">
             Especialista em celulares novos com garantia.
           </p>
 
-          <div className="mt-4 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Formas de pagamento
-            </p>
+          <div className="space-y-2">
+            <Label>Formas de pagamento</Label>
             <div className="flex flex-wrap gap-2">
               <Badge>Pix</Badge>
               <Badge>Boleto</Badge>
@@ -65,11 +63,9 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Institucional */}
-        <nav aria-label="Institucional" className="space-y-3">
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Institucional
-          </h4>
+        {/* Coluna 2: Institucional */}
+        <nav aria-label="Institucional" className="space-y-4">
+          <Label>Institucional</Label>
           <ul className="space-y-3 text-sm">
             <li><FooterLink href="/quem-somos">Quem somos</FooterLink></li>
             <li><FooterLink href="/politica-de-privacidade">Política de Privacidade</FooterLink></li>
@@ -78,18 +74,16 @@ export default function Footer() {
           </ul>
         </nav>
 
-        {/* Atendimento */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Atendimento
-          </h4>
+        {/* Coluna 3: Atendimento */}
+        <div className="space-y-4">
+          <Label>Atendimento</Label>
 
           <ul className="space-y-3 text-sm">
             {waHref && (
               <li>
                 <FooterA href={waHref} target="_blank" rel="noopener noreferrer">
                   <span className="inline-flex items-center gap-2">
-                    <WaIcon className="h-4 w-4" />
+                    <WaIcon className="h-4 w-4 text-zinc-700" />
                     WhatsApp comercial
                   </span>
                 </FooterA>
@@ -99,7 +93,7 @@ export default function Footer() {
             <li>
               <FooterA href="mailto:contato@proStore.com">
                 <span className="inline-flex items-center gap-2">
-                  <MailIcon className="h-4 w-4" />
+                  <MailIcon className="h-4 w-4 text-zinc-700" />
                   contato@proStore.com
                 </span>
               </FooterA>
@@ -108,7 +102,7 @@ export default function Footer() {
             <li>
               <FooterA href="mailto:suporte@proStore.com">
                 <span className="inline-flex items-center gap-2">
-                  <MailIcon className="h-4 w-4" />
+                  <MailIcon className="h-4 w-4 text-zinc-700" />
                   suporte@proStore.com
                 </span>
               </FooterA>
@@ -117,10 +111,9 @@ export default function Footer() {
 
           <p className="text-sm text-zinc-600">Seg–Sex, 9h às 18h</p>
 
-          {/* Social */}
           {hasSocial && (
             <div className="pt-2">
-              <p className="text-sm font-semibold text-zinc-700">Siga a proStore</p>
+              <p className="text-sm font-medium text-zinc-700">Siga a proStore</p>
               <div className="mt-3 flex gap-2">
                 {SOCIAL.map(({ href, label, Icon }, i) =>
                   href ? (
@@ -134,8 +127,8 @@ export default function Footer() {
           )}
         </div>
 
-        {/* Selo de segurança + legal */}
-        <div className="space-y-3">
+        {/* Coluna 4: Selo & Legal */}
+        <div className="space-y-4">
           <div className="rounded-lg border border-zinc-200 p-3">
             <p className="text-[11px] text-zinc-600">
               Site seguro • Certificado SSL ativo
@@ -152,14 +145,28 @@ export default function Footer() {
   );
 }
 
-/* -------------------------- UI helpers -------------------------- */
+/* -------------------------- Pequenos componentes -------------------------- */
+
+function Label({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      {children}
+    </p>
+  );
+}
+
+function Feature({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Check />
+      <span>{children}</span>
+    </div>
+  );
+}
 
 function FooterLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link
-      href={href}
-      className="text-zinc-700 underline-offset-2 hover:text-brand-black hover:underline"
-    >
+    <Link href={href} className="text-zinc-800 underline-offset-2 hover:text-brand-black hover:underline">
       {children}
     </Link>
   );
@@ -171,11 +178,7 @@ function FooterA({
   ...rest
 }: React.ComponentProps<"a"> & { children: ReactNode }) {
   return (
-    <a
-      href={href}
-      {...rest}
-      className="text-zinc-700 underline-offset-2 hover:text-brand-black hover:underline"
-    >
+    <a href={href} {...rest} className="text-zinc-800 underline-offset-2 hover:text-brand-black hover:underline">
       {children}
     </a>
   );
@@ -189,15 +192,7 @@ function Badge({ children }: { children: ReactNode }) {
   );
 }
 
-function Social({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: ReactNode;
-}) {
+function Social({ href, label, children }: { href: string; label: string; children: ReactNode }) {
   return (
     <a
       href={href}
