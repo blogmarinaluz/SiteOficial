@@ -38,11 +38,10 @@ function familyOf(name: string): Family {
   if (n.includes("pro")) return "Pro";
   if (n.includes("plus")) return "Plus";
   if (n.includes("se")) return "SE";
-  return "iPhone"; // padrão (no "Outros")
+  return "iPhone"; // padrão
 }
 
 function storageOf(p: Product): string {
-  // tenta campo explícito
   const explicit = String(p.storage ?? "").toUpperCase();
   if (/\b(64|128|256|512)\s?GB\b/.test(explicit) || /\b(1|2)\s?TB\b/.test(explicit)) return explicit;
   const n = String(p.name || "").toUpperCase();
@@ -54,21 +53,17 @@ function colorOf(p: Product): string {
   const explicit = String(p.color ?? "");
   if (explicit) return explicit;
   const n = norm(p.name);
-  // cores comuns Apple (português e inglês)
   const colors = [
-    "preto", "black", "meia-noite", "midnight", "grafite", "graphite", "cinza", "starlight",
-    "branco", "white", "prata", "silver", "dourado", "gold", "rosa", "pink",
-    "roxo", "purple", "verde", "green", "azul", "blue", "amarelo", "yellow", "vermelho", "red", "titanium", "titânio"
+    "preto","black","meia-noite","midnight","grafite","graphite","cinza","starlight",
+    "branco","white","prata","silver","dourado","gold","rosa","pink",
+    "roxo","purple","verde","green","azul","blue","amarelo","yellow","vermelho","red","titanium","titânio",
+    "ultramarino","ultramarine","estelar","natural","deserto","acinzentado"
   ];
-  for (const c of colors) {
-    if (n.includes(c)) return capitalize(c.replace("-", " "));
-  }
+  for (const c of colors) if (n.includes(c)) return capitalize(c.replace("-", " "));
   return "";
 }
 
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
+function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 export default function IphoneCategoryPage() {
   const [q, setQ] = useState("");
@@ -76,8 +71,8 @@ export default function IphoneCategoryPage() {
   const [fam, setFam] = useState<Family | "all">("all");
   const [gb, setGb] = useState<string>("all");
   const [col, setCol] = useState<string>("all");
+  const [open, setOpen] = useState(false); // bottom sheet
 
-  // Deriva itens de iPhone do catálogo
   const iphones = useMemo(() => {
     return catalog.filter((p) => {
       const b = norm(p.brand);
@@ -86,7 +81,6 @@ export default function IphoneCategoryPage() {
     });
   }, []);
 
-  // Facetas dinâmicas (armazenamento e cores disponíveis)
   const { storages, colors } = useMemo(() => {
     const ss = new Set<string>();
     const cs = new Set<string>();
@@ -104,7 +98,6 @@ export default function IphoneCategoryPage() {
     return { storages, colors };
   }, [iphones]);
 
-  // Aplica filtros
   const filtered = useMemo(() => {
     let arr = iphones.filter((p) => {
       const name = norm(p.name);
@@ -120,19 +113,20 @@ export default function IphoneCategoryPage() {
     return arr;
   }, [iphones, q, fam, gb, col, sort]);
 
-  // Se nenhuma família escolhida, separamos por família; se o usuário escolher uma, vira uma lista única
+  // Agrupamento por família só quando "Todos"
   const grouped = useMemo(() => {
     if (fam !== "all") return [["", filtered] as const];
     const map = new Map<Family, Product[]>();
     for (const f of FAMILIES) map.set(f, []);
-    for (const p of filtered) {
-      const f = familyOf(p.name);
-      map.get(f)!.push(p);
-    }
+    for (const p of filtered) map.get(familyOf(p.name))!.push(p);
     return Array.from(map.entries()).filter(([, list]) => list.length > 0);
   }, [filtered, fam]);
 
   const total = filtered.length;
+
+  function clearAll() {
+    setFam("all"); setGb("all"); setCol("all"); setQ("");
+  }
 
   return (
     <main className="container px-5 sm:px-6 py-8 sm:py-10">
@@ -143,7 +137,13 @@ export default function IphoneCategoryPage() {
           <h1 className="text-2xl font-semibold text-zinc-900">iPhone</h1>
 
           <div className="flex items-center gap-2">
-            <div className="hidden text-sm text-zinc-600 sm:block">{total} {total === 1 ? "modelo" : "modelos"}</div>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800"
+            >
+              Filtros
+            </button>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
@@ -157,62 +157,19 @@ export default function IphoneCategoryPage() {
           </div>
         </div>
 
-        {/* Busca + Facetas */}
-        <div className="mt-3 grid gap-2">
-          {/* Busca */}
-          <div className="flex items-center rounded-2xl border border-zinc-300 bg-white/60 p-1.5">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por modelo (ex.: 15 Pro 256 GB Titânio Azul)"
-              className="flex-1 bg-transparent px-2 text-sm text-zinc-800 placeholder:text-zinc-500 focus:outline-none"
-              aria-label="Buscar iPhone"
-            />
-            {q && (
-              <button
-                type="button"
-                onClick={() => setQ("")}
-                className="rounded-xl px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
-                aria-label="Limpar busca"
-              >
-                Limpar
-              </button>
-            )}
-          </div>
-
-          {/* Facetas: Família / Armazenamento / Cor */}
-          <div className="flex flex-wrap items-center gap-2">
-            <FacetChips
-              label="Modelo"
-              value={fam}
-              onChange={(v) => setFam(v as any)}
-              options={[{ value: "all", label: "Todos" }, ...FAMILIES.map((f) => ({ value: f, label: f }))]}
-            />
-            <FacetChips
-              label="Capacidade"
-              value={gb}
-              onChange={setGb}
-              options={[{ value: "all", label: "Todas" }, ...storages.map((s) => ({ value: s, label: s }))]}
-            />
-            <FacetChips
-              label="Cor"
-              value={col}
-              onChange={setCol}
-              options={[{ value: "all", label: "Todas" }, ...colors.map((c) => ({ value: c, label: c }))]}
-            />
-            {(fam !== "all" || gb !== "all" || col !== "all" || q) && (
-              <button
-                type="button"
-                onClick={() => { setFam("all"); setGb("all"); setCol("all"); setQ(""); }}
-                className="ml-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-zinc-700"
-              >
-                Limpar filtros
-              </button>
-            )}
-          </div>
+        {/* status compacto */}
+        <div className="mt-2 text-sm text-zinc-600">
+          {total} {total === 1 ? "modelo" : "modelos"} •
+          {" "}{fam === "all" ? "Todos os modelos" : `Modelo: ${fam}`}
+          {gb !== "all" && ` • ${gb}`}
+          {col !== "all" && ` • ${capitalize(col)}`}
+          {(fam !== "all" || gb !== "all" || col !== "all" || q) && (
+            <button onClick={clearAll} className="ml-2 underline underline-offset-2">Limpar</button>
+          )}
         </div>
       </header>
 
+      {/* Listagens */}
       {grouped.length === 0 ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-700">
           Não encontramos modelos com os filtros aplicados. Ajuste os filtros ou fale com nosso
@@ -251,12 +208,81 @@ export default function IphoneCategoryPage() {
           ))}
         </div>
       )}
+
+      {/* Bottom sheet de filtros */}
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/50"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-zinc-200 bg-white p-4 shadow-2xl sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-[560px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
+          >
+            <header className="mb-3 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-zinc-900">Filtros</h3>
+              <button onClick={() => setOpen(false)} className="rounded-xl px-3 py-1.5 text-sm hover:bg-zinc-100">Fechar</button>
+            </header>
+
+            <div className="grid gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">Buscar</label>
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Ex.: 15 Pro 256 GB Titânio Azul"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Select
+                  label="Modelo"
+                  value={fam}
+                  onChange={(v) => setFam(v as any)}
+                  options={[{ value: "all", label: "Todos" }, ...FAMILIES.map((f) => ({ value: f, label: f }))]}
+                />
+                <Select
+                  label="Capacidade"
+                  value={gb}
+                  onChange={setGb}
+                  options={[{ value: "all", label: "Todas" }, ...storages.map((s) => ({ value: s, label: s }))]}
+                />
+                <Select
+                  label="Cor"
+                  value={col}
+                  onChange={setCol}
+                  options={[{ value: "all", label: "Todas" }, ...colors.map((c) => ({ value: c, label: c }))]}
+                />
+              </div>
+            </div>
+
+            <footer className="mt-4 flex items-center justify-between gap-2">
+              <button
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800"
+                onClick={clearAll}
+              >
+                Limpar tudo
+              </button>
+              <button
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                onClick={() => setOpen(false)}
+              >
+                Ver {total} {total === 1 ? "modelo" : "modelos"}
+              </button>
+            </footer>
+          </div>
+        </>
+      )}
     </main>
   );
 }
 
-/* ------------------------ UI: Facet chips ------------------------ */
-function FacetChips<T extends string>({
+/* ---------------------- UI: Select minimalista ---------------------- */
+function Select<T extends string>({
   label,
   value,
   onChange,
@@ -268,29 +294,17 @@ function FacetChips<T extends string>({
   options: { value: T | "all"; label: string }[];
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</span>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((opt) => {
-          const active = value === opt.value;
-          return (
-            <button
-              key={String(opt.value)}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              className={[
-                "rounded-full px-3 py-1.5 text-xs",
-                active
-                  ? "bg-emerald-600 text-white"
-                  : "border border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400"
-              ].join(" ")}
-              aria-pressed={active}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as any)}
+        className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800"
+      >
+        {options.map((o) => (
+          <option key={String(o.value)} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </label>
   );
 }
