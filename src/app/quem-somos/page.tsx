@@ -1,53 +1,72 @@
-export const revalidate = 86400;
+// src/app/quem-somos/page.tsx
+import type { Metadata } from "next";
 
-export default function Page() {
+export const metadata: Metadata = {
+  title: "Quem somos | proStore",
+  description:
+    "Conheça a proStore: missão, valores, diferenciais, operação logística, segurança e dados da empresa.",
+};
+
+export default function AboutPage() {
+  const CNPJ = process.env.NEXT_PUBLIC_CNPJ || "00.000.000/0000-00";
+
   return (
-    <main className="container py-8">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Quem somos</h1>
-      <p className="mt-2 text-zinc-600">
-        A <strong>proStore</strong> é especializada na venda de celulares novos, com garantia e
-        atendimento humanizado. Unimos preço competitivo, curadoria de modelos e uma experiência
-        simples para que você compre com tranquilidade.
-      </p>
+    <main className="container px-5 sm:px-6 py-10">
+      <header className="mb-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Institucional</p>
+        <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Quem somos</h1>
+        <p className="mt-2 max-w-prose text-zinc-600">
+          Somos especialistas em celulares novos com garantia, combinando preço competitivo
+          com uma experiência de compra segura e atendimento humano.
+        </p>
+      </header>
 
-      <section className="mt-8 grid gap-6 md:grid-cols-2">
-        <article className="card">
-          <h2 className="text-lg font-semibold">Missão</h2>
-          <p className="mt-2 text-zinc-600">
-            Tornar a compra de smartphones mais transparente, segura e acessível, do primeiro acesso
-            até a entrega.
+      <article className="mx-auto max-w-2xl space-y-8 rounded-2xl border border-zinc-200 bg-white p-6">
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">Propósito</h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-700">
+            Democratizar o acesso a tecnologia de ponta, com transparência, responsabilidade e
+            respeito ao consumidor. Acreditamos que um bom atendimento é tão importante quanto um bom preço.
           </p>
-        </article>
+        </section>
 
-        <article className="card">
-          <h2 className="text-lg font-semibold">Valores</h2>
-          <ul className="mt-2 bullets text-zinc-600 space-y-1">
-            <li>Transparência e respeito ao cliente</li>
-            <li>Cumprimento de prazos e promessas</li>
-            <li>Garantia real e suporte após a compra</li>
-            <li>Melhoria contínua de produtos e processos</li>
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">Como garantimos preços melhores</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700">
+            <li>Parcerias diretas com distribuidores homologados;</li>
+            <li>Operação enxuta de e‑commerce (sem lojas físicas);</li>
+            <li>Logística com centros regionais e fretes otimizados.</li>
           </ul>
-        </article>
-
-        <article className="card">
-          <h2 className="text-lg font-semibold">Diferenciais</h2>
-          <ul className="mt-2 bullets text-zinc-600 space-y-1">
-            <li>Parcelamento em até 10x sem juros</li>
-            <li>Seleção de modelos com estoque imediato</li>
-            <li>Equipe de análise para pagamento via boleto</li>
-            <li>Atendimento via WhatsApp com status do pedido</li>
-          </ul>
-        </article>
-
-        <article className="card">
-          <h2 className="text-lg font-semibold">Fale conosco</h2>
-          <p className="mt-2 text-zinc-600">
-            E-mail comercial: <a className="underline" href="mailto:contato@proStore.com">contato@proStore.com</a><br />
-            Suporte: <a className="underline" href="mailto:suporte@proStore.com">suporte@proStore.com</a><br />
-            WhatsApp: <a className="underline" href="https://wa.me/5599984905715" target="_blank">+55 (99) 98490-5715</a>
+          <p className="mt-2 text-sm text-zinc-700">
+            Tudo isso sem abrir mão de <strong>NF‑e</strong>, garantia oficial e canais de suporte.
           </p>
-        </article>
-      </section>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">Diferenciais</h2>
+          <ul className="mt-2 grid list-none grid-cols-1 gap-3 text-sm text-zinc-700 sm:grid-cols-2">
+            <li className="rounded-lg border border-zinc-200 p-3">Atendimento humano via WhatsApp</li>
+            <li className="rounded-lg border border-zinc-200 p-3">Nota Fiscal e garantia em todos os pedidos</li>
+            <li className="rounded-lg border border-zinc-200 p-3">Pagamento no Pix, Boleto (à vista e parcelado) e Cartão</li>
+            <li className="rounded-lg border border-zinc-200 p-3">Rastreio em tempo real e seguro de transporte</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">Segurança e privacidade</h2>
+          <p className="mt-2 text-sm text-zinc-700">
+            Utilizamos criptografia TLS e práticas rígidas de proteção de dados. Suas informações
+            são tratadas conforme nossa <a className="underline underline-offset-2" href="/politica-de-privacidade">Política de Privacidade</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-medium text-zinc-900">Dados da empresa</h2>
+          <p className="mt-2 text-sm text-zinc-700">
+            CNPJ: <span className="font-medium">{CNPJ}</span> — vendas para todo o Brasil.
+          </p>
+        </section>
+      </article>
     </main>
   );
 }
