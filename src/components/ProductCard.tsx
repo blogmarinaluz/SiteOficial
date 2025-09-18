@@ -68,27 +68,33 @@ export default function ProductCard({ product }: { product: P }) {
         </div>
       )}
 
-      {/* Imagem do produto (fundo branco para harmonizar com fotos que já são brancas) */}
+      {/* Imagem do produto – frame consistente */}
       <Link href={href} className="block">
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-white ring-1 ring-neutral-200/60">
-          {imgOk && image ? (
-            <Image
-              src={image}
-              alt={name || brand || "produto"}
-              fill
-              priority={false}
-              sizes="(max-width: 768px) 80vw, 33vw"
-              className="object-contain transition-transform duration-300 group-hover:scale-[1.02]"
-              unoptimized={unoptimized}
-              onError={() => setImgOk(false)}
-            />
-          ) : (
-            <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-white to-neutral-50">
-              <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs text-neutral-700">
-                imagem indisponível
-              </span>
-            </div>
-          )}
+        {/* Altura fixa responsiva + moldura branca para padronizar */}
+        <div className="relative w-full h-[240px] sm:h-[230px] md:h-[220px] bg-white">
+          {/* Moldura com padding, borda e leve sombra para destacar */}
+          <div className="absolute inset-3 rounded-xl bg-white ring-1 ring-neutral-200/70 shadow-[0_1px_6px_rgba(0,0,0,0.04)]" />
+          {/* Área útil para a imagem (respeita o padding da moldura) */>
+          <div className="absolute inset-3 rounded-xl overflow-hidden">
+            {imgOk && image ? (
+              <Image
+                src={image}
+                alt={name || brand || "produto"}
+                fill
+                priority={false}
+                sizes="(max-width: 768px) 80vw, 33vw"
+                className="object-contain"
+                unoptimized={unoptimized}
+                onError={() => setImgOk(false)}
+              />
+            ) : (
+              <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-white to-neutral-50">
+                <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs text-neutral-700">
+                  imagem indisponível
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </Link>
 
