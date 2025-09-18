@@ -1,28 +1,38 @@
-// src/app/entrar/[[...sign-in]]/page.tsx
-import { SignIn } from "@clerk/nextjs";
+// src/app/cadastrar/[[...sign-up]]/page.tsx
+import { SignUp } from "@clerk/nextjs";
+import Image from "next/image";
 
 export const metadata = {
-  title: "Entrar — proStore",
+  title: "Criar conta — proStore",
 };
 
-export default function EntrarPage() {
+export default function CadastrarPage() {
   return (
     <main className="container-safe py-10 min-h-[70vh]">
       <div className="mx-auto max-w-md">
-        {/* Cabeçalho customizado da marca */}
+        {/* Cabeçalho customizado com logo */}
         <div className="mb-6 text-center">
-          <div className="inline-flex items-center justify-center rounded-2xl bg-emerald-500/10 px-4 py-2 text-emerald-400">
-            <span className="font-semibold">proStore</span>
+          <div className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/10 px-4 py-2">
+            <Image
+              src="/logo-prostore.svg" // troque para .png se preferir
+              alt="proStore"
+              width={28}
+              height={28}
+              className="h-7 w-7"
+              priority
+            />
+            <span className="font-semibold text-emerald-400">proStore</span>
           </div>
+
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-            Entre na sua conta
+            Crie sua conta
           </h1>
           <p className="mt-1 text-sm text-white/70">
-            Acesse seu histórico de pedidos, dados e preferências.
+            Cadastre-se para acompanhar pedidos e receber ofertas.
           </p>
         </div>
 
-        <SignIn
+        <SignUp
           appearance={{
             variables: {
               colorPrimary: "#10b981", // emerald-500
@@ -44,7 +54,6 @@ export default function EntrarPage() {
               formHeader: "hidden",
             },
           }}
-          // mantém seu fluxo de redirect
           fallbackRedirectUrl="/minha-conta"
           forceRedirectUrl="/minha-conta"
         />
