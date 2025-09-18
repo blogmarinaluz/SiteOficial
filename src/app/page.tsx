@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import Testimonials from "@/components/Testimonials";
 import productsData from "@/data/products.json";
@@ -64,7 +64,6 @@ function HomeSEO() {
       document.title = title;
       setMetaTag("description", description);
       setCanonical(url);
-
       setMetaProperty("og:title", title);
       setMetaProperty("og:description", description);
       setMetaProperty("og:type", "website");
@@ -101,8 +100,8 @@ function HomeSEO() {
 
 /* ======================= Catálogo / util ======================= */
 type P = any;
-
 const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
+
 const isBrand = (p: P, target: "apple" | "samsung") => {
   const b = norm(p?.brand);
   const n = norm(`${p?.brand} ${p?.name}`);
@@ -114,17 +113,37 @@ const score = (p: P) => {
   const len = String(p?.name || "").length;
   return price * 0.9 + len * 10;
 };
+const sortByScore = (arr: P[]) => [...arr].sort((a, b) => score(a) - score(b));
 
-const pickTop = (arr: P[], n: number) => [...arr].sort((a, b) => score(a) - score(b)).slice(0, n);
-
-function interleave<A>(a: A[], b: A[]) {
-  const res: A[] = [];
-  const len = Math.max(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    if (a[i]) res.push(a[i]);
-    if (b[i]) res.push(b[i]);
+function interleaveUnique(a: P[], b: P[], want: number, picked: Set<string>) {
+  const out: P[] = [];
+  let i = 0, j = 0;
+  while (out.length < want && (i < a.length || j < b.length)) {
+    if (i < a.length) {
+      const pa = a[i++];
+      const id = String(pa?.id);
+      if (!picked.has(id)) { picked.add(id); out.push(pa); }
+      if (out.length >= want) break;
+    }
+    if (j < b.length) {
+      const pb = b[j++];
+      const id = String(pb?.id);
+      if (!picked.has(id)) { picked.add(id); out.push(pb); }
+    }
   }
-  return res;
+  return out;
+}
+
+function takeUnique(source: P[], want: number, picked: Set<string>) {
+  const out: P[] = [];
+  for (const p of source) {
+    if (out.length >= want) break;
+    const id = String(p?.id);
+    if (picked.has(id)) continue;
+    picked.add(id);
+    out.push(p);
+  }
+  return out;
 }
 
 function mulberry32(seed: number) {
@@ -136,7 +155,7 @@ function mulberry32(seed: number) {
   };
 }
 
-function pickRandomIdsStable(list: P[], n: number, seed = 12345) {
+function pickRandomIdsStable(list: P[], n: number, seed = 202409) {
   const rnd = mulberry32(seed);
   const arr = [...list];
   const chosen = new Set<string>();
@@ -148,30 +167,45 @@ function pickRandomIdsStable(list: P[], n: number, seed = 12345) {
   return chosen;
 }
 
+/* ======================= Página ======================= */
 export default function Page() {
-  const raw: P[] = productsData as any[];
+  const raw: P[] = (productsData as any[]) ?? [];
 
-  // Frete grátis em 20 produtos (estável)
+  // ~20 com frete grátis (estável)
   const FREE_COUNT = 20;
-  const freeIds = pickRandomIdsStable(raw, FREE_COUNT, 202409);
-  const all: P[] = raw.map((p) => ({
-    ...p,
-    freeShipping: freeIds.has(String(p?.id)),
-  }));
+  const freeIds = useMemo(() => pickRandomIdsStable(raw, FREE_COUNT, 202409), [raw]);
+  const all: P[] = useMemo(
+    () =>
+      raw.map((p) => ({
+        ...p,
+        freeShipping: freeIds.has(String(p?.id)),
+      })),
+    [raw, freeIds]
+  );
 
-  // 1) Celulares em Oferta: 4 Samsung + 4 Apple
-  const samsungs = pickTop(all.filter((p) => isBrand(p, "samsung")), 4);
-  const apples = pickTop(all.filter((p) => isBrand(p, "apple")), 4);
-  const emOferta = interleave(samsungs, apples).slice(0, 8);
+  // Listas ordenadas
+  const byScore = useMemo(() => sortByScore(all), [all]);
+  const samsungs = useMemo(() => sortByScore(all.filter((p) => isBrand(p, "samsung"))), [all]);
+  const apples = useMemo(() => sortByScore(all.filter((p) => isBrand(p, "apple"))), [all]);
 
-  // 2) Ofertas do dia | BBB
-  const ofertasDia = pickTop(all, 8);
+  // Garantir que NÃO haja repetição entre seções
+  const picked = new Set<string>();
 
-  // 3) Ofertas em Destaque
-  const destaque = pickTop(all, 12);
-  const destaqueSafe = destaque.length >= 8 ? destaque : all.slice(0, 12);
+  // 1) Celulares em Oferta (8): intercalar Samsung + Apple
+  const emOferta = interleaveUnique(samsungs, apples, 8, picked);
 
-  // Newsletter
+  // 2) Ofertas do dia | BBB (8): próximos melhores sem repetir
+  const ofertasDia = takeUnique(byScore, 8, picked);
+
+  // 3) Ofertas em Destaque (12): próximos sem repetir
+  const destaque = takeUnique(byScore, 12, picked);
+
+  // Fallback seguro se faltar produto
+  const restante = byScore.filter((p) => !picked.has(String(p?.id)));
+  while (ofertasDia.length < 8 && restante.length) ofertasDia.push(restante.shift()!);
+  while (destaque.length < 12 && restante.length) destaque.push(restante.shift()!);
+
+  // Newsletter state
   const [nlName, setNlName] = useState("");
   const [nlEmail, setNlEmail] = useState("");
   const [nlMsg, setNlMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
@@ -268,7 +302,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* 3) Depoimentos (entre Ofertas e BBB) */}
+      {/* 3) Depoimentos */}
       <section className="mt-10 mx-auto max-w-[1100px] px-4">
         <Testimonials />
       </section>
@@ -339,9 +373,8 @@ export default function Page() {
                 <button
                   type="button"
                   onClick={exportCsv}
-                  className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-white/20"
-                  title="Exportar e-mails cadastrados (CSV)"
-                >
+                  className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text白
+                  ">
                   Baixar cadastros (CSV)
                 </button>
               )}
@@ -368,7 +401,7 @@ export default function Page() {
           <h2 className="text-xl font-extrabold">Ofertas em Destaque</h2>
         </div>
         <div className="mt-4">
-          <ProductGrid products={destaqueSafe as any[]} />
+          <ProductGrid products={destaque as any[]} />
         </div>
       </section>
     </main>
