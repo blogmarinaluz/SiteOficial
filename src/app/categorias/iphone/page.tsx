@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import productsData from "@/data/products.json";
+import ProductCard from "@/components/ProductCard";
 
 type Product = {
   id: string;
@@ -32,10 +33,6 @@ function familyOf(name: string) {
 const PRICE_ASC = "price-asc";
 const PRICE_DESC = "price-desc";
 const NAME_ASC = "name-asc";
-
-function idNoExt(id: string) {
-  return String(id || "").split(".")[0];
-}
 
 function norm(v: unknown) {
   return String(v ?? "")
@@ -147,12 +144,12 @@ export default function IphoneCategoryPage() {
                 <div className="text-sm text-zinc-500">{list.length} {list.length === 1 ? "item" : "itens"}</div>
               </div>
 
-              {/* Mobile: carrossel horizontal elegante; Desktop: grid */}
+              {/* Mobile: carrossel horizontal; Desktop: grid */}
               <div className="lg:hidden">
                 <ul className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1.5">
                   {list.map((p) => (
-                    <li key={p.id} className="min-w-[78%] snap-center sm:min-w-[360px]">
-                      <Card product={p} />
+                    <li key={p.id} className="min-w-[85%] snap-center sm:min-w-[360px]">
+                      <ProductCard product={p as any} />
                     </li>
                   ))}
                 </ul>
@@ -161,7 +158,7 @@ export default function IphoneCategoryPage() {
               <ul className="hidden grid-cols-3 gap-4 lg:grid xl:grid-cols-4">
                 {list.map((p) => (
                   <li key={p.id}>
-                    <Card product={p} />
+                    <ProductCard product={p as any} />
                   </li>
                 ))}
               </ul>
@@ -170,54 +167,5 @@ export default function IphoneCategoryPage() {
         </div>
       )}
     </main>
-  );
-}
-
-function Card({ product }: { product: Product }) {
-  const img = product.image || product.images?.[0];
-  const price = Number(product.price ?? 0);
-  const hasPrice = !Number.isNaN(price) && price > 0;
-
-  return (
-    <Link
-      href={`/produto/${idNoExt(String(product.id))}`}
-      className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md"
-    >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-100">
-        {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={img}
-            alt={product.name}
-            className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
-        ) : (
-          <div className="grid h-full place-items-center text-xs text-zinc-400">Sem imagem</div>
-        )}
-
-        {/* Selo */}
-        <span className="absolute left-3 top-3 rounded-md bg-emerald-600/90 px-2 py-1 text-[11px] font-semibold text-white shadow-sm">
-          NF‑e & Garantia
-        </span>
-      </div>
-
-      <div className="p-3">
-        <h3 className="line-clamp-2 min-h-[2.75rem] text-sm font-medium text-zinc-900">{product.name}</h3>
-        <div className="mt-1 text-[13px] text-zinc-600">Apple iPhone</div>
-        <div className="mt-2 flex items-center justify-between">
-          {hasPrice ? (
-            <span className="text-sm font-semibold text-zinc-900">
-              {price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-            </span>
-          ) : (
-            <span className="text-sm font-medium text-zinc-500">Consultar</span>
-          )}
-          <span className="rounded-full border border-zinc-300 px-2 py-1 text-[11px] font-medium text-zinc-700">
-            Ver detalhes
-          </span>
-        </div>
-      </div>
-    </Link>
   );
 }
