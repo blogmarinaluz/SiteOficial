@@ -1,6 +1,7 @@
 // src/styles/clerkAppearance.ts
 import type { Appearance } from "@clerk/types";
 
+// Tema branco, sem cartões/gradientes. Foco em legibilidade mobile.
 export const clerkAppearance: Appearance = {
   layout: {
     shimmer: false,
@@ -13,31 +14,31 @@ export const clerkAppearance: Appearance = {
   },
   variables: {
     colorPrimary: "#10b981",
-    colorText: "#e5e7eb",
+    colorText: "#111827",
     colorBackground: "transparent",
-    borderRadius: "14px",
+    borderRadius: "12px",
     fontSize: "16px",
   },
   elements: {
+    // Sem card visual do Clerk
     card: "bg-transparent border-0 shadow-none p-0",
     header: "hidden",
     form: "space-y-3",
     formField: "space-y-1.5",
-    // LABEL: branco puro e sem translucidez
-    formFieldLabel: "text-[13px] font-medium text-white",
-    // INPUT: branco, borda suave, texto escuro, placeholder legível
-    formFieldInput: "h-12 rounded-xl bg-white text-gray-900 placeholder:text-gray-500 border border-white/30 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500",
-    // BOTÃO: elegante, pill, sólido, sombra leve e ring inset
-    formButtonPrimary: "h-12 rounded-full font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md ring-1 ring-inset ring-white/10 transition active:scale-[0.99]",
-    button: "rounded-full h-11",
+    // LABELS PRETOS
+    formFieldLabel: "text-[13px] font-medium text-black",
+    // INPUT branco com texto escuro e borda cinza
+    formFieldInput: "h-12 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 border border-gray-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600",
+    // BOTÃO sólido, sem gradiente, compacto
+    formButtonPrimary: "h-12 rounded-lg font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm active:scale-[0.99]",
+    button: "rounded-lg h-11",
+    // Social button discreto (fundo branco, borda cinza)
+    socialButtonsBlockButton: "h-11 rounded-lg bg-white text-gray-900 border border-gray-300 hover:bg-gray-50",
+    alternativeMethodsBlockButton: "h-11 rounded-lg",
     dividerRow: "my-2",
-    dividerLine: "bg-white/20",
-    dividerText: "text-xs text-white/85",
-    identityPreview: "rounded-xl bg-white/10",
-    avatarBox: "ring-2 ring-white/20",
-    socialButtonsBlockButton: "h-11 rounded-full bg-white text-gray-900 hover:bg-white/90",
-    alternativeMethodsBlockButton: "h-11 rounded-full",
-    formFieldError: "text-red-300 text-sm",
+    dividerLine: "bg-gray-200",
+    dividerText: "text-xs text-gray-500",
+    formFieldError: "text-red-600 text-sm",
     footer: "hidden",
   },
 };
