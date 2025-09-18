@@ -3,17 +3,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * Depoimentos — carrossel mobile-first (somente swipe)
- * - Sem setas/botões: navegação por deslize e dots.
- * - Autoplay a cada 6s (pausa ao interagir; respeita prefers-reduced-motion).
- * - Visual preto + verde; acessível com ARIA.
+ * Depoimentos — v3
+ * Melhorias:
+ * - Visual premium, alinhamento e fundo elegante (neutral-950 + sutil gradient overlay).
+ * - Dots sem "scale" (evita micro saltos de layout).
+ * - Autoplay NÃO desloca a página: usa scrollLeft do viewport, nunca scrollIntoView.
+ * - Autoplay só roda se o carrossel estiver visível (≥40% na tela) e pausa ao interagir.
+ * - Somente swipe (sem setas), acessível.
  */
 
 type Testimonial = {
   name: string;
-  label: string;   // cidade/estado ou contexto
+  label: string;
   text: string;
-  rating?: number; // 1..5
+  rating?: number;
 };
 
 const ALL_TESTIMONIALS: Testimonial[] = [
@@ -82,17 +85,17 @@ export default function Testimonials() {
   const items = useMemo(() => ALL_TESTIMONIALS, []);
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const slideRefs = useRef<HTMLDivElement[]>([]);
   const [index, setIndex] = useState(0);
   const count = items.length;
   const autoplayMs = 6000;
 
-  // Atualiza índice ativo pelo IntersectionObserver
+  // Atualiza índice ativo conforme visibilidade dos cards no viewport horizontal
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
 
-    const slides = Array.from(viewport.querySelectorAll<HTMLElement>("[data-slide]"));
-    const io = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
           .filter((e) => e.isIntersecting)
@@ -104,50 +107,71 @@ export default function Testimonials() {
       },
       { root: viewport, threshold: [0.5, 0.75, 0.9] }
     );
-    slides.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+
+    slideRefs.current.forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
-  // Autoplay com respeito a prefers-reduced-motion
+  // Autoplay: usa scrollLeft para NÃO mexer no scroll da página
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+
     const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (mql.matches) return;
 
     let paused = false;
-    const pause = () => (paused = true);
-    const resume = () => (paused = false);
 
-    viewport.addEventListener("pointerdown", pause, { passive: true });
-    viewport.addEventListener("touchstart", pause, { passive: true });
-    viewport.addEventListener("focusin", pause);
-    viewport.addEventListener("pointerup", resume);
-    viewport.addEventListener("mouseleave", resume);
+    const setPaused = (v: boolean) => (paused = v);
+    const onPointerDown = () => setPaused(true);
+    const onPointerUp = () => setPaused(false);
+    const onVisibility = () => setPaused(document.visibilityState !== "visible");
+
+    viewport.addEventListener("pointerdown", onPointerDown, { passive: true });
+    viewport.addEventListener("touchstart", onPointerDown, { passive: true });
+    viewport.addEventListener("pointerup", onPointerUp, { passive: true });
+    viewport.addEventListener("mouseleave", onPointerUp, { passive: true });
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Pausa autoplay se o carrossel estiver pouco visível na janela (menos de 40%)
+    const rootObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setPaused(!(entry?.intersectionRatio >= 0.4));
+      },
+      { root: null, threshold: [0, 0.4, 1] }
+    );
+    rootObserver.observe(viewport);
 
     const id = window.setInterval(() => {
       if (paused) return;
-      goTo(index + 1);
+      goTo(index + 1, { smooth: true });
     }, autoplayMs);
 
     return () => {
       window.clearInterval(id);
-      viewport.removeEventListener("pointerdown", pause);
-      viewport.removeEventListener("touchstart", pause);
-      viewport.removeEventListener("focusin", pause);
-      viewport.removeEventListener("pointerup", resume);
-      viewport.removeEventListener("mouseleave", resume);
+      viewport.removeEventListener("pointerdown", onPointerDown);
+      viewport.removeEventListener("touchstart", onPointerDown);
+      viewport.removeEventListener("pointerup", onPointerUp);
+      viewport.removeEventListener("mouseleave", onPointerUp);
+      document.removeEventListener("visibilitychange", onVisibility);
+      rootObserver.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
-  function goTo(i: number) {
+  function goTo(i: number, opts: { smooth?: boolean } = {}) {
     const viewport = viewportRef.current;
     if (!viewport) return;
-    const slides = viewport.querySelectorAll<HTMLElement>("[data-slide]");
     const next = ((i % count) + count) % count;
-    const el = slides[next];
-    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    const slide = slideRefs.current[next];
+    if (!slide) return;
+
+    const left = slide.offsetLeft - (viewport.clientWidth - slide.clientWidth) / 2;
+    viewport.scrollTo({
+      left,
+      behavior: opts.smooth ? "smooth" : "auto",
+    });
   }
 
   return (
@@ -167,8 +191,8 @@ export default function Testimonials() {
         </h2>
       </div>
 
-      {/* Viewport */}
       <div className="relative">
+        {/* Viewport com scroll-snap horizontal */}
         <div
           ref={viewportRef}
           className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
@@ -178,36 +202,49 @@ export default function Testimonials() {
           {items.map((t, i) => (
             <article
               key={i}
-              data-slide
               data-index={i}
+              ref={(el) => {
+                if (el) slideRefs.current[i] = el;
+              }}
               role="listitem"
-              className="min-w-[88%] snap-center rounded-2xl bg-brand-black px-4 py-5 text-white shadow-md ring-1 ring-black/10 sm:min-w-[520px]"
+              className="relative min-w-[88%] snap-center rounded-2xl bg-neutral-950 px-4 py-5 text-white shadow-md ring-1 ring-white/10 sm:min-w-[520px]"
+              style={{ contain: "content" }}
             >
-              <div className="flex items-center justify-between">
+              {/* overlay de brilho suave */}
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_60%_at_10%_0%,rgba(255,255,255,0.06),transparent)]" />
+
+              <div className="relative flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold">{t.name}</h3>
                   <p className="text-xs text-neutral-300">{t.label}</p>
                 </div>
                 <Stars n={t.rating ?? 5} />
               </div>
-              <p className="mt-3 text-sm leading-relaxed text-neutral-100">
+              <p className="relative mt-3 text-sm leading-relaxed text-neutral-100">
                 {t.text}
               </p>
+
+              {/* aspas decorativas discretas */}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="pointer-events-none absolute -right-1 -top-1 h-7 w-7 text-white/10"
+              >
+                <path d="M10 7H6a4 4 0 0 0-4 4v6h6V7Zm12 0h-4a4 4 0 0 0-4 4v6h6V7Z" fill="currentColor" />
+              </svg>
             </article>
           ))}
         </div>
 
-        {/* Dots centralizados */}
+        {/* Dots centralizados sem escala (evita 'pulo') */}
         <div className="mt-3 flex w-full items-center justify-center gap-2" aria-label="Navegação dos depoimentos">
           {items.map((_, i) => (
             <button
               key={i}
-              onClick={() => goTo(i)}
+              onClick={() => goTo(i, { smooth: true })}
               aria-label={`Ir para depoimento ${i + 1}`}
               aria-current={index === i ? "true" : "false"}
-              className={`h-2 w-2 rounded-full transition-transform ${
-                index === i ? "scale-125 bg-accent" : "bg-neutral-400"
-              }`}
+              className={`h-2 w-2 rounded-full border transition-opacity ${index === i ? "border-accent bg-accent/90" : "border-neutral-400/80 bg-neutral-300/80"}`}
             />
           ))}
         </div>
