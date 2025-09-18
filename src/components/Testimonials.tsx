@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * Depoimentos — v3 (fix TS)
- * - Corrige o erro de tipo no Vercel: <article> é HTMLElement (não HTMLDivElement).
- * - Restante igual: sem scroll jump, swipe-only, dots elegantes.
+ * Depoimentos — v4 (visual claro e elegante)
+ * - Card branco com borda sutil e sombra leve (look enterprise).
+ * - Mantém swipe-only, autoplay sem "pulo" de página (usa scrollLeft).
+ * - Dots discretos; tipografia mais leve.
+ * - TS fix: slideRefs é HTMLElement[] (pois o card é <article>).
  */
 
 type Testimonial = {
@@ -40,11 +42,12 @@ export default function Testimonials() {
   const items = useMemo(() => ALL_TESTIMONIALS, []);
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const slideRefs = useRef<HTMLElement[]>([]); // FIX: HTMLElement[]
+  const slideRefs = useRef<HTMLElement[]>([]);
   const [index, setIndex] = useState(0);
   const count = items.length;
   const autoplayMs = 6000;
 
+  // Índice ativo via IntersectionObserver no viewport horizontal
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -66,6 +69,7 @@ export default function Testimonials() {
     return () => observer.disconnect();
   }, []);
 
+  // Autoplay que não desloca a página
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -150,25 +154,24 @@ export default function Testimonials() {
                 if (el) slideRefs.current[i] = el;
               }}
               role="listitem"
-              className="relative min-w-[88%] snap-center rounded-2xl bg-neutral-950 px-4 py-5 text-white shadow-md ring-1 ring-white/10 sm:min-w-[520px]"
+              className="relative min-w-[88%] snap-center rounded-2xl bg-white px-4 py-4 text-brand-black shadow-sm ring-1 ring-neutral-200 sm:min-w-[520px]"
               style={{ contain: "content" }}
             >
-              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_60%_at_10%_0%,rgba(255,255,255,0.06),transparent)]" />
               <div className="relative flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold">{t.name}</h3>
-                  <p className="text-xs text-neutral-300">{t.label}</p>
+                  <h3 className="text-[15px] font-semibold">{t.name}</h3>
+                  <p className="text-xs text-neutral-500">{t.label}</p>
                 </div>
                 <Stars n={t.rating ?? 5} />
               </div>
-              <p className="relative mt-3 text-sm leading-relaxed text-neutral-100">{t.text}</p>
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="pointer-events-none absolute -right-1 -top-1 h-7 w-7 text-white/10">
-                <path d="M10 7H6a4 4 0 0 0-4 4v6h6V7Zm12 0h-4a4 4 0 0 0-4 4v6h6V7Z" fill="currentColor" />
-              </svg>
+              <p className="relative mt-2 text-[13px] leading-relaxed text-neutral-700">
+                {t.text}
+              </p>
             </article>
           ))}
         </div>
 
+        {/* Dots discretos */}
         <div className="mt-3 flex w-full items-center justify-center gap-2" aria-label="Navegação dos depoimentos">
           {items.map((_, i) => (
             <button
@@ -176,7 +179,7 @@ export default function Testimonials() {
               onClick={() => goTo(i, { smooth: true })}
               aria-label={`Ir para depoimento ${i + 1}`}
               aria-current={index === i ? "true" : "false"}
-              className={`h-2 w-2 rounded-full border transition-opacity ${index === i ? "border-accent bg-accent/90" : "border-neutral-400/80 bg-neutral-300/80"}`}
+              className={`h-1.5 w-1.5 rounded-full transition-opacity ${index === i ? "bg-accent" : "bg-neutral-300"}`}
             />
           ))}
         </div>
