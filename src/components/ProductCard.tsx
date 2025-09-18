@@ -12,8 +12,8 @@ type P = {
   name: string;
   brand?: string;
   image?: string;
-  price?: number;
-  oldPrice?: number;
+  price?: number;     // preço base (cartão)
+  oldPrice?: number;  // opcional (não usado como principal aqui)
   freeShipping?: boolean;
   [key: string]: any;
 };
@@ -34,11 +34,10 @@ export default function ProductCard({ product }: { product: P }) {
   const name = String(product?.name ?? "");
   const brand = String(product?.brand ?? "");
   const image = String(product?.image ?? "");
-  const price = Number(product?.price ?? 0);
-  const oldPrice = Number(product?.oldPrice ?? 0);
+  const price = Number(product?.price ?? 0); // preço no cartão
   const freeShipping = Boolean(product?.freeShipping);
 
-  // Política comercial: 30% no Pix/Boleto (exibido como referência)
+  // Política: 30% OFF no Pix/Boleto em cima do preço base
   const pixPrice = useMemo(() => Math.max(0, +(price * 0.7).toFixed(2)), [price]);
   const installment = useMemo(() => Math.max(0, +(price / 10).toFixed(2)), [price]);
 
@@ -69,9 +68,9 @@ export default function ProductCard({ product }: { product: P }) {
         </div>
       )}
 
-      {/* Imagem do produto */}
+      {/* Imagem do produto (fundo branco para harmonizar com fotos que já são brancas) */}
       <Link href={href} className="block">
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-100">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-white ring-1 ring-neutral-200/60">
           {imgOk && image ? (
             <Image
               src={image}
@@ -84,8 +83,8 @@ export default function ProductCard({ product }: { product: P }) {
               onError={() => setImgOk(false)}
             />
           ) : (
-            <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-neutral-100 to-neutral-200">
-              <span className="rounded-full bg-neutral-300 px-3 py-1 text-xs text-neutral-700">
+            <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-white to-neutral-50">
+              <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs text-neutral-700">
                 imagem indisponível
               </span>
             </div>
@@ -106,22 +105,24 @@ export default function ProductCard({ product }: { product: P }) {
 
         {/* Preços */}
         <div className="space-y-1.5">
+          {/* Preço com desconto (Pix/Boleto) como principal */}
           <div className="flex items-baseline gap-2">
-            <span className="text-base font-extrabold text-neutral-900">
-              {formatBRL(price)}
+            <span className="text-lg font-extrabold text-emerald-700">
+              {formatBRL(pixPrice)}
             </span>
-            {oldPrice > price && (
+            {/* Preço original riscado (base/cartão) */}
+            {price > pixPrice && (
               <span className="text-xs text-neutral-500 line-through">
-                {formatBRL(oldPrice)}
+                {formatBRL(price)}
               </span>
             )}
           </div>
           <div className="text-[12px] text-neutral-700">
-            <span className="font-semibold text-emerald-700">{formatBRL(pixPrice)}</span>{" "}
-            no Pix/Boleto
+            no Pix/Boleto • <span className="font-medium text-neutral-900">30% OFF</span>
           </div>
+          {/* Parcelamento no cartão (fiel ao preço base) */}
           <div className="text-[12px] text-neutral-700">
-            ou em até <span className="font-semibold">{formatBRL(installment)}</span> x 10 sem juros
+            ou <span className="font-semibold">{formatBRL(installment)}</span> x 10 sem juros no cartão
           </div>
         </div>
 
