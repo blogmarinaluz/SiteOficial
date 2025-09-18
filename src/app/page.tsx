@@ -360,33 +360,73 @@ export default function Page() {
       </section>
 
       {/* 5) Newsletter */}
-      <section className="mt-10">
-        <div className="mx-auto max-w-[1100px] rounded-2xl bg-brand-black/95 px-4 py-5 sm:px-6 sm:py-6 text-white shadow-md ring-1 ring-white/10">
-          <div className="grid gap-4 md:grid-cols-[1.1fr,1fr] md:items-center">
-            <div>
-              <p className="text-[11px] uppercase tracking-wide text-accent">Novidades</p>
-              <h3 className="text-xl font-semibold">Receba ofertas da <span className="text-accent">pro</span><span className="text-white">Store</span></h3>
-              <p className="mt-1 text-[13px] text-white/80">Descontos exclusivos e lançamentos direto no seu e‑mail.</p>
-            </div>
-            <form onSubmit={onNewsletterSubmit} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr,1fr,auto] sm:items-center" noValidate>
-              <label className="sr-only" htmlFor="nl-name">Nome</label>
-              <input id="nl-name" value={nlName} onChange={(e) => setNlName(e.target.value)} type="text" placeholder="Seu nome" autoComplete="name" className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white placeholder-white/60 outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/40" />
-              <label className="sr-only" htmlFor="nl-email">E-mail</label>
-              <input id="nl-email" value={nlEmail} onChange={(e) => setNlEmail(e.target.value)} type="email" inputMode="email" placeholder="Seu e‑mail" autoComplete="email" required className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white placeholder-white/60 outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/40" />
-              <button type="submit" className="h-[42px] rounded-xl bg-accent px-5 text-sm font-semibold text-white shadow-sm transition active:scale-[.99] hover:opacity-90">Cadastrar</button>
-            </form>
-            {nlMsg && (
-              <div className={"md:col-span-2 mt-1 text-[12px] " + (nlMsg.type === "ok" ? "text-white/90" : "text-rose-200")} role="status">
-                {nlMsg.text}
-              </div>
-            )}
-          </div>
-          <p className="mt-2 text-[11px] leading-relaxed text-white/70">Ao cadastrar você concorda com nossa <a href="/politica-de-privacidade" className="underline underline-offset-2">Política de Privacidade</a>, <a href="/termos-de-uso" className="underline underline-offset-2">Termos de Uso</a> e <a href="/politica-de-cookies" className="underline underline-offset-2">Política de Cookies</a>.</p>
-          {showExport && (
-            <button type="button" onClick={exportCsv} className="mt-3 inline-flex items-center rounded-xl px-3 py-2 text-xs font-semibold text-white/90 ring-1 ring-white/20 hover:ring-white/40">Baixar cadastros (CSV)</button>
-          )}
+      <section aria-labelledby="newsletter_heading" className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8">
+  <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="max-w-xl">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-accent">Novidades</p>
+        <h3 id="newsletter_heading" className="text-lg font-semibold text-brand-black sm:text-xl">
+          Receba ofertas da <span className="text-brand-black/80">pro</span><span className="text-brand-black">Store</span>
+        </h3>
+        <p className="mt-1 text-[13px] text-neutral-600">
+          Descontos exclusivos e lançamentos direto no seu e‑mail.
+        </p>
+      </div>
+
+      <form onSubmit={onNewsletterSubmit} className="w-full sm:w-auto sm:min-w-[520px]" noValidate>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr,1fr,auto]">
+          <label htmlFor="nl-name" className="sr-only">Seu nome</label>
+          <input
+            id="nl-name"
+            value={nlName}
+            onChange={(e) => setNlName(e.target.value)}
+            type="text"
+            placeholder="Seu nome"
+            autoComplete="name"
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-brand-black placeholder-neutral-500 outline-none focus:border-accent focus:ring-0"
+          />
+
+          <label htmlFor="nl-email" className="sr-only">Seu e‑mail</label>
+          <input
+            id="nl-email"
+            value={nlEmail}
+            onChange={(e) => setNlEmail(e.target.value)}
+            type="email"
+            inputMode="email"
+            placeholder="Seu e‑mail"
+            autoComplete="email"
+            required
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-brand-black placeholder-neutral-500 outline-none focus:border-accent focus:ring-0"
+          />
+
+          <button
+            type="submit"
+            className="h-[42px] rounded-lg bg-accent px-5 text-sm font-semibold text-white shadow-sm transition active:scale-[.99] hover:brightness-95"
+          >
+            Cadastrar
+          </button>
         </div>
-      </section>
+
+        {nlMsg && (
+          <div
+            className={"mt-2 text-[12px] " + (nlMsg.type === "ok" ? "text-neutral-700" : "text-rose-600")}
+            role="status"
+          >
+            {nlMsg.text}
+          </div>
+        )}
+
+        {showExport && (
+          <div className="mt-3">
+            <a href="/api/newsletter/export" className="text-xs font-medium text-accent underline underline-offset-2">
+              Baixar cadastros (CSV)
+            </a>
+          </div>
+        )}
+      </form>
+    </div>
+  </div>
+</section>
 
       {/* 6) Ofertas em Destaque */}
       <section id="destaques" className="mt-10 mx-auto max-w-[1100px] px-4 scroll-mt-24">
@@ -400,3 +440,4 @@ export default function Page() {
     </main>
   );
 }
+
