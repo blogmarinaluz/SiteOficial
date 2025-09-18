@@ -1,8 +1,14 @@
 "use client";
 
-// Sessão de Depoimentos com paleta da marca (emerald), layout premium,
-// e rotação automática de depoimentos (6 por página, troca a cada 8s).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+/**
+ * Depoimentos — carrossel mobile-first com scroll-snap
+ * - Sem dependências externas.
+ * - Autoplay suave (pausa ao interagir / reduzido se prefers-reduced-motion).
+ * - Dots acessíveis e botões compactos.
+ * - Paleta preto + verde do projeto (brand.black / accent).
+ */
 
 type Testimonial = {
   name: string;
@@ -12,205 +18,258 @@ type Testimonial = {
 };
 
 const ALL_TESTIMONIALS: Testimonial[] = [
-  { name: "Sabrina Alencar",      label: "Fortaleza - CE",     text: "Chegou tudo certinho, lacrado e com nota. Atendimento rápido no WhatsApp e entrega antes do prazo. Recomendo!", rating: 5 },
-  { name: "Carlos Andrade",  label: "São Paulo - SP",     text: "Preço muito abaixo do mercado, ainda mais com 30% OFF no pix. Estou muito satisfeito com o iPhone.",           rating: 5 },
-  { name: "João Pereira",    label: "Recife - PE",        text: "Suporte em cada etapa. Transparência total e aparelho impecável. Voltarei a comprar.",                     rating: 5 },
-  { name: "Aline Rodrigues", label: "Rio de Janeiro - RJ",text: "Comprei um Galaxy e o parcelamento sem juros ajudou demais. Experiência excelente!",                        rating: 5 },
-  { name: "Thiago Souza",    label: "Belo Horizonte - MG",text: "Entrega rápida e embalagem segura. O frete grátis em vários modelos foi um diferencial.",                  rating: 5 },
-  { name: "Beatriz Costa",   label: "Curitiba - PR",      text: "Produto original, garantia e ótima comunicação. Já indiquei para amigos e família.",                      rating: 5 },
-  { name: "Rafael Lima",     label: "Campinas - SP",      text: "Atendimento atencioso e preço imbatível. Tudo conforme o combinado.",                                    rating: 5 },
-  { name: "Fernanda Alves",  label: "Salvador - BA",      text: "Processo de compra simples e rápido. Chegou antes do esperado e muito bem embalado.",                     rating: 5 },
-  { name: "Gabriel Moreira", label: "Porto Alegre - RS",  text: "Já é minha segunda compra. Qualidade e confiança definem.",                                             rating: 5 },
-  { name: "Larissa Martins", label: "Goiânia - GO",       text: "Adorei a comunicação e a transparência. O aparelho veio zerado!",                                        rating: 5 },
-  { name: "Paulo Henrique",  label: "Natal - RN",         text: "Usei o cupom e economizei muito. Recomendo sem medo.",                                                  rating: 5 },
-  { name: "Camila Duarte",   label: "Florianópolis - SC", text: "Site fácil de navegar e checkout tranquilo. Voltarei a comprar.",                                        rating: 5 },
-  { name: "Diego Nascimento",label: "Belém - PA",         text: "Entrega no prazo e produto lacrado. Nota fiscal enviada certinho.",                                     rating: 5 },
-  { name: "Priscila Menezes",label: "Manaus - AM",        text: "Equipe super atenciosa. Tive dúvidas e me responderam na hora.",                                        rating: 5 },
-  { name: "Renato Carvalho", label: "Santos - SP",        text: "Custo-benefício excelente, principalmente com o desconto no pix.",                                       rating: 5 },
-  { name: "Tatiane Oliveira",label: "João Pessoa - PB",   text: "Experiência positiva do início ao fim. Recomendo para amigos!",                                          rating: 5 },
-  { name: "Eduardo Gomes",   label: "Vitória - ES",       text: "Produto autêntico, zero, tudo conforme anunciado. 5 estrelas!",                                          rating: 5 },
-  { name: "Luana Freitas",   label: "Maceió - AL",        text: "Acompanhamento por Whats e facilidade no pagamento. Muito bom!",                                        rating: 5 },
+  {
+    name: "Sabrina Alencar",
+    label: "Fortaleza • CE",
+    text:
+      "Atendimento excelente no WhatsApp e entrega antes do prazo. Recomendo!",
+    rating: 5,
+  },
+  {
+    name: "Carlos Andrade",
+    label: "São Paulo • SP",
+    text:
+      "Preço no Pix imbatível e produto lacrado. Estou muito satisfeito com o iPhone.",
+    rating: 5,
+  },
+  {
+    name: "João Pereira",
+    label: "Goiânia • GO",
+    text:
+      "Chegou bem embalado, com nota e garantia. Suporte respondeu rápido.",
+    rating: 5,
+  },
+  {
+    name: "Ana Paula",
+    label: "Salvador • BA",
+    text:
+      "Pedi no domingo e chegou na terça. Experiência de compra 10/10!",
+    rating: 5,
+  },
+  {
+    name: "Marcos Vinícius",
+    label: "Rio de Janeiro • RJ",
+    text:
+      "Site fácil de usar no celular e opções claras de pagamento.",
+    rating: 5,
+  },
+  {
+    name: "Letícia Souza",
+    label: "Belo Horizonte • MG",
+    text:
+      "Equipe atenciosa, tirou todas as dúvidas. Voltarei a comprar.",
+    rating: 5,
+  },
 ];
 
-// util: embaralha de forma estável (mas sem depender do servidor)
-function shuffle<T>(arr: T[]) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(((i * 9301 + 49297) % 233280) / 233280 * (i + 1)); // pseudo
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+function Stars({ n = 5 }: { n?: number }) {
+  return (
+    <div className="flex gap-1" aria-label={`${n} de 5 estrelas`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <svg
+          key={i}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          className="h-4 w-4 fill-current"
+        >
+          <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+    </div>
+  );
 }
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-  return (first + last).toUpperCase();
-}
-
-const Star = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 20 20" aria-hidden="true" {...props}>
-    <path d="M10 2.5l2.47 5.01 5.53.8-4 3.9.94 5.49L10 15.9l-4.94 2.6.94-5.49-4-3.9 5.53-.8L10 2.5z" fill="currentColor" />
-  </svg>
-);
-
-const Check = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 20 20" aria-hidden="true" {...props}>
-    <path d="M7.7 13.3 4.4 10l-1.4 1.4 4.7 4.7 9.3-9.3-1.4-1.4-7.9 7.9z" fill="currentColor" />
-  </svg>
-);
-
-const QuoteMarks = () => (
-  <div className="absolute right-4 top-4 text-emerald-200">
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
-      <path d="M7 11c-1.1 0-2 .9-2 2v3h3v-3h-1v-2zm9 0c-1.1 0-2 .9-2 2v3h3v-3h-1v-2z" fill="currentColor" />
-    </svg>
-  </div>
-);
-
-const PAGE_SIZE = 6;       // 6 cards por página
-const INTERVAL_MS = 8000;  // troca automática a cada 8s
 
 export default function Testimonials() {
-  // Mantém a mesma base de depoimentos já declarada acima
+  const items = useMemo(() => ALL_TESTIMONIALS, []);
+
+  // ===== Scroll-snap refs & state =====
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const [index, setIndex] = useState(0);
-  const total = ALL_TESTIMONIALS.length;
+  const count = items.length;
+  const autoplayMs = 6000;
 
-  // autoplay a cada 6s, pausa em hover
-  const [paused, setPaused] = useState(false);
+  // Detecta slide ativo pelo scroll (mais robusto que computation pura)
   useEffect(() => {
-    if (paused || total <= 1) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % total), 6000);
-    return () => clearInterval(id);
-  }, [paused, total]);
+    const viewport = viewportRef.current;
+    if (!viewport) return;
 
-  // acessibilidade: rols e labels
+    const slides = Array.from(viewport.querySelectorAll<HTMLElement>("[data-slide]"));
+    const io = new IntersectionObserver(
+      (entries) => {
+        // o que está mais visível vira o ativo
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) {
+          const i = Number((visible.target as HTMLElement).dataset.index || 0);
+          setIndex(i);
+        }
+      },
+      { root: viewport, threshold: [0.5, 0.75, 0.9] }
+    );
+    slides.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  // Autoplay com respeito a prefers-reduced-motion
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mql.matches) return;
+
+    let paused = false;
+    const pause = () => (paused = true);
+    const resume = () => (paused = false);
+
+    viewport.addEventListener("pointerdown", pause, { passive: true });
+    viewport.addEventListener("touchstart", pause, { passive: true });
+    viewport.addEventListener("focusin", pause);
+    viewport.addEventListener("pointerup", resume);
+    viewport.addEventListener("mouseleave", resume);
+
+    const id = window.setInterval(() => {
+      if (paused) return;
+      goTo(index + 1);
+    }, autoplayMs);
+
+    return () => {
+      window.clearInterval(id);
+      viewport.removeEventListener("pointerdown", pause);
+      viewport.removeEventListener("touchstart", pause);
+      viewport.removeEventListener("focusin", pause);
+      viewport.removeEventListener("pointerup", resume);
+      viewport.removeEventListener("mouseleave", resume);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
+  function goTo(i: number) {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const slides = viewport.querySelectorAll<HTMLElement>("[data-slide]");
+    const next = ((i % count) + count) % count; // wrap
+    const el = slides[next];
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }
+
+  function prev() {
+    goTo(index - 1);
+  }
+
+  function next() {
+    goTo(index + 1);
+  }
+
   return (
     <section
-      id="depoimentos"
-      aria-label="Depoimentos de clientes"
-      className="mx-auto mt-14 max-w-[1100px] px-4"
+      aria-labelledby="depoimentos_heading"
+      className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8"
     >
-      <header className="mb-4 flex items-end justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-emerald-400">Confiança</p>
-          <h2 className="text-xl font-extrabold">O que nossos clientes dizem</h2>
-        </div>
-        <div className="hidden gap-2 lg:flex">
-          <button
-            type="button"
-            onClick={() => setIndex((i) => (i - 1 + total) % total)}
-            className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800"
-            aria-label="Slide anterior"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            onClick={() => setIndex((i) => (i + 1) % total)}
-            className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800"
-            aria-label="Próximo slide"
-          >
-            Próximo
-          </button>
-        </div>
-      </header>
+      <div className="mb-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">
+          Confiança
+        </p>
+        <h2
+          id="depoimentos_heading"
+          className="text-2xl font-bold text-brand-black sm:text-3xl"
+        >
+          O que nossos clientes dizem
+        </h2>
+      </div>
 
-      {/* CARROSSEL */}
-      <div
-        role="region"
-        aria-roledescription="carrossel"
-        aria-label="Carrossel de depoimentos"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        className="relative"
-      >
-        <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-black">
-          <div
-            className="flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(-${index * 100}%)`, width: `${total * 100}%` }}
-          >
-            {ALL_TESTIMONIALS.map((t, idx) => (
-              <article
-                key={idx}
-                className="w-full flex-shrink-0 px-6 py-8 lg:px-10"
-                style={{ width: `${100 / total}%` }}
-                aria-roledescription="slide"
-                aria-label={`${idx + 1} de ${total}`}
-              >
-                <div className="mx-auto max-w-[820px]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-emerald-500/20 ring-1 ring-emerald-500/40" />
-                    <div>
-                      <p className="font-semibold">{t.name}</p>
-                      <p className="text-xs text-neutral-400">{t.label}</p>
-                    </div>
-                  </div>
-
-                  <blockquote className="mt-4 text-[15px] leading-relaxed text-neutral-200">
-                    “{t.text}”
-                  </blockquote>
-
-                  {typeof t.rating === "number" && (
-                    <div className="mt-3 flex items-center gap-1" aria-label={`Avaliação ${t.rating} de 5`}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <svg
-                          key={i}
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          className={`h-4 w-4 ${i < (t.rating ?? 0) ? "fill-emerald-400" : "fill-neutral-700"}`}
-                          aria-hidden="true"
-                        >
-                          <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                        </svg>
-                      ))}
-                    </div>
-                  )}
+      <div className="relative">
+        {/* Viewport com scroll-snap horizontal */}
+        <div
+          ref={viewportRef}
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [-webkit-overflow-scrolling:touch]"
+          role="list"
+          aria-label="Depoimentos"
+        >
+          {items.map((t, i) => (
+            <article
+              key={i}
+              data-slide
+              data-index={i}
+              role="listitem"
+              className="min-w-[88%] snap-center rounded-2xl bg-brand-black px-4 py-5 text-white shadow-md sm:min-w-[520px]"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold">{t.name}</h3>
+                  <p className="text-xs text-neutral-300">{t.label}</p>
                 </div>
-              </article>
-            ))}
-          </div>
+                <div className="text-accent" aria-hidden="true">
+                  <Stars n={t.rating ?? 5} />
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-neutral-100">
+                {t.text}
+              </p>
+            </article>
+          ))}
         </div>
 
-        {/* Dots + controles mobile */}
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex gap-2">
-            {ALL_TESTIMONIALS.map((_, i) => (
+        {/* Controles */}
+        <div className="mt-2 flex items-center justify-between">
+          {/* Dots */}
+          <div className="flex items-center gap-2" aria-label="Navegação dos depoimentos">
+            {items.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setIndex(i)}
-                className={`h-1.5 w-6 rounded-full transition-all ${
-                  i === index ? "bg-emerald-400" : "bg-neutral-700"
-                }`}
+                onClick={() => goTo(i)}
                 aria-label={`Ir para depoimento ${i + 1}`}
+                aria-current={index === i ? "true" : "false"}
+                className={`h-2 w-2 rounded-full transition-transform ${
+                  index === i ? "scale-125 bg-accent" : "bg-neutral-400"
+                }`}
               />
             ))}
           </div>
 
-          <div className="flex gap-2 lg:hidden">
+          {/* Botões prev/next compactos */}
+          <div className="flex items-center gap-2">
             <button
-              type="button"
-              onClick={() => setIndex((i) => (i - 1 + total) % total)}
-              className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white"
+              onClick={prev}
+              className="rounded-full bg-brand-black px-3 py-2 text-xs font-medium text-white shadow-sm active:scale-[.98]"
               aria-label="Anterior"
             >
-              Anterior
+              <span className="sr-only">Anterior</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
+                <path
+                  d="M15.5 19 8.5 12l7-7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
+
             <button
-              type="button"
-              onClick={() => setIndex((i) => (i + 1) % total)}
-              className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-white"
+              onClick={next}
+              className="rounded-full bg-brand-black px-3 py-2 text-xs font-medium text-white shadow-sm active:scale-[.98]"
               aria-label="Próximo"
             >
-              Próximo
+              <span className="sr-only">Próximo</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
+                <path
+                  d="M8.5 5 15.5 12l-7 7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
         </div>
 
-        {/* instrução sutil */}
+        {/* Dica de interação */}
         <p className="mt-2 text-center text-[11px] text-neutral-500">
-          Deslize para ver mais depoimentos • troca automática a cada 6s.
+          Deslize para ver mais • troca automática a cada 6s
         </p>
       </div>
     </section>
