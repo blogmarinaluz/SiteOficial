@@ -4,7 +4,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { ptBR } from "@clerk/localizations";
 import { CartProvider } from "@/hooks/useCart";
 
 export const metadata: Metadata = {
@@ -24,13 +23,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      localization={ptBR}
+      // IMPORTANTE: PT-BR será aplicado via painel da Clerk, sem pacote extra.
+      // No painel: Customize → Localization → Português (Brasil) → Save.
       signInUrl={signInUrl}
       signUpUrl={signUpUrl}
       afterSignInUrl={afterSignInUrl}
       afterSignUpUrl={afterSignUpUrl}
       appearance={{
-        // Cores e tokens globais (combinando com o seu tema "verde proStore")
         variables: {
           colorPrimary: "#10b981", // emerald-500
           colorText: "#0a0a0a",
@@ -38,18 +37,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           borderRadius: "1rem", // 16px = rounded-2xl
         },
         elements: {
-          // Links do rodapé da Clerk (Esqueceu a senha? Cadastre-se, etc.)
           footerActionLink:
             "text-emerald-600 hover:text-emerald-500 transition-colors",
-          // Labels dos inputs no formulário
           formFieldLabel: "text-zinc-700",
-          // Inputs padrão (aplicado como fallback global)
           formFieldInput:
             "input !bg-white !text-black !border-black/10 focus:!ring-emerald-500",
-          // Botões secundários (ex.: trocar e-mail)
           button:
             "rounded-2xl border border-black/10 hover:bg-zinc-50 transition",
-          // Mensagens de erro/alerta
           alert: "rounded-2xl",
         },
       }}
