@@ -360,7 +360,7 @@ export default function Page() {
       </section>
 
       {/* 5) Newsletter */}
-      <section aria-labelledby="newsletter_heading" className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8">
+      <section aria-labelledby="newsletter_heading" className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8 my-6 sm:my-8">
   <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
     <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="max-w-xl">
@@ -440,4 +440,3 @@ export default function Page() {
     </main>
   );
 }
-
