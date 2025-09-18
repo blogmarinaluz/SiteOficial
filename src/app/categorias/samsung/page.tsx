@@ -20,12 +20,11 @@ type Product = {
 
 const catalog: Product[] = (productsData as Product[]) ?? [];
 
-/** Famílias Galaxy (ordem de destaque) */
+/** Famílias Galaxy visíveis (FE faz parte de Galaxy S) */
 const FAMILIES = [
   "S Ultra",
   "S Plus",
   "S",
-  "FE",
   "Z Fold",
   "Z Flip",
   "A",
@@ -51,12 +50,25 @@ function familyOf(name: string): Family {
   const n = norm(name);
   if (/\bz\s?fold\b/.test(n)) return "Z Fold";
   if (/\bz\s?flip\b/.test(n)) return "Z Flip";
-  if (/\bfe\b/.test(n)) return "FE";
+  // FE deve agrupar em Galaxy S
+  if (/\bfe\b/.test(n)) return "S";
   if (/\bs\s?ultra\b/.test(n)) return "S Ultra";
   if (/\bs\s?plus\b/.test(n)) return "S Plus";
   if (/\bnote\b/.test(n)) return "Note";
   if (/\bs\b\d*/.test(n) || /\bgalaxy s\b/.test(n)) return "S";
   return "A";
+}
+
+function familyLabel(f: Family) {
+  switch (f) {
+    case "S Ultra": return "Galaxy S Ultra";
+    case "S Plus": return "Galaxy S Plus";
+    case "S": return "Galaxy S";
+    case "Z Fold": return "Galaxy Z Fold";
+    case "Z Flip": return "Galaxy Z Flip";
+    case "A": return "Galaxy A";
+    case "Note": return "Galaxy Note";
+  }
 }
 
 function storageOf(p: Product): string {
@@ -67,7 +79,7 @@ function storageOf(p: Product): string {
   return m ? m[0].replace(/\s+/g, " ") : "";
 }
 
-/** Mapeia cores comuns da linha Galaxy, incluindo composições Phantom etc. */
+/** Cores comuns da linha Galaxy */
 function colorOf(p: Product): string {
   const explicit = String(p.color ?? "");
   if (explicit) return explicit;
@@ -91,7 +103,6 @@ function colorOf(p: Product): string {
     [/\bsilver\b|\bprata\b/, "Silver"],
     [/\btitanium\b|\btit[âa]nio\b/, "Titanium"],
     [/\bnature\b|\bnatural\b/, "Natural"],
-    [/\bcream\b/, "Cream"],
   ];
   for (const [re, label] of pairs) if (re.test(n)) return label;
   return "";
@@ -177,7 +188,7 @@ export default function SamsungCategoryPage() {
 
         <div className="mt-2 text-sm text-zinc-600">
           {total} {total === 1 ? "modelo" : "modelos"} •
-          {" "}{fam === "all" ? "Todas as linhas" : `Linha: ${fam}`}
+          {" "}{fam === "all" ? "Todas as linhas" : `Linha: ${familyLabel(fam)}`}
           {gb !== "all" && ` • ${gb}`}
           {col !== "all" && ` • ${col}`}
           {(fam !== "all" || gb !== "all" || col !== "all" || q) && (
@@ -193,11 +204,11 @@ export default function SamsungCategoryPage() {
         </div>
       ) : (
         <div className="space-y-10">
-          {grouped.map(([famLabel, list]) => (
-            <section key={famLabel || "lista"} className="scroll-mt-20">
+          {grouped.map(([famKey, list]) => (
+            <section key={famKey || "lista"} className="scroll-mt-20">
               {fam === "all" && (
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-medium text-zinc-900">{famLabel}</h2>
+                  <h2 className="text-lg font-medium text-zinc-900">{familyLabel(famKey as Family)}</h2>
                   <div className="text-sm text-zinc-500">{list.length} {list.length === 1 ? "item" : "itens"}</div>
                 </div>
               )}
@@ -255,7 +266,7 @@ export default function SamsungCategoryPage() {
                   label="Linha"
                   value={fam}
                   onChange={(v) => setFam(v as any)}
-                  options={[{ value: "all", label: "Todas" }, ...FAMILIES.map((f) => ({ value: f, label: f }))]}
+                  options={[{ value: "all", label: "Todas" }, ...FAMILIES.map((f) => ({ value: f, label: familyLabel(f) }))]}
                 />
                 <Select
                   label="Capacidade"
