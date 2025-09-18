@@ -102,11 +102,16 @@ function HomeSEO() {
 type P = any;
 const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
 
-const isBrand = (p: P, target: "apple" | "samsung") => {
+function isApple(p: P) {
   const b = norm(p?.brand);
   const n = norm(`${p?.brand} ${p?.name}`);
-  return b === target || n.includes(target);
-};
+  return b === "apple" || n.includes("iphone");
+}
+function isSamsung(p: P) {
+  const b = norm(p?.brand);
+  const n = norm(`${p?.brand} ${p?.name}`);
+  return b === "samsung" || n.includes("galaxy");
+}
 
 const score = (p: P) => {
   const price = Number(p?.price || 0);
@@ -130,6 +135,38 @@ function interleaveUnique(a: P[], b: P[], want: number, picked: Set<string>) {
       const id = String(pb?.id);
       if (!picked.has(id)) { picked.add(id); out.push(pb); }
     }
+  }
+  return out;
+}
+
+function roundRobinMix(source: P[], want: number, picked: Set<string>) {
+  const A = source.filter(isApple);
+  const S = source.filter(isSamsung);
+  const O = source.filter((p) => !isApple(p) && !isSamsung(p));
+  const buckets = [A, S, O];
+  const idxs = [0, 0, 0];
+  const out: P[] = [];
+  let turn = 0;
+  while (out.length < want) {
+    let advanced = false;
+    for (let k = 0; k < buckets.length && out.length < want; k++) {
+      const b = buckets[(turn + k) % buckets.length];
+      let i = idxs[(turn + k) % buckets.length];
+      while (i < b.length && picked.has(String(b[i]?.id))) i++;
+      idxs[(turn + k) % buckets.length] = i;
+      if (i < b.length) {
+        const p = b[i];
+        const id = String(p?.id);
+        if (!picked.has(id)) {
+          picked.add(id);
+          out.push(p);
+          advanced = true;
+        }
+        idxs[(turn + k) % buckets.length] = i + 1;
+      }
+    }
+    if (!advanced) break;
+    turn = (turn + 1) % buckets.length;
   }
   return out;
 }
@@ -185,22 +222,24 @@ export default function Page() {
 
   // Listas ordenadas
   const byScore = useMemo(() => sortByScore(all), [all]);
-  const samsungs = useMemo(() => sortByScore(all.filter((p) => isBrand(p, "samsung"))), [all]);
-  const apples = useMemo(() => sortByScore(all.filter((p) => isBrand(p, "apple"))), [all]);
+  const samsungs = useMemo(() => sortByScore(all.filter(isSamsung)), [all]);
+  const apples = useMemo(() => sortByScore(all.filter(isApple)), [all]);
 
   // Garantir que NÃO haja repetição entre seções
   const picked = new Set<string>();
 
-  // 1) Celulares em Oferta (8): intercalar Samsung + Apple
+  // 1) Celulares em Oferta (8): intercalar Samsung + Apple (agora com detecção robusta)
   const emOferta = interleaveUnique(samsungs, apples, 8, picked);
 
-  // 2) Ofertas do dia | BBB (8): próximos melhores sem repetir
-  const ofertasDia = takeUnique(byScore, 8, picked);
+  // 2) Ofertas do dia | BBB (8): mistura Apple/Samsung/Outros por round‑robin
+  const poolBBB = byScore.filter((p) => !picked.has(String(p?.id)));
+  const ofertasDia = roundRobinMix(poolBBB, 8, picked);
 
-  // 3) Ofertas em Destaque (12): próximos sem repetir
-  const destaque = takeUnique(byScore, 12, picked);
+  // 3) Ofertas em Destaque (12): mesma mistura, agora com o restante
+  const poolDest = byScore.filter((p) => !picked.has(String(p?.id)));
+  const destaque = roundRobinMix(poolDest, 12, picked);
 
-  // Fallback seguro se faltar produto
+  // Fallbacks se faltar produto
   const restante = byScore.filter((p) => !picked.has(String(p?.id)));
   while (ofertasDia.length < 8 && restante.length) ofertasDia.push(restante.shift()!);
   while (destaque.length < 12 && restante.length) destaque.push(restante.shift()!);
@@ -373,8 +412,8 @@ export default function Page() {
                 <button
                   type="button"
                   onClick={exportCsv}
-                  className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text白
-                  ">
+                  className="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/30 hover:bg-white/20"
+                >
                   Baixar cadastros (CSV)
                 </button>
               )}
