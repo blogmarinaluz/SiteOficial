@@ -34,13 +34,17 @@ const NAV = [
   { href: "/contato", label: "Contato" },
 ];
 
+/**
+ * Atualizado: apontando para as novas rotas /categorias/... que você criou
+ * (e removendo os antigos caminhos /sem-estoque/... e query por marca).
+ */
 const CATEGORIES = [
-  { href: "/produtos?marca=Apple", label: "iPhone" },
-  { href: "/produtos?marca=Samsung", label: "Samsung Galaxy" },
-  { href: "/sem-estoque/xiaomi", label: "Xiaomi" },
-  { href: "/sem-estoque/acessorios", label: "Acessórios" },
-  { href: "/sem-estoque/wearables", label: "Wearables" },
-  { href: "/sem-estoque/casa-inteligente", label: "Casa inteligente" },
+  { href: "/categorias/iphone", label: "iPhone" },
+  { href: "/categorias/samsung", label: "Samsung Galaxy" },
+  { href: "/categorias/xiaomi", label: "Xiaomi" },
+  { href: "/categorias/acessorios", label: "Acessórios" },
+  { href: "/categorias/wearables", label: "Wearables" },
+  { href: "/categorias/casa-inteligente", label: "Casa inteligente" },
 ];
 
 export default function Header() {
@@ -86,7 +90,7 @@ export default function Header() {
       className="sticky top-0 z-50 bg-brand-gradient text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)]"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      {/* Barra de avisos — sem ícone % */}
+      {/* Barra de avisos */}
       <div className="w-full border-b border-white/10 text-[11px] sm:text-[12px]">
         <div className="container-safe flex items-center justify-center gap-4 overflow-x-auto whitespace-nowrap py-1.5 scrollbar-none">
           <span className="inline-flex items-center gap-1.5 text-white/90">
@@ -168,7 +172,6 @@ export default function Header() {
         {/* Ações: auth + carrinho */}
         <div className="ml-auto flex items-center gap-2 md:ml-2">
           <SignedOut>
-            {/* Ícone de usuário com o MESMO tamanho visual do botão do carrinho */}
             <Link
               href="/entrar"
               className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-3 py-2 text-sm hover:bg-white/5"
@@ -226,7 +229,7 @@ export default function Header() {
         </form>
       </div>
 
-      {/* Drawer Mobile com categorias */}
+      {/* Drawer Mobile com categorias (agora com os novos caminhos) */}
       {open && (
         <>
           <div
@@ -281,7 +284,7 @@ export default function Header() {
               })}
             </nav>
 
-            {/* Categorias */}
+            {/* Categorias (novas rotas) */}
             <div className="mt-2 border-t border-black/10 px-2 pt-2" aria-label="Categorias">
               <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-black/60">Categorias</p>
               {CATEGORIES.map((c) => (
