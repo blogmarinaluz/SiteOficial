@@ -1,3 +1,4 @@
+// src/components/Header.tsx
 "use client";
 
 import Link from "next/link";
@@ -5,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/hooks/useCart";
 import productsData from "@/data/products.json";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import {
   Menu,
   X,
@@ -13,6 +14,7 @@ import {
   Truck,
   Search,
   ShoppingCart,
+  UserRound
 } from "lucide-react";
 
 type Product = { id: string; name: string; brand?: string; price?: number };
@@ -32,6 +34,10 @@ const NAV = [
   { href: "/contato", label: "Contato" },
 ];
 
+/**
+ * Atualizado: apontando para as novas rotas /categorias/... que você criou
+ * (e removendo os antigos caminhos /sem-estoque/... e query por marca).
+ */
 const CATEGORIES = [
   { href: "/categorias/iphone", label: "iPhone" },
   { href: "/categorias/samsung", label: "Samsung Galaxy" },
@@ -53,15 +59,11 @@ export default function Header() {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return () => { document.body.style.overflow = prev; };
   }, [open]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -69,18 +71,14 @@ export default function Header() {
   const cart: any = useCart();
   const rawCount = cart?.count;
   const count =
-    typeof rawCount === "function"
-      ? Number(rawCount() ?? 0)
-      : Number(rawCount ?? 0);
+    typeof rawCount === "function" ? Number(rawCount() ?? 0) : Number(rawCount ?? 0);
 
   function submitSearch(e?: React.FormEvent) {
     if (e) e.preventDefault();
     const term = q.trim();
     if (!term) return;
     const r = catalog.filter(
-      (p) =>
-        norm(p.name).includes(norm(term)) ||
-        norm(p.brand).includes(norm(term))
+      (p) => norm(p.name).includes(norm(term)) || norm(p.brand).includes(norm(term))
     );
     if (r[0]) router.push(`/produto/${idNoExt(r[0].id)}`);
     else router.push(`/buscar?q=${encodeURIComponent(term)}`);
@@ -131,21 +129,16 @@ export default function Header() {
         </Link>
 
         {/* Navegação desktop */}
-        <nav
-          className="ml-2 hidden items-center gap-1 lg:flex"
-          aria-label="Primária"
-        >
+        <nav className="ml-2 hidden items-center gap-1 lg:flex" aria-label="Primária">
           {NAV.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== "/" && pathname?.startsWith(item.href));
+            const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={[
                   "rounded-2xl px-3 py-2 text-sm font-medium transition-colors",
-                  active ? "bg-white/10" : "hover:bg-white/5",
+                  active ? "bg-white/10" : "hover:bg-white/5"
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
               >
@@ -170,10 +163,7 @@ export default function Header() {
               className="flex-1 bg-transparent text-sm text-white placeholder:text-white/60 outline-none"
               aria-label="Buscar produtos"
             />
-            <button
-              type="submit"
-              className="btn btn-primary rounded-2xl px-4 py-1.5 text-sm"
-            >
+            <button type="submit" className="btn btn-primary rounded-2xl px-4 py-1.5 text-sm">
               Buscar
             </button>
           </div>
@@ -182,23 +172,19 @@ export default function Header() {
         {/* Ações: auth + carrinho */}
         <div className="ml-auto flex items-center gap-2 md:ml-2">
           <SignedOut>
-            <SignInButton mode="redirect">
-              <button className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-3 py-2 text-sm hover:bg-white/5">
-                Entrar / Cadastrar
-              </button>
-            </SignInButton>
+            <Link
+              href="/entrar"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-3 py-2 text-sm hover:bg-white/5"
+              title="Entrar ou criar conta"
+              aria-label="Entrar ou criar conta"
+            >
+              <UserRound className="h-4 w-4" />
+              <span className="hidden sm:inline">Entrar</span>
+            </Link>
           </SignedOut>
 
           <SignedIn>
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  userButtonPopoverCard:
-                    "rounded-2xl border shadow-xl",
-                },
-              }}
-            />
+            <UserButton appearance={{ elements: { userButtonPopoverCard: "rounded-2xl border shadow-xl" } }} />
           </SignedIn>
 
           <Link
@@ -217,7 +203,33 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Drawer Mobile */}
+      {/* Busca mobile */}
+      <div className="border-t border-white/10 md:hidden">
+        <form onSubmit={submitSearch} className="container-safe py-2" aria-label="Busca (mobile)">
+          <label htmlFor="msearch" className="sr-only">Buscar produtos</label>
+          <div className="flex w-full items-center rounded-full border border-white/10 bg-white/10 p-1.5 backdrop-blur">
+            <Search className="mx-2 h-4 w-4 text-white/70" />
+            <input
+              id="msearch"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar por modelo, marca..."
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/60 outline-none"
+              aria-label="Buscar produtos"
+              inputMode="search"
+            />
+            <button
+              type="submit"
+              className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-fg hover:bg-emerald-600"
+              aria-label="Buscar"
+            >
+              Buscar
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Drawer Mobile com categorias (agora com os novos caminhos) */}
       {open && (
         <>
           <div
@@ -251,14 +263,10 @@ export default function Header() {
               </button>
             </div>
 
-            <nav
-              className="px-2 py-2"
-              aria-label="Primária (mobile)"
-            >
+            {/* Navegação */}
+            <nav className="px-2 py-2" aria-label="Primária (mobile)">
               {NAV.map((item) => {
-                const active =
-                  pathname === item.href ||
-                  (item.href !== "/" && pathname?.startsWith(item.href));
+                const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
                 return (
                   <Link
                     key={item.href}
@@ -266,7 +274,7 @@ export default function Header() {
                     onClick={() => setOpen(false)}
                     className={[
                       "block rounded-2xl px-3 py-3 text-base",
-                      active ? "bg-black/5" : "hover:bg-black/5",
+                      active ? "bg-black/5" : "hover:bg-black/5"
                     ].join(" ")}
                     aria-current={active ? "page" : undefined}
                   >
@@ -276,15 +284,32 @@ export default function Header() {
               })}
             </nav>
 
+            {/* Categorias (novas rotas) */}
+            <div className="mt-2 border-t border-black/10 px-2 pt-2" aria-label="Categorias">
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-black/60">Categorias</p>
+              {CATEGORIES.map((c) => (
+                <Link
+                  key={c.href}
+                  href={c.href}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-2xl px-3 py-2 text-sm hover:bg-black/5"
+                >
+                  {c.label}
+                </Link>
+              ))}
+            </div>
+
+            {/* Conta */}
             <div className="mt-2 border-t border-black/10 px-2 pt-2">
               <SignedOut>
-                <SignInButton mode="redirect">
-                  <button className="btn btn-primary w-full rounded-2xl">
-                    Entrar / Cadastrar
-                  </button>
-                </SignInButton>
+                <Link
+                  href="/entrar"
+                  onClick={() => setOpen(false)}
+                  className="btn btn-primary w-full rounded-2xl"
+                >
+                  Entrar / Cadastrar
+                </Link>
               </SignedOut>
-
               <SignedIn>
                 <Link
                   href="/minha-conta"
