@@ -8,6 +8,7 @@ import productsData from "@/data/products.json";
 import { useCart } from "@/hooks/useCart";
 import DescriptionAndSpecs from "@/components/ProductDetails/DescriptionAndSpecs";
 import ProductGalleryMobile from "@/components/ProductGalleryMobile";
+import MobileBuyBar from "@/components/MobileBuyBar";
 import {
   Truck,
   CheckCircle2,
@@ -638,10 +639,7 @@ const [cepModal, setCepModal] = useState(false);
                 Adicionar ao carrinho
               </button>
               <button
-                onClick={() => {
-                  addToCart();
-                  router.push("/checkout");
-                }}
+                onClick={() => { router.push("/checkout"); }}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-zinc-900 hover:bg-black text-white px-5 py-3 font-semibold shadow-sm"
               >
                 <CreditCard className="h-5 w-5" />
@@ -757,7 +755,13 @@ const [cepModal, setCepModal] = useState(false);
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-      />      {/* Toast de confirmação */}
+      />
+
+      {/* Barra de compra rápida (mobile) */}
+      <MobileBuyBar product={{ id: product.id, name: product.name, price: selectedPrice }} />
+
+
+      {/* Toast de confirmação */}
       {toastOpen && (
         <div role="status" aria-live="polite" className="fixed bottom-4 right-4 z-[70] rounded-xl bg-emerald-600 text-white shadow-lg px-4 py-3">
           <div className="text-sm font-medium">Produto adicionado ao carrinho</div>
