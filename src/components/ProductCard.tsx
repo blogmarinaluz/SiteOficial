@@ -49,6 +49,45 @@ export default function ProductCard({ product }: { product: P }) {
     const item = { id, name, price, image, qty: 1 };
     try {
       cart?.add?.(item);
+            if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+              const containerId = '___cart_toast_container';
+              let container = document.getElementById(containerId);
+              if (!container) {
+                container = document.createElement('div');
+                container.id = containerId;
+                container.style.position = 'fixed';
+                container.style.zIndex = '9999';
+                container.style.bottom = '16px';
+                container.style.right = '16px';
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                container.style.gap = '8px';
+                container.style.pointerEvents = 'none';
+                document.body.appendChild(container);
+              }
+              const toast = document.createElement('div');
+              toast.setAttribute('role','status');
+              toast.style.pointerEvents = 'auto';
+              toast.style.padding = '10px 12px';
+              toast.style.borderRadius = '12px';
+              toast.style.background = 'rgba(0,0,0,0.85)';
+              toast.style.color = '#fff';
+              toast.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)';
+              toast.style.fontSize = '14px';
+              toast.style.fontWeight = '600';
+              toast.style.display = 'flex';
+              toast.style.alignItems = 'center';
+              toast.style.gap = '8px';
+              toast.textContent = 'Adicionado ao carrinho';
+              container.appendChild(toast);
+              setTimeout(() => {
+                toast.style.transition = 'opacity 200ms ease, transform 200ms ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(6px)';
+                setTimeout(() => { if (container.contains(toast)) container.removeChild(toast); }, 220);
+              }, 1800);
+            }
+
     } catch {}
   }
 
