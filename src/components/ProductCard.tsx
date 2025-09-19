@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useCart } from "@/hooks/useCart";
 import { ShoppingCart, Truck, CheckCircle } from "lucide-react";
 
@@ -59,13 +59,7 @@ export default function ProductCard({ product }: { product: P }) {
     } catch {}
   }
 
-  
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-return (
+  return (
     <article className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:shadow-md">
       {/* Imagem / frame */}
       <Link href={href} className="block">
@@ -160,11 +154,9 @@ return (
         </div>
       </div>
     {added && (
-      <div className="fixed inset-0 z-[60] pointer-events-none">
-        <div role="status" aria-live="polite" className="pointer-events-auto absolute bottom-4 right-4 flex items-center gap-2 rounded-xl bg-black/80 px-4 py-3 text-white shadow-lg backdrop-blur-sm">
-          <CheckCircle className="h-5 w-5 text-emerald-400" />
-          <span>Adicionado ao carrinho</span>
-        </div>
+      <div className="fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-xl bg-black/80 px-4 py-3 text-white shadow-lg backdrop-blur-sm">
+        <CheckCircle className="h-5 w-5 text-emerald-400" />
+        <span>Adicionado ao carrinho</span>
       </div>
     )}
 </article>
