@@ -125,7 +125,7 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
               placeholder="Digite seu CEP"
               maxLength={9}
               value={cep}
-              onChange={(e) => {
+              onChange={(e) = className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-900 placeholder:text-zinc-400" /> {
                 const v = e.target.value;
                 const digits = onlyDigits(v).slice(0, 8);
                 setCep(digits.replace(/(\d{5})(\d{0,3})/, (_, a, b) => (b ? `${a}-${b}` : a)));
