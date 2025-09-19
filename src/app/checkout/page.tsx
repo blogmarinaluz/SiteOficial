@@ -214,6 +214,7 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
           <div><strong>Endereço:</strong> {endereco.logradouro}, {endereco.bairro} - {endereco.localidade}/{endereco.uf}</div>
         </div>
       )}
+      
       {opcoes && (
         <div className="mt-2 grid gap-2">
           {opcoes.map((o) => (
@@ -227,6 +228,18 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
+                <button
+                  onClick={() => { try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} }}
+                  className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
+                >
+                  Escolher
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+</div>
                 <button
                   onClick={() => { localStorage.setItem("prostore:frete", JSON.stringify(o)); }}
                   className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
