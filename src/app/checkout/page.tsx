@@ -91,69 +91,77 @@ const CartItemRow = memo(function CartItemRow({
 }) {
   const src = normalizeSrc(it.image);
   return (
-    <li className="flex items-center gap-3 py-3">
-      <div className="h-12 w-12 rounded-lg overflow-hidden border bg-white">
-        {it.image ? (
-          <Image
-            src={src}
-            alt={it.name}
-            width={48}
-            height={48}
-            className="h-full w-full object-contain"
-            unoptimized={isJfif(src)}
-            sizes="48px"
-          />
-        ) : (
-          <div className="h-full w-full grid place-items-center text-xs text-neutral-400">
-            Sem imagem
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <Link href={`/produto/${it.id}`} className="block text-sm font-medium hover:underline whitespace-nowrap overflow-hidden text-ellipsis">
-          {it.name}
-        </Link>
-        <div className="mt-0.5 text-xs text-neutral-500 leading-4">
-          {it.color ? <>Cor: {it.color}</> : null}
-          {it.color && it.storage ? " • " : null}
-          {it.storage ? <> {String(it.storage)} GB</> : null}
-          {" • "}
-          {it.qty}x
+    
+      <li className="grid grid-cols-[64px_1fr_auto] gap-x-3 gap-y-2 py-3">
+        {/* Thumb maior para mobile */}
+        <div className="row-span-2 h-16 w-16 rounded-xl overflow-hidden border bg-white">
+          {it.image ? (
+            <Image
+              src={src}
+              alt={it.name}
+              width={64}
+              height={64}
+              className="h-full w-full object-contain"
+              unoptimized={isJfif(src)}
+              sizes="64px"
+            />
+          ) : (
+            <div className="h-full w-full grid place-items-center text-xs text-neutral-400">
+              Sem imagem
+            </div>
+          )}
         </div>
-      </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onDec(it.id)}
-          className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-          aria-label="Diminuir"
-        >
-          −
-        </button>
-        <span className="w-6 text-center text-sm font-medium">{it.qty}</span>
-        <button
-          onClick={() => onInc(it.id)}
-          className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-          aria-label="Aumentar"
-        >
-          +
-        </button>
+        {/* Nome do produto */}
+        <div className="min-w-0">
+          <Link
+            href={`/produto/${it.id}`}
+            className="block text-[15px] font-semibold leading-5 text-neutral-900 hover:underline line-clamp-2"
+            title={it.name}
+          >
+            {it.name}
+          </Link>
+          <div className="mt-1 text-xs text-neutral-600">
+            {it.color ? <>Cor: {it.color}</> : null}
+            {it.color && it.storage ? " • " : null}
+            {it.storage ? <>{String(it.storage)} GB</> : null}
+          </div>
+        </div>
 
-        <button
-          onClick={() => onRemove(it.id)}
-          className="ml-2 rounded p-1.5 text-neutral-500 hover:bg-neutral-100"
-          aria-label="Remover item"
-          title="Remover item"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
+        {/* Total à direita */}
+        <div className="text-right text-base font-extrabold text-neutral-900">
+          {br((it.price || 0) * (it.qty || 0))}
+        </div>
 
-      <div className="ml-3 w-[120px] text-right text-sm font-semibold">
-        {br((it.price || 0) * (it.qty || 0))}
-      </div>
-    </li>
+        {/* Controles de quantidade + remover */}
+        <div className="col-start-2 flex items-center gap-2">
+          <button
+            onClick={() => onDec(it.id)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+            aria-label="Diminuir"
+          >
+            −
+          </button>
+          <span className="min-w-8 text-center text-base font-semibold">{it.qty}</span>
+          <button
+            onClick={() => onInc(it.id)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+            aria-label="Aumentar"
+          >
+            +
+          </button>
+
+          <button
+            onClick={() => onRemove(it.id)}
+            className="ml-1 rounded-lg p-2 text-neutral-500 hover:bg-neutral-100"
+            aria-label="Remover item"
+            title="Remover item"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </li>
+
   );
 });
 
