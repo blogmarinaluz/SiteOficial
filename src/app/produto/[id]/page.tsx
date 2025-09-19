@@ -10,6 +10,7 @@ import DescriptionAndSpecs from "@/components/ProductDetails/DescriptionAndSpecs
 import ProductGalleryMobile from "@/components/ProductGalleryMobile";
 import MobileBuyBar from "@/components/MobileBuyBar";
 import {
+import Image from "next/image";
   Truck,
   CheckCircle2,
   Shield,
@@ -549,7 +550,7 @@ const [cepModal, setCepModal] = useState(false);
                 style={{ height: "var(--prod-stage-h, 420px)" }}
               >
                 <img
-                  src={selectedImage.startsWith("/") || selectedImage.startsWith("http") ? selectedImage : `/${selectedImage}`}
+                  src={selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`}
                   alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
                   style={{
                     height: "var(--prod-img-h, 380px)",
