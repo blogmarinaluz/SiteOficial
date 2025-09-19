@@ -338,8 +338,7 @@ export default function CheckoutPage() {
 
   
   
-const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(freteEscolhido?.valor || 0)), [subtotal, discount, allFreeShipping, freteEscolhido]);
-  const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
+const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
   useEffect(() => {
     try {
       const saved = localStorage.getItem('prostore:frete');
@@ -353,7 +352,9 @@ const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
-// ===== pedido via WhatsApp =====
+
+const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(freteEscolhido?.valor || 0)), [subtotal, discount, allFreeShipping, freteEscolhido]);
+  // ===== pedido via WhatsApp =====
   function generateOrderCode(): string {
     const dt = new Date();
     const pad2 = (n: number) => String(n).padStart(2, "0");
