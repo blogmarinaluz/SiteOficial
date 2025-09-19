@@ -6,6 +6,17 @@ import Image from "next/image";
 import { useCart } from "@/hooks/useCart";
 import { br } from "@/lib/format";
 import {
+
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Celular no Boleto para Negativados | proStore",
+  description:
+    "Compre celular no boleto (inclui opção para negativados) com análise rápida, 30% OFF no PIX/Boleto e emissão de NF-e. Parcelamento no boleto sujeito à análise.",
+  alternates: { canonical: "/analise-boleto" },
+  robots: { index: true, follow: true },
+};
+
   FileText,
   Truck,
   Shield,
