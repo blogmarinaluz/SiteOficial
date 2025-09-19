@@ -213,21 +213,6 @@ function FreteForm({ open, onClose, onChoose }: { open: boolean; onClose: () => 
     });
 
     }
-    const fake: EnderecoViaCep = {
-      cep: v.replace(/(\d{5})(\d{3})/, "$1-$2"),
-      logradouro: "Rua Exemplo",
-      bairro: "Centro",
-      localidade: "Cidade",
-      uf: "SP",
-    };
-    setEndereco(fake);
-    setOpcoes([
-      { tipo: "economico", prazo: "5 a 8 dias úteis", valor: 29.9 },
-      { tipo: "expresso", prazo: "2 a 4 dias úteis", valor: 49.9 },
-      { tipo: "retira", prazo: "Retire amanhã", valor: 0 },
-    ]);
-    localStorage.setItem("prostore:cep", v);
-  }
 
   return (
     <div className="space-y-3">
