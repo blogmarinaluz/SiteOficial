@@ -131,8 +131,6 @@ function CepModal({
   const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
   const [opcoes, setOpcoes] = useState<Frete[] | null>(null);
 
-  useEffect(() => { if (!toastOpen) return; const t = setTimeout(() => setToastOpen(false), 2500); return () => clearTimeout(t); }, [toastOpen]);
-
   useEffect(() => {
     if (!open) return;
     const saved = localStorage.getItem("prostore:cep");
@@ -356,8 +354,6 @@ function ProductSEO({
     ],
   };
 
-  useEffect(() => { if (!toastOpen) return; const t = setTimeout(() => setToastOpen(false), 2500); return () => clearTimeout(t); }, [toastOpen]);
-
   useEffect(() => {
     try {
       document.title = title;
@@ -495,7 +491,10 @@ function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete 
     cart.add(
       {
         id: product.id,
-        name: `${product.name} ${selectedStorage} GB`,
+        name: `${product.name
+  setToastOpen(true);
+  setTimeout(() => setToastOpen(false), 2500);
+} ${selectedStorage} GB`,
         image: selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`,
         price: selectedPrice,
         freeShipping: !!product.tag || product.tag === "frete-gratis",
