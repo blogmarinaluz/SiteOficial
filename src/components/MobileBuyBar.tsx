@@ -52,7 +52,7 @@ export default function MobileBuyBar({ product, className = "" }: Props) {
 
   function onBuyNow() {
     onAddToCart();
-    router.push("/carrinho");
+    router.push("/checkout");
   }
 
   return (
