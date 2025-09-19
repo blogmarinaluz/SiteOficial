@@ -3,9 +3,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useCart } from "@/hooks/useCart";
-import { ShoppingCart, Truck } from "lucide-react";
+import { ShoppingCart, Truck, CheckCircle } from "lucide-react";
 
 type P = {
   id: string;
@@ -49,10 +49,23 @@ export default function ProductCard({ product }: { product: P }) {
     const item = { id, name, price, image, qty: 1 };
     try {
       cart?.add?.(item);
+      setAdded(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setAdded(false), 1800);
+    } catch {}
+  };
+    try {
+      cart?.add?.(item);
     } catch {}
   }
 
-  return (
+  
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+return (
     <article className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:shadow-md">
       {/* Imagem / frame */}
       <Link href={href} className="block">
@@ -146,6 +159,14 @@ export default function ProductCard({ product }: { product: P }) {
           </button>
         </div>
       </div>
-    </article>
+    {added && (
+      <div className="fixed inset-0 z-[60] pointer-events-none">
+        <div role="status" aria-live="polite" className="pointer-events-auto absolute bottom-4 right-4 flex items-center gap-2 rounded-xl bg-black/80 px-4 py-3 text-white shadow-lg backdrop-blur-sm">
+          <CheckCircle className="h-5 w-5 text-emerald-400" />
+          <span>Adicionado ao carrinho</span>
+        </div>
+      </div>
+    )}
+</article>
   );
 }
