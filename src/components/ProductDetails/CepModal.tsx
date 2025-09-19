@@ -130,8 +130,8 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
                 const digits = onlyDigits(v).slice(0, 8);
                 setCep(digits.replace(/(\d{5})(\d{0,3})/, (_, a, b) => (b ? `${a}-${b}` : a)));
               }}
-              className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500 !bg-white !text-zinc-900 placeholder:!text-zinc-400 caret-emerald-600 cep-input"
-             data-cep-input="true"  type="text"  style={{ color: "#0a0a0a", WebkitTextFillColor: "#0a0a0a", backgroundColor: "#ffffff" }} />
+              className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500"
+             data-cep-input="true"  type="text"  style={{ all: "unset", boxSizing: "border-box", width: "100%", height: "44px", padding: "0 12px", borderRadius: "12px", border: "1px solid #d4d4d8", backgroundColor: "#ffffff", color: "#111827", WebkitTextFillColor: "#111827", caretColor: "#059669", outline: "none" }} />
             <button
               onClick={queryCep}
               disabled={loading}
@@ -178,15 +178,18 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
       </div>
     
       <style jsx>{`
-        :global(input[data-cep-input="true"]) {
-          color: #0a0a0a !important;
-          -webkit-text-fill-color: #0a0a0a !important;
-          background: #ffffff !important;
-          caret-color: #059669;
-        }
         :global(input[data-cep-input="true"])::placeholder {
           color: #9ca3af !important;
           opacity: 1;
+        }
+        :global(input[data-cep-input="true"]:focus) {
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
+          border-color: rgba(16, 185, 129, 0.6);
+        }
+        :global(input[data-cep-input="true"]:-webkit-autofill) {
+          -webkit-text-fill-color: #111827 !important;
+          -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+          background-clip: content-box !important;
         }
       `}</style>
 </div>
