@@ -215,44 +215,19 @@ function FreteForm({ open, onClose, onChoose }: { open: boolean; onClose: () => 
         </div>
       )}
       
-      
       {opcoes && (
         <div className="mt-2 grid gap-2">
-          {opcoes.map((o) => {
-            const selected = (typeof window !== "undefined") ? (() => {
-              try { const s = localStorage.getItem('prostore:frete'); if (!s) return false; const f = JSON.parse(s); return f && f.tipo === o.tipo && Number(f.valor) === Number(o.valor); } catch { return false }
-            })() : false;
-            return (
-              <div
-                key={o.tipo}
-                role="button"
-                tabIndex={0}
-                onClick={() => { try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); }}}
-                className={"flex items-center justify-between rounded-xl border px-4 py-3 hover:bg-neutral-50 " + (selected ? "bg-emerald-50 border-emerald-200" : "bg-white")}
-              >
-                <div className="flex items-start gap-3">
-                  <Truck className="h-4 w-4 text-emerald-600" />
-                  <div>
-                    <div className="text-sm font-semibold capitalize">{o.tipo}</div>
-                    <div className="text-xs text-neutral-600">Entrega estimada • {o.prazo}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); }}
-                    className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
-                  >
-                    {selected ? "Selecionado" : "Escolher"}
-                  </button>
+          {opcoes.map((o) => (
+            <div key={o.tipo} role="button" tabIndex={0} onClick={() => { try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); } }} className={"flex items-center justify-between rounded-xl border px-4 py-3 hover:bg-neutral-50 " + (((typeof window !== "undefined") && (() => { try { const s = localStorage.getItem('prostore:frete'); if (!s) return false; const f = JSON.parse(s); return f && f.tipo === o.tipo && Number(f.valor) === Number(o.valor); } catch { return false } })()) ? "bg-emerald-50 border-emerald-200" : "bg-white")}>
+              <div className="flex items-start gap-3">
+                <Truck className="h-4 w-4 text-emerald-600" />
+                <div>
+                  <div className="text-sm font-semibold capitalize">{o.tipo}</div>
+                  <div className="text-xs text-neutral-600">Entrega estimada • {o.prazo}</div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-</div>
+              <div className="flex items-center gap-3">
+                <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
                 <button
                   onClick={() => { try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} }}
                   className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
