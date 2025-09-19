@@ -527,12 +527,15 @@ const [cepModal, setCepModal] = useState(false);
         <div className="grid gap-6 lg:grid-cols-[minmax(320px,460px)_1fr]">
           {/* Imagem principal (desktop) + galeria (mobile) */}
           {/* Mobile gallery */}
-          <div className="lg:hidden"><ProductGalleryMobile images={( () => {
+          <div className="lg:hidden"><ProductGalleryMobile images={[selectedImage]} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} />
+{/* removed old images source */}
+{/*
             const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
             const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
             const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
             return Array.from(new Set(arr.map(norm)));
-          })()} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div>
+          */}
+={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div>
 
           {/* Desktop image */}
           <div className="hidden lg:block rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
