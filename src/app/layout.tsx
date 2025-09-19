@@ -7,7 +7,10 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { CartProvider } from "@/hooks/useCart";
 
 export const metadata: Metadata = {
-  title: "proStore — Apple & Samsung",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
+  metadataBase: new URL("https://www.prostore.com.br"),
+  title: { default: "proStore", template: "%s | proStore" },
   description: "Loja mobile-first de Apple & Samsung",
 };
 
