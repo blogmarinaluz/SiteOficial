@@ -91,77 +91,69 @@ const CartItemRow = memo(function CartItemRow({
 }) {
   const src = normalizeSrc(it.image);
   return (
-    
-      <li className="grid grid-cols-[64px_1fr_auto] gap-x-3 gap-y-2 py-3">
-        {/* Thumb maior para mobile */}
-        <div className="row-span-2 h-16 w-16 rounded-xl overflow-hidden border bg-white">
-          {it.image ? (
-            <Image
-              src={src}
-              alt={it.name}
-              width={64}
-              height={64}
-              className="h-full w-full object-contain"
-              unoptimized={isJfif(src)}
-              sizes="64px"
-            />
-          ) : (
-            <div className="h-full w-full grid place-items-center text-xs text-neutral-400">
-              Sem imagem
-            </div>
-          )}
-        </div>
-
-        {/* Nome do produto */}
-        <div className="min-w-0">
-          <Link
-            href={`/produto/${it.id}`}
-            className="block text-[15px] font-semibold leading-5 text-neutral-900 hover:underline line-clamp-2"
-            title={it.name}
-          >
-            {it.name}
-          </Link>
-          <div className="mt-1 text-xs text-neutral-600">
-            {it.color ? <>Cor: {it.color}</> : null}
-            {it.color && it.storage ? " • " : null}
-            {it.storage ? <>{String(it.storage)} GB</> : null}
+    <li className="flex items-center gap-3 py-3">
+      <div className="h-12 w-12 rounded-lg overflow-hidden border bg-white">
+        {it.image ? (
+          <Image
+            src={src}
+            alt={it.name}
+            width={48}
+            height={48}
+            className="h-full w-full object-contain"
+            unoptimized={isJfif(src)}
+            sizes="48px"
+          />
+        ) : (
+          <div className="h-full w-full grid place-items-center text-xs text-neutral-400">
+            Sem imagem
           </div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <Link href={`/produto/${it.id}`} className="block text-sm font-medium hover:underline whitespace-nowrap overflow-hidden text-ellipsis">
+          {it.name}
+        </Link>
+        <div className="mt-0.5 text-xs text-neutral-500 leading-4">
+          {it.color ? <>Cor: {it.color}</> : null}
+          {it.color && it.storage ? " • " : null}
+          {it.storage ? <> {String(it.storage)} GB</> : null}
+          {" • "}
+          {it.qty}x
         </div>
+      </div>
 
-        {/* Total à direita */}
-        <div className="text-right text-base font-extrabold text-neutral-900">
-          {br((it.price || 0) * (it.qty || 0))}
-        </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onDec(it.id)}
+          className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+          aria-label="Diminuir"
+        >
+          −
+        </button>
+        <span className="w-6 text-center text-sm font-medium">{it.qty}</span>
+        <button
+          onClick={() => onInc(it.id)}
+          className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+          aria-label="Aumentar"
+        >
+          +
+        </button>
 
-        {/* Controles de quantidade + remover */}
-        <div className="col-start-2 flex items-center gap-2">
-          <button
-            onClick={() => onDec(it.id)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-            aria-label="Diminuir"
-          >
-            −
-          </button>
-          <span className="min-w-8 text-center text-base font-semibold">{it.qty}</span>
-          <button
-            onClick={() => onInc(it.id)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-            aria-label="Aumentar"
-          >
-            +
-          </button>
+        <button
+          onClick={() => onRemove(it.id)}
+          className="ml-2 rounded p-1.5 text-neutral-500 hover:bg-neutral-100"
+          aria-label="Remover item"
+          title="Remover item"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
 
-          <button
-            onClick={() => onRemove(it.id)}
-            className="ml-1 rounded-lg p-2 text-neutral-500 hover:bg-neutral-100"
-            aria-label="Remover item"
-            title="Remover item"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </li>
-
+      <div className="ml-3 w-[120px] text-right text-sm font-semibold">
+        {br((it.price || 0) * (it.qty || 0))}
+      </div>
+    </li>
   );
 });
 
@@ -179,13 +171,47 @@ function FreteForm({ open, onClose, onChoose }: { open: boolean; onClose: () => 
   }, [open]);
 
   function consultar() {
-    setErro(null);
-    const v = (cep || "").replace(/\D/g, "");
-    if (v.length !== 8) {
-      setErro("CEP inválido");
+  setErro(null);
+  const v = (cep || "").replace(/\D/g, "");
+  if (v.length !== 8) {
+    setErro("CEP inválido");
+    setEndereco(null);
+    setOpcoes(null);
+    return;
+  }
+
+  // Busca CEP na API ViaCEP
+  fetch(`https://viacep.com.br/ws/${v}/json/`, { cache: "no-store" })
+    .then(async (res) => {
+      if (!res.ok) throw new Error("Falha ao consultar CEP");
+      const data = await res.json();
+      if (data.erro) throw new Error("CEP não encontrado");
+      const end: EnderecoViaCep = {
+        cep: data.cep || v.replace(/(\d{5})(\d{3})/, "$1-$2"),
+        logradouro: data.logradouro || "",
+        bairro: data.bairro || "",
+        localidade: data.localidade || "",
+        uf: data.uf || "",
+      };
+      setEndereco(end);
+      // Mantém opções de frete (pode variar por UF/cidade futuramente)
+      setOpcoes([
+        { tipo: "economico", prazo: "5 a 8 dias úteis", valor: 29.9 },
+        { tipo: "expresso", prazo: "2 a 4 dias úteis", valor: 49.9 },
+        { tipo: "retira", prazo: "Retire amanhã", valor: 0 },
+      ]);
+      // Salva CEP formatado e aplica máscara no input
+      const masked = end.cep;
+      setCep(masked);
+      localStorage.setItem("prostore:cep", masked);
+    })
+    .catch((err) => {
+      console.error(err);
+      setErro("Não foi possível consultar o CEP. Verifique e tente novamente.");
       setEndereco(null);
       setOpcoes(null);
-      return;
+    });
+
     }
     const fake: EnderecoViaCep = {
       cep: v.replace(/(\d{5})(\d{3})/, "$1-$2"),
@@ -208,7 +234,7 @@ function FreteForm({ open, onClose, onChoose }: { open: boolean; onClose: () => 
       <div className="flex gap-2">
         <input
           value={cep}
-          onChange={(e) => setCep(e.target.value)}
+          onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0,8); const masked = v.replace(/(\d{5})(\d{0,3})/, (m, a, b) => b ? `${a}-${b}` : a); setCep(masked); }}
           placeholder="Digite seu CEP"
           className="w-40 h-11 rounded-xl border border-neutral-300 bg-white text-neutral-900 placeholder:text-neutral-400 px-3 outline-none focus:ring-2 focus:ring-emerald-500"
           maxLength={9}
