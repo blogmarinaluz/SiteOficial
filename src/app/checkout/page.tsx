@@ -111,7 +111,7 @@ const CartItemRow = memo(function CartItemRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <Link href={`/produto/${it.id}`} className="block text-sm font-medium hover:underline">
+        <Link href={`/produto/${it.id}`} className="block text-sm font-medium hover:underline whitespace-nowrap overflow-hidden text-ellipsis">
           {it.name}
         </Link>
         <div className="mt-0.5 text-xs text-neutral-500 whitespace-nowrap overflow-hidden text-ellipsis">
@@ -158,7 +158,7 @@ const CartItemRow = memo(function CartItemRow({
 });
 
 /* ====================== CEP / Frete (fake) ====================== */
-function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
+function FreteForm({ open, onClose, onChoose }: { open: boolean; onClose: () => void; onChoose?: (f: Frete) => void }) {
   const [cep, setCep] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
@@ -215,19 +215,44 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
       )}
       
+      
       {opcoes && (
         <div className="mt-2 grid gap-2">
-          {opcoes.map((o) => (
-            <div key={o.tipo} className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 hover:bg-neutral-50">
-              <div className="flex items-start gap-3">
-                <Truck className="h-4 w-4 text-emerald-600" />
-                <div>
-                  <div className="text-sm font-semibold capitalize">{o.tipo}</div>
-                  <div className="text-xs text-neutral-600">Entrega estimada • {o.prazo}</div>
+          {opcoes.map((o) => {
+            const selected = (typeof window !== "undefined") ? (() => {
+              try { const s = localStorage.getItem('prostore:frete'); if (!s) return false; const f = JSON.parse(s); return f && f.tipo === o.tipo && Number(f.valor) === Number(o.valor); } catch { return false }
+            })() : false;
+            return (
+              <div
+                key={o.tipo}
+                role="button"
+                tabIndex={0}
+                onClick={() => { try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); }}}
+                className={"flex items-center justify-between rounded-xl border px-4 py-3 hover:bg-neutral-50 " + (selected ? "bg-emerald-50 border-emerald-200" : "bg-white")}
+              >
+                <div className="flex items-start gap-3">
+                  <Truck className="h-4 w-4 text-emerald-600" />
+                  <div>
+                    <div className="text-sm font-semibold capitalize">{o.tipo}</div>
+                    <div className="text-xs text-neutral-600">Entrega estimada • {o.prazo}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} if (onChoose) onChoose(o); }}
+                    className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
+                  >
+                    {selected ? "Selecionado" : "Escolher"}
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
+            );
+          })}
+        </div>
+      )}
+</div>
                 <button
                   onClick={() => { try { localStorage.setItem('prostore:frete', JSON.stringify(o)); } catch {} }}
                   className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
@@ -480,7 +505,7 @@ const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(
 
           <Section title="Endereço e frete">
             <div className="grid gap-4">
-              <FreteForm open={true} onClose={() => {}} />
+              <FreteForm open={true} onClose={() => {}} onChoose={(f) => setFreteEscolhido(f)} />
             </div>
           </Section>
 
