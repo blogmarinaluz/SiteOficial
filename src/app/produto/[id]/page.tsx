@@ -444,20 +444,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       (s) =>
         norm(s.color) === norm(selectedColor) && parseStorage(s) === selectedStorage && s.image
     );
-    
-
-// Imagem para exibição no mobile: corrige extensões .jfif e .jpg.jfif e garante '/'
-const displayImage = useMemo(() => {
-  let img = selectedImage || (product?.image ?? "");
-  if (!img) return img;
-  if (/\.jpg\.jfif(\?|$)/i.test(img)) img = img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1");
-  else if (/\.jfif(\?|$)/i.test(img)) img = img.replace(/\.jfif(\?|$)/i, ".jpg$1");
-  if (!img.startsWith("/")) img = `/${img}`;
-  return img;
-}, [selectedImage, product?.image]);
-const byColorOnly = siblings.find((s) => norm(s.color) === norm(selectedColor) && s.image);
+    const byColorOnly = siblings.find((s) => norm(s.color) === norm(selectedColor) && s.image);
     return byColor?.image || byColorOnly?.image || product.images?.[0] || product.image || "/placeholder.svg";
   }, [siblings, selectedColor, selectedStorage, product]);
+  // Compat mobile: usa o otimizador do Next (/_next/image) para entregar formato compatível
+  const __isAbs = selectedImage.startsWith("/") || selectedImage.startsWith("http");
+  const __displayImage = __isAbs ? selectedImage : `/${selectedImage}`;
+  const mainImageSrc = `/_next/image?url=${encodeURIComponent(__displayImage)}&w=1200&q=85`;
+
 
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
@@ -560,7 +554,7 @@ const [cepModal, setCepModal] = useState(false);
                 style={{ height: "var(--prod-stage-h, 420px)" }}
               >
                 <img
-                  src={displayImage}
+                  src={mainImageSrc}
                   alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
                   style={{
                     height: "var(--prod-img-h, 380px)",
@@ -731,7 +725,7 @@ const [cepModal, setCepModal] = useState(false);
                       <div className="w-full rounded-lg bg-white ring-1 ring-zinc-200 p-2">
                         <div className="w-full flex items-center justify-center overflow-hidden" style={{ height: 150 }}>
                           <img
-                            src={(/\.jpg\.jfif(\?|$)/i.test(img) ? (img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1")) : (/\.jfif(\?|$)/i.test(img) ? img.replace(/\.jfif(\?|$)/i, ".jpg$1") : img)).startsWith("/") ? (/\.jpg\.jfif(\?|$)/i.test(img) ? img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1") : (/\.jfif(\?|$)/i.test(img) ? img.replace(/\.jfif(\?|$)/i, ".jpg$1") : img)) : `/${(/\.jpg\.jfif(\?|$)/i.test(img) ? img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1") : (/\.jfif(\?|$)/i.test(img) ? img.replace(/\.jfif(\?|$)/i, ".jpg$1") : img))}`
+                            src={`/_next/image?url=${encodeURIComponent(img.startsWith("/") ? img : `/${img}`)}&w=260&q=85`}
                             alt={s.name}
                             style={{ height: 130, width: "auto", objectFit: "contain" }}
                             loading="lazy"
