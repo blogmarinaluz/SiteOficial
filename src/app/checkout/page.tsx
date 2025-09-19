@@ -73,7 +73,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 /* ====================== Pagamentos (mesmo conteúdo) ====================== */
 const pagamentos = [
   { id: "pix", label: "Pix à vista (recomendado)", desc: "Confirmação imediata e 30% OFF", icon: QrCode },
-  { id: "boleto", label: "Boleto à vista", desc: "Compensação em até 2 dias úteis e 30% OFF", icon: Receipt },
+  { id: "boleto", label: "Boleto parcelado", desc: "Parcele no boleto (pode ser para negativados) • 30% OFF à vista", icon: Receipt },
   { id: "cartao", label: "Cartão de crédito", desc: "Em até 10x sem juros", icon: CreditCard },
 ];
 
@@ -202,7 +202,7 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
           value={cep}
           onChange={(e) => setCep(e.target.value)}
           placeholder="Digite seu CEP"
-          className="input w-40"
+          className="w-40 h-11 rounded-xl border border-neutral-300 bg-white text-neutral-900 placeholder:text-neutral-400 px-3 outline-none focus:ring-2 focus:ring-emerald-500"
           maxLength={9}
         />
         <button onClick={consultar} className="btn-secondary">Calcular</button>
@@ -215,14 +215,29 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
       )}
       {opcoes && (
-        <ul className="space-y-2">
+        <div className="mt-2 grid gap-2">
           {opcoes.map((o) => (
-            <li key={o.tipo} className="trust">
-              <Truck className="h-4 w-4 text-emerald-600" />
-              <span className="font-medium capitalize">{o.tipo}</span>
-              <span className="text-neutral-500">•</span>
-              <span>{o.prazo}</span>
-              <span className="ml-auto font-semibold">{br(o.valor)}</span>
+            <div key={o.tipo} className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 hover:bg-neutral-50">
+              <div className="flex items-start gap-3">
+                <Truck className="h-4 w-4 text-emerald-600" />
+                <div>
+                  <div className="text-sm font-semibold capitalize">{o.tipo}</div>
+                  <div className="text-xs text-neutral-600">Entrega estimada • {o.prazo}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
+                <button
+                  onClick={() => { localStorage.setItem("prostore:frete", JSON.stringify(o)); }}
+                  className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
+                >
+                  Escolher
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}</span>
             </li>
           ))}
         </ul>
@@ -318,11 +333,34 @@ export default function CheckoutPage() {
     [items]
   );
   const discount = useMemo(() => subtotal * 0.3, [subtotal]); // 30% OFF
-  const total = useMemo(() => subtotal - discount, [subtotal, discount]);
+  const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(freteEscolhido?.valor || 0)), [subtotal, discount, allFreeShipping, freteEscolhido]);
   const allFreeShipping = useMemo(
     () => (items ?? []).length > 0 && (items ?? []).every((i) => !!i.freeShipping),
     [items]
   );
+
+  
+  const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('prostore:frete');
+      if (saved) setFreteEscolhido(JSON.parse(saved));
+    } catch {}
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'prostore:frete' && e.newValue) {
+        try { setFreteEscolhido(JSON.parse(e.newValue)); } catch {}
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
+  useEffect(() => {
+    try { const saved = localStorage.getItem('prostore:frete'); if (saved) setFreteEscolhido(JSON.parse(saved)); } catch {}
+    
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   // ===== pedido via WhatsApp =====
   function generateOrderCode(): string {
@@ -450,7 +488,7 @@ export default function CheckoutPage() {
 
           <Section title="Endereço e frete">
             <div className="grid gap-4">
-              <FreteForm open={true} onClose={() => {}} />
+              <FreteForm open={true} onClose={() => { try { const saved = localStorage.getItem('prostore:frete'); if (saved) setFreteEscolhido(JSON.parse(saved)); } catch {} }} />
             </div>
           </Section>
 
@@ -559,6 +597,8 @@ export default function CheckoutPage() {
               </div>
 
               {allFreeShipping && <div className="text-xs font-medium text-emerald-700">Frete grátis</div>}
+
+              <div className="flex items-center justify-between text-sm"><span className="text-neutral-600">Frete</span><span className="font-medium">{allFreeShipping ? "Grátis" : br(Number(freteEscolhido?.valor || 0))}</span></div>
 
               <div className="pt-2 flex items-center justify-between">
                 <button onClick={onClear} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">Limpar</button>
