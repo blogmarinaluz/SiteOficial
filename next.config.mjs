@@ -16,4 +16,15 @@ export default {
   },
 
   // Pode manter o resto padrão — sem alterações em rotas ou imports
+
+,
+async headers() {
+  return [
+    {
+      // Garante que arquivos .jfif sejam entregues como JPEG em qualquer pasta pública
+      source: "/:path*.jfif",
+      headers: [{ key: "Content-Type", value: "image/jpeg" }],
+    },
+  ];
+}
 };
