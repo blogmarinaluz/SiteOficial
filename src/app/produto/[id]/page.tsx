@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import productsData from "@/data/products.json";
 import { useCart } from "@/hooks/useCart";
@@ -445,11 +444,20 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       (s) =>
         norm(s.color) === norm(selectedColor) && parseStorage(s) === selectedStorage && s.image
     );
-    const byColorOnly = siblings.find((s) => norm(s.color) === norm(selectedColor) && s.image);
+    
+
+// Imagem para exibição no mobile: corrige extensões .jfif e .jpg.jfif e garante '/'
+const displayImage = useMemo(() => {
+  let img = selectedImage || (product?.image ?? "");
+  if (!img) return img;
+  if (/\.jpg\.jfif(\?|$)/i.test(img)) img = img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1");
+  else if (/\.jfif(\?|$)/i.test(img)) img = img.replace(/\.jfif(\?|$)/i, ".jpg$1");
+  if (!img.startsWith("/")) img = `/${img}`;
+  return img;
+}, [selectedImage, product?.image]);
+const byColorOnly = siblings.find((s) => norm(s.color) === norm(selectedColor) && s.image);
     return byColor?.image || byColorOnly?.image || product.images?.[0] || product.image || "/placeholder.svg";
   }, [siblings, selectedColor, selectedStorage, product]);
-
-  const unoptimizedSelected = /\.jfif(\?|$)/i.test(selectedImage);
 
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
@@ -552,7 +560,7 @@ const [cepModal, setCepModal] = useState(false);
                 style={{ height: "var(--prod-stage-h, 420px)" }}
               >
                 <img
-                  src={selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`}
+                  src={displayImage}
                   alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
                   style={{
                     height: "var(--prod-img-h, 380px)",
@@ -722,14 +730,12 @@ const [cepModal, setCepModal] = useState(false);
                     >
                       <div className="w-full rounded-lg bg-white ring-1 ring-zinc-200 p-2">
                         <div className="w-full flex items-center justify-center overflow-hidden" style={{ height: 150 }}>
-                          <Image
-                            src={img.startsWith("/") ? img : `/${img}`}
+                          <img
+                            src={(/\.jpg\.jfif(\?|$)/i.test(img) ? (img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1")) : (/\.jfif(\?|$)/i.test(img) ? img.replace(/\.jfif(\?|$)/i, ".jpg$1") : img)).startsWith("/") ? (/\.jpg\.jfif(\?|$)/i.test(img) ? img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1") : (/\.jfif(\?|$)/i.test(img) ? img.replace(/\.jfif(\?|$)/i, ".jpg$1") : img)) : `/${(/\.jpg\.jfif(\?|$)/i.test(img) ? img.replace(/\.jpg\.jfif(\?|$)/i, ".jpg$1") : (/\.jfif(\?|$)/i.test(img) ? img.replace(/\.jfif(\?|$)/i, ".jpg$1") : img))}`
                             alt={s.name}
-                            width={130}
-                            height={130}
                             style={{ height: 130, width: "auto", objectFit: "contain" }}
                             loading="lazy"
-                            unoptimized={/\.jfif(\?|$)/i.test(img)}
+                            decoding="async"
                           />
                         </div>
                       </div>
