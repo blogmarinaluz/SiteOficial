@@ -114,7 +114,7 @@ const CartItemRow = memo(function CartItemRow({
         <Link href={`/produto/${it.id}`} className="block text-sm font-medium hover:underline whitespace-nowrap overflow-hidden text-ellipsis">
           {it.name}
         </Link>
-        <div className="mt-0.5 text-xs text-neutral-500 whitespace-nowrap overflow-hidden text-ellipsis">
+        <div className="mt-0.5 text-xs text-neutral-500 leading-4">
           {it.color ? <>Cor: {it.color}</> : null}
           {it.color && it.storage ? " • " : null}
           {it.storage ? <> {String(it.storage)} GB</> : null}
