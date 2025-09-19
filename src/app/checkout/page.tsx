@@ -457,7 +457,7 @@ const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(
 
   return (
     <>
-      <div className="container mx-auto px-4 pt-16 md:pt-20 pb-28 grid gap-6 lg:grid-cols-[1fr_380px]">
+      <div className="container-safe pt-16 md:pt-20 pb-28 grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* COLUNA ESQUERDA */}
         <div className="space-y-6">
           <Section title="Seus itens">
