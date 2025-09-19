@@ -130,8 +130,8 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
                 const digits = onlyDigits(v).slice(0, 8);
                 setCep(digits.replace(/(\d{5})(\d{0,3})/, (_, a, b) => (b ? `${a}-${b}` : a)));
               }}
-              className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-zinc-900 placeholder:text-zinc-400 caret-emerald-600 cep-input"
-             type="text" />
+              className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500 !bg-white !text-zinc-900 placeholder:!text-zinc-400 caret-emerald-600 cep-input"
+             data-cep-input="true"  type="text"  style={{ color: "#0a0a0a", WebkitTextFillColor: "#0a0a0a", backgroundColor: "#ffffff" }} />
             <button
               onClick={queryCep}
               disabled={loading}
@@ -178,13 +178,13 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
       </div>
     
       <style jsx>{`
-        .cep-input {
+        :global(input[data-cep-input="true"]) {
           color: #0a0a0a !important;
           -webkit-text-fill-color: #0a0a0a !important;
           background: #ffffff !important;
           caret-color: #059669;
         }
-        .cep-input::placeholder {
+        :global(input[data-cep-input="true"])::placeholder {
           color: #9ca3af !important;
           opacity: 1;
         }
