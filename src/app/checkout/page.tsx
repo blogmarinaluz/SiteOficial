@@ -92,9 +92,9 @@ const CartItemRow = memo(function CartItemRow({
   const src = normalizeSrc(it.image);
   return (
     
-      <li className="flex items-center gap-3 py-4">
-        {/* Thumb maior e com bordas suaves */}
-        <div className="h-16 w-16 rounded-xl overflow-hidden border bg-white shrink-0">
+      <li className="grid grid-cols-[64px_1fr_auto] gap-x-3 gap-y-2 py-3">
+        {/* Thumb maior para mobile */}
+        <div className="row-span-2 h-16 w-16 rounded-xl overflow-hidden border bg-white">
           {it.image ? (
             <Image
               src={src}
@@ -112,8 +112,8 @@ const CartItemRow = memo(function CartItemRow({
           )}
         </div>
 
-        {/* Nome + metadados */}
-        <div className="flex-1 min-w-0">
+        {/* Nome do produto */}
+        <div className="min-w-0">
           <Link
             href={`/produto/${it.id}`}
             className="block text-[15px] font-semibold leading-5 text-neutral-900 hover:underline line-clamp-2"
@@ -121,33 +121,31 @@ const CartItemRow = memo(function CartItemRow({
           >
             {it.name}
           </Link>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {it.color ? (
-              <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-700 ring-1 ring-neutral-200">
-                Cor: {it.color}
-              </span>
-            ) : null}
-            {it.storage ? (
-              <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-700 ring-1 ring-neutral-200">
-                {String(it.storage)} GB
-              </span>
-            ) : null}
+          <div className="mt-1 text-xs text-neutral-600">
+            {it.color ? <>Cor: {it.color}</> : null}
+            {it.color && it.storage ? " • " : null}
+            {it.storage ? <>{String(it.storage)} GB</> : null}
           </div>
         </div>
 
+        {/* Total à direita */}
+        <div className="text-right text-base font-extrabold text-neutral-900">
+          {br((it.price || 0) * (it.qty || 0))}
+        </div>
+
         {/* Controles de quantidade + remover */}
-        <div className="flex items-center gap-2">
+        <div className="col-start-2 flex items-center gap-2">
           <button
             onClick={() => onDec(it.id)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
             aria-label="Diminuir"
           >
             −
           </button>
-          <span className="w-8 text-center text-base font-semibold">{it.qty}</span>
+          <span className="min-w-8 text-center text-base font-semibold">{it.qty}</span>
           <button
             onClick={() => onInc(it.id)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
             aria-label="Aumentar"
           >
             +
@@ -155,20 +153,15 @@ const CartItemRow = memo(function CartItemRow({
 
           <button
             onClick={() => onRemove(it.id)}
-            className="ml-2 rounded-lg p-2 text-neutral-500 hover:bg-neutral-100"
+            className="ml-1 rounded-lg p-2 text-neutral-500 hover:bg-neutral-100"
             aria-label="Remover item"
             title="Remover item"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
-
-        {/* Total */}
-        <div className="ml-3 w-[120px] text-right text-base font-extrabold text-neutral-900">
-          {br((it.price || 0) * (it.qty || 0))}
-        </div>
       </li>
-    
+
   );
 });
 
