@@ -500,6 +500,9 @@ function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete 
       },
       1
     );
+  
+    setToastOpen(true);
+    setTimeout(() => setToastOpen(false), 2500);
   }
   setToastOpen(true);
   setTimeout(() => setToastOpen(false), 2500);
