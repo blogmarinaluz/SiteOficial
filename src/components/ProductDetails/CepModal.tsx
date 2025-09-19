@@ -130,8 +130,8 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
                 const digits = onlyDigits(v).slice(0, 8);
                 setCep(digits.replace(/(\d{5})(\d{0,3})/, (_, a, b) => (b ? `${a}-${b}` : a)));
               }}
-              className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-900 placeholder:text-zinc-400"
-            />
+              className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-900 placeholder:text-zinc-400 bg-white caret-emerald-600"
+             type="text"  style={{ color: "#0a0a0a" }} />
             <button
               onClick={queryCep}
               disabled={loading}
