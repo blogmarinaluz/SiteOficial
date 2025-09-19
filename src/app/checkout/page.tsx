@@ -239,22 +239,7 @@ function FreteForm({ open, onClose }: { open: boolean; onClose: () => void }) {
           ))}
         </div>
       )}
-</div>
-                <button
-                  onClick={() => { localStorage.setItem("prostore:frete", JSON.stringify(o)); }}
-                  className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
-                >
-                  Escolher
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+
     </div>
   );
 }
@@ -367,15 +352,7 @@ export default function CheckoutPage() {
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
-const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
-  useEffect(() => {
-    try { const saved = localStorage.getItem('prostore:frete'); if (saved) setFreteEscolhido(JSON.parse(saved)); } catch {}
-    
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
-
-  // ===== pedido via WhatsApp =====
+// ===== pedido via WhatsApp =====
   function generateOrderCode(): string {
     const dt = new Date();
     const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -501,7 +478,7 @@ const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
 
           <Section title="Endereço e frete">
             <div className="grid gap-4">
-              <FreteForm open={true} onClose={() => { try { const saved = localStorage.getItem('prostore:frete'); if (saved) setFreteEscolhido(JSON.parse(saved)); } catch {} }} />
+              <FreteForm open={true} onClose={() => {}} />
             </div>
           </Section>
 
@@ -604,14 +581,17 @@ const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
                 <span className="font-medium text-emerald-700">− {fmt(discount)}</span>
               </div>
 
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-600">Frete</span>
+                <span className="font-medium">{allFreeShipping ? "Grátis" : fmt(Number(freteEscolhido?.valor || 0))}</span>
+              </div>
+
               <div className="flex items-center justify-between text-base font-semibold">
                 <span>Total</span>
                 <span>{fmt(total)}</span>
               </div>
 
               {allFreeShipping && <div className="text-xs font-medium text-emerald-700">Frete grátis</div>}
-
-              <div className="flex items-center justify-between text-sm"><span className="text-neutral-600">Frete</span><span className="font-medium">{allFreeShipping ? "Grátis" : br(Number(freteEscolhido?.valor || 0))}</span></div>
 
               <div className="pt-2 flex items-center justify-between">
                 <button onClick={onClear} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">Limpar</button>
