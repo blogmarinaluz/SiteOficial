@@ -25,6 +25,14 @@ function isJfif(src: string): boolean {
   return /\.jfif($|\?|\#)/i.test(src);
 }
 
+// Remove sufixos de capacidade do nome e normaliza espaços
+function stripCapacity(name?: string): string {
+  if (!name) return "";
+  let s = String(name);
+  s = s.replace(/\s+\d+\s?GB\b/gi, "");
+  return s.replace(/\s{2,}/g, " ").trim();
+}
+
 /* ====================== Tipos ====================== */
 type CartItem = {
   id: string;
@@ -590,7 +598,7 @@ const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(
                           ) : null}
                         </div>
                         <div className="flex-1 text-xs">
-                          <div className="truncate">{it.name}</div>
+                          <div className="truncate">{(() => { const base = stripCapacity(it.name); const st = it.storage ? `${String(it.storage)} GB` : ""; return st ? `${base} ${st}` : base; })()}</div>
                           <div className="text-neutral-500">{it.qty}x • {fmt(Number(it.price || 0))}</div>
                         </div>
                         <div className="text-sm font-semibold">{br((it.price || 0) * (it.qty || 0))}</div>
