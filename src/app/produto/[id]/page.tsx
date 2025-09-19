@@ -478,20 +478,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 const [cepModal, setCepModal] = useState(false);
   const [cep, setCep] = useState<string | undefined>(undefined);
   const [frete, setFrete] = useState<Frete | undefined>(undefined);
-  const [toastOpen, setToastOpen] = useState(false);
-  // Restaurar CEP/frete salvo (por produto) no localStorage
-  useEffect(() => {
-    try {
-      const key = `shipping:${product.id}`;
-      const saved = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
-      if (saved) {
-        const obj = JSON.parse(saved);
-        if (obj?.cep) setCep(obj.cep);
-        if (obj?.frete) setFrete(obj.frete);
-      }
-    } catch {}
-  }, [product.id]);
-
   function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) {
     setCep(payload.cep);
     setFrete(payload.frete);
@@ -511,8 +497,6 @@ const [cepModal, setCepModal] = useState(false);
       1
     );
   }
-  setToastOpen(true);
-  setTimeout(() => setToastOpen(false), 2500);
 
   return (
     <>
@@ -630,7 +614,7 @@ const [cepModal, setCepModal] = useState(false);
             {/* Preço */}
             <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
               <div className="text-[13px] text-zinc-400 line-through">{br(selectedPrice)}</div>
-              <div className="text-2xl sm:text-3xl leading-none font-extrabold tracking-tight text-emerald-700">
+              <div className="text-3xl sm:text-4xl leading-none font-extrabold tracking-tight text-emerald-700">
                 {br(withPix(selectedPrice))} <span className="text-sm sm:text-base font-semibold">no PIX</span>
               </div>
               <div className="text-[13px] text-zinc-600 mt-1">
@@ -663,7 +647,7 @@ const [cepModal, setCepModal] = useState(false);
             <div className="mt-5 rounded-2xl border bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 text-sm">
                 <Truck className="h-4 w-4 text-emerald-700" />
-                 <span className="font-medium">Receba em seu endereço</span>
+                <span className="font-medium">Receba em seu endereço</span>
                 <button
                   onClick={() => setCepModal(true)}
                   className="ml-2 text-emerald-700 underline inline-flex items-center gap-1"
@@ -672,14 +656,7 @@ const [cepModal, setCepModal] = useState(false);
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
-              
-                {frete && (
-                  <div className="mt-2 text-sm text-zinc-700">
-                    Frete selecionado: <b className="capitalize">{frete.tipo}</b> • {frete.prazo} • R$ {String(frete.valor.toFixed ? frete.valor.toFixed(2) : frete.valor).replace('.', ',')}
-                    <button onClick={() => setCepModal(true)} className="ml-2 text-emerald-700 underline underline-offset-2">alterar</button>
-                  </div>
-                )}
-{cep && frete && (
+              {cep && frete && (
                 <div className="mt-2 text-sm text-zinc-700">
                   CEP: <b>{cep.replace(/(\d{5})(\d{3})/, "$1-$2")}</b> • {frete.tipo} — {frete.prazo} —{" "}
                   <b>{br(frete.valor)}</b>
@@ -721,7 +698,8 @@ const [cepModal, setCepModal] = useState(false);
             <h3 className="text-lg font-semibold">Outras variações</h3>
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {siblings
-                .filter((s) => s.id !== product.id).sort(() => Math.random() - 0.5).slice(0, 4)
+                .filter((s) => s.id !== product.id)
+                .slice(0, 8)
                 .map((s) => {
                   const sid = idNoExt(s.id);
                   const img = s.image || product.image || "/placeholder.svg";
@@ -777,18 +755,6 @@ const [cepModal, setCepModal] = useState(false);
 
       {/* Barra de compra rápida (mobile) */}
       <MobileBuyBar product={{ id: product.id, name: product.name, price: selectedPrice }} />
-
-
-      {/* Toast de confirmação */}
-      {toastOpen && (
-        <div role="status" aria-live="polite" className="fixed bottom-4 right-4 z-[60] rounded-xl bg-emerald-600 text-white shadow-lg px-4 py-3">
-          <div className="text-sm font-medium">Produto adicionado ao carrinho</div>
-          <div className="mt-1 flex gap-3 text-xs">
-            <Link href="/carrinho" className="underline underline-offset-2">Ir para o carrinho</Link>
-            <button onClick={() => setToastOpen(false)} className="opacity-90 hover:opacity-100">Continuar comprando</button>
-          </div>
-        </div>
-      )}
 
       {/* Modal CEP */}
       <CepModal
