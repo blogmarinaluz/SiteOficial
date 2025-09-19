@@ -331,13 +331,14 @@ export default function CheckoutPage() {
     [items]
   );
   const discount = useMemo(() => subtotal * 0.3, [subtotal]); // 30% OFF
-  const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(freteEscolhido?.valor || 0)), [subtotal, discount, allFreeShipping, freteEscolhido]);
   const allFreeShipping = useMemo(
     () => (items ?? []).length > 0 && (items ?? []).every((i) => !!i.freeShipping),
     [items]
   );
 
   
+  
+const total = useMemo(() => subtotal - discount + (allFreeShipping ? 0 : Number(freteEscolhido?.valor || 0)), [subtotal, discount, allFreeShipping, freteEscolhido]);
   const [freteEscolhido, setFreteEscolhido] = useState<Frete | null>(null);
   useEffect(() => {
     try {
