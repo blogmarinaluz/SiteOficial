@@ -1,6 +1,6 @@
 // next.config.mjs
 /** @type {import('next').NextConfig} */
-export default {
+const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
@@ -15,16 +15,15 @@ export default {
     ],
   },
 
-  // Pode manter o resto padrão — sem alterações em rotas ou imports
-
-,
-async headers() {
-  return [
-    {
-      // Garante que arquivos .jfif sejam entregues como JPEG em qualquer pasta pública
-      source: "/:path*.jfif",
-      headers: [{ key: "Content-Type", value: "image/jpeg" }],
-    },
-  ];
-}
+  // Força Content-Type correto para .jfif (melhora compatibilidade no mobile, especialmente iOS)
+  async headers() {
+    return [
+      {
+        source: "/:path*.jfif",
+        headers: [{ key: "Content-Type", value: "image/jpeg" }],
+      },
+    ];
+  },
 };
+
+export default nextConfig;
