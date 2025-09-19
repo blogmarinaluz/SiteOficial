@@ -200,7 +200,7 @@ function CepModal({
               value={cep}
               onChange={(e) => setCep(e.target.value)}
               placeholder="Digite seu CEP"
-              className="input w-40"
+              className="w-40 h-11 rounded-xl border border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 px-3 outline-none focus:ring-2 focus:ring-emerald-500"
               maxLength={9}
             />
             <button onClick={consultar} className="btn-secondary">
@@ -527,12 +527,12 @@ const [cepModal, setCepModal] = useState(false);
         <div className="grid gap-6 lg:grid-cols-[minmax(320px,460px)_1fr]">
           {/* Imagem principal (desktop) + galeria (mobile) */}
           {/* Mobile gallery */}
-          <div className="lg:hidden"><ProductGalleryMobile images={[selectedImage]} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} />{/* images={( () => {
+          <div className="lg:hidden"><ProductGalleryMobile images={( () => {
             const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
             const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
             const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
             return Array.from(new Set(arr.map(norm)));
-          })()} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} */}</div>
+          })()} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div>
 
           {/* Desktop image */}
           <div className="hidden lg:block rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
