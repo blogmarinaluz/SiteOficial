@@ -221,27 +221,20 @@ function CepModal({
           )}
 
           {opcoes && (
-            <div className="mt-3 grid gap-2">
+            <ul className="space-y-2">
               {opcoes.map((o) => (
-                <div key={o.tipo} className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 hover:bg-zinc-50">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-full bg-emerald-50 p-1.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 17h4M3 7h13l3 5h2" /><path d="M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0M15 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0" /></svg>
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold leading-5 capitalize">{labelTipo(o.tipo)}</div>
-                      <div className="text-xs text-zinc-600">Entrega estimada • {fmtPrazo(o.prazo)}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
-                    <button onClick={() => escolher(o)} className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]">
-                      Escolher
-                    </button>
-                  </div>
-                </div>
+                <li key={o.tipo} className="trust">
+                  <Truck className="h-4 w-4 text-emerald-600" />
+                  <span className="font-medium capitalize">{o.tipo}</span>
+                  <span className="text-zinc-500">•</span>
+                  <span>{o.prazo}</span>
+                  <span className="ml-auto font-semibold">{br(o.valor)}</span>
+                  <button onClick={() => escolher(o)} className="ml-3 btn-primary">
+                    Escolher
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
 
@@ -487,7 +480,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 const [cepModal, setCepModal] = useState(false);
   const [cep, setCep] = useState<string | undefined>(undefined);
   const [frete, setFrete] = useState<Frete | undefined>(undefined);
-  function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) {
+  
+  const [toastOpen, setToastOpen] = useState(false);
+function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete }) {
     setCep(payload.cep);
     setFrete(payload.frete);
   }
@@ -506,6 +501,8 @@ const [cepModal, setCepModal] = useState(false);
       1
     );
   }
+  setToastOpen(true);
+  setTimeout(() => setToastOpen(false), 2500);
 
   return (
     <>
@@ -536,7 +533,12 @@ const [cepModal, setCepModal] = useState(false);
         <div className="grid gap-6 lg:grid-cols-[minmax(320px,460px)_1fr]">
           {/* Imagem principal (desktop) + galeria (mobile) */}
           {/* Mobile gallery */}
-          <div className="lg:hidden"><ProductGalleryMobile images={[selectedImage]} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div>
+          <div className="lg:hidden"><ProductGalleryMobile images={( () => {
+            const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
+            const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
+            const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
+            return Array.from(new Set(arr.map(norm)));
+          })()} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div>
 
           {/* Desktop image */}
           <div className="hidden lg:block rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
@@ -759,6 +761,18 @@ const [cepModal, setCepModal] = useState(false);
 
       {/* Barra de compra rápida (mobile) */}
       <MobileBuyBar product={{ id: product.id, name: product.name, price: selectedPrice }} />
+
+
+      {/* Toast de confirmação */}
+      {toastOpen && (
+        <div role="status" aria-live="polite" className="fixed bottom-4 right-4 z-[60] rounded-xl bg-emerald-600 text-white shadow-lg px-4 py-3">
+          <div className="text-sm font-medium">Produto adicionado ao carrinho</div>
+          <div className="mt-1 flex gap-3 text-xs">
+            <Link href="/carrinho" className="underline underline-offset-2">Ir para o carrinho</Link>
+            <button onClick={() => setToastOpen(false)} className="opacity-90 hover:opacity-100">Continuar comprando</button>
+          </div>
+        </div>
+      )}
 
       {/* Modal CEP */}
       <CepModal
