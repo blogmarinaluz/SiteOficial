@@ -549,7 +549,7 @@ const [cepModal, setCepModal] = useState(false);
                 style={{ height: "var(--prod-stage-h, 420px)" }}
               >
                 <img
-                  src={selectedImage.startsWith("/") || selectedImage.startsWith("http") ? selectedImage : `/${selectedImage}`}
+                  src={`/_next/image?url=${encodeURIComponent(selectedImage.startsWith("/") ? selectedImage : "/" + selectedImage)}&w=1200&q=85`}
                   alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
                   style={{
                     height: "var(--prod-img-h, 380px)",
@@ -720,7 +720,7 @@ const [cepModal, setCepModal] = useState(false);
                       <div className="w-full rounded-lg bg-white ring-1 ring-zinc-200 p-2">
                         <div className="w-full flex items-center justify-center overflow-hidden" style={{ height: 150 }}>
                           <img
-                            src={img.startsWith("/") ? img : `/${img}`}
+                            src={`/_next/image?url=${encodeURIComponent(img.startsWith("/") ? img : "/" + img)}&w=480&q=80`}
                             alt={s.name}
                             style={{ height: 130, width: "auto", objectFit: "contain" }}
                             loading="lazy"
