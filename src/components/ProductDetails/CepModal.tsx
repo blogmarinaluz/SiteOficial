@@ -3,6 +3,37 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+  // Força estilos do input de CEP no topo do <head> (precedência máxima)
+  useEffect(() => {
+    const css = `
+      input[data-cep-input="true"] {
+        all: revert !important;
+        color: #111827 !important;
+        -webkit-text-fill-color: #111827 !important;
+        background: #ffffff !important;
+        border: 1px solid #d4d4d8 !important;
+        border-radius: 12px !important;
+        height: 44px !important;
+        padding: 0 12px !important;
+        outline: none !important;
+      }
+      input[data-cep-input="true"]::placeholder {
+        color: #9ca3af !important;
+        opacity: 1 !important;
+      }
+      input[data-cep-input="true"]:-webkit-autofill {
+        -webkit-text-fill-color: #111827 !important;
+        -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+      }
+    `;
+    const style = document.createElement('style');
+    style.setAttribute('data-cep-fix', 'v4');
+    style.appendChild(document.createTextNode(css));
+    document.head.appendChild(style);
+    return () => { try { document.head.removeChild(style); } catch {} };
+  }, []);
+
+
 type Frete = {
   tipo: 'expresso' | 'economico' | 'retira';
   prazo: string;
@@ -131,7 +162,7 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
                 setCep(digits.replace(/(\d{5})(\d{0,3})/, (_, a, b) => (b ? `${a}-${b}` : a)));
               }}
               className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500"
-             data-cep-input="true"  type="text"  style={{ all: "unset", boxSizing: "border-box", width: "100%", height: "44px", padding: "0 12px", borderRadius: "12px", border: "1px solid #d4d4d8", backgroundColor: "#ffffff", color: "#111827", WebkitTextFillColor: "#111827", caretColor: "#059669", outline: "none" }} />
+             data-cep-input="true"  type="text"  style={{ color: "#111827" }} />
             <button
               onClick={queryCep}
               disabled={loading}
@@ -176,22 +207,6 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
           )}
         </div>
       </div>
-    
-      <style jsx>{`
-        :global(input[data-cep-input="true"])::placeholder {
-          color: #9ca3af !important;
-          opacity: 1;
-        }
-        :global(input[data-cep-input="true"]:focus) {
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
-          border-color: rgba(16, 185, 129, 0.6);
-        }
-        :global(input[data-cep-input="true"]:-webkit-autofill) {
-          -webkit-text-fill-color: #111827 !important;
-          -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-          background-clip: content-box !important;
-        }
-      `}</style>
-</div>
+    </div>
   );
 }
