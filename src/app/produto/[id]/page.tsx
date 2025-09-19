@@ -319,7 +319,7 @@ function ProductSEO({
 }) {
   const url =
     typeof window !== "undefined" ? `${window.location.origin}/produto/${paramsId}` : `/produto/${paramsId}`;
-  const title = `${product?.name}${selectedStorage ? ` ${selectedStorage} GB` : ""} | proStore`;
+  const title = `${stripStorageFromName(product?.name ?? "")}${selectedStorage ? ` ${selectedStorage} GB` : ""} | proStore`;
   const description = `${product?.brand || ""} ${product?.name || ""}${
     selectedStorage ? ` ${selectedStorage}GB` : ""
   } com 30% OFF no PIX. Frete grátis em itens selecionados.`.trim();
@@ -327,7 +327,7 @@ function ProductSEO({
   const productJson = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: `${product?.name}${selectedStorage ? ` ${selectedStorage} GB` : ""}`,
+    name: `${stripStorageFromName(product?.name ?? "")}${selectedStorage ? ` ${selectedStorage} GB` : ""}`,
     brand: { "@type": "Brand", name: product?.brand || "proStore" },
     sku: String(product?.id || paramsId),
     image: [absUrl(selectedImage || product?.image || "")],
@@ -447,11 +447,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     const byColorOnly = siblings.find((s) => norm(s.color) === norm(selectedColor) && s.image);
     return byColor?.image || byColorOnly?.image || product.images?.[0] || product.image || "/placeholder.svg";
   }, [siblings, selectedColor, selectedStorage, product]);
-  // Compat mobile: usa o otimizador do Next (/_next/image) para entregar formato compatível
-  const __isAbs = selectedImage.startsWith("/") || selectedImage.startsWith("http");
-  const __displayImage = __isAbs ? selectedImage : `/${selectedImage}`;
-  const mainImageSrc = `/_next/image?url=${encodeURIComponent(__displayImage)}&w=1200&q=85`;
-
 
   const selectedPrice = useMemo(() => {
     const sameStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
@@ -502,7 +497,7 @@ const [cepModal, setCepModal] = useState(false);
     cart.add(
       {
         id: product.id,
-        name: `${product.name} ${selectedStorage} GB`,
+        name: `${stripStorageFromName(product.name)} ${selectedStorage} GB`,
         image: selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`,
         price: selectedPrice,
         freeShipping: !!product.tag || product.tag === "frete-gratis",
@@ -554,7 +549,7 @@ const [cepModal, setCepModal] = useState(false);
                 style={{ height: "var(--prod-stage-h, 420px)" }}
               >
                 <img
-                  src={mainImageSrc}
+                  src={selectedImage.startsWith("/") ? selectedImage : `/${selectedImage}`}
                   alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()}
                   style={{
                     height: "var(--prod-img-h, 380px)",
@@ -572,7 +567,7 @@ const [cepModal, setCepModal] = useState(false);
           {/* Conteúdo */}
           <div className="lg:col-span-1">
             <h1 className="text-xl md:text-2xl font-semibold text-zinc-900">
-              {product.name} {selectedStorage} GB
+              {stripStorageFromName(product.name)} {selectedStorage} GB
             </h1>
             <div className="mt-1 text-sm text-zinc-500">{product.brand}</div>
 
@@ -725,7 +720,7 @@ const [cepModal, setCepModal] = useState(false);
                       <div className="w-full rounded-lg bg-white ring-1 ring-zinc-200 p-2">
                         <div className="w-full flex items-center justify-center overflow-hidden" style={{ height: 150 }}>
                           <img
-                            src={`/_next/image?url=${encodeURIComponent(img.startsWith("/") ? img : `/${img}`)}&w=260&q=85`}
+                            src={img.startsWith("/") ? img : `/${img}`}
                             alt={s.name}
                             style={{ height: 130, width: "auto", objectFit: "contain" }}
                             loading="lazy"
