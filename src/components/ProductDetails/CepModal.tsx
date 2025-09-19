@@ -2,37 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-
-  // Força estilos do input de CEP no topo do <head> (precedência máxima)
-  useEffect(() => {
-    const css = `
-      input[data-cep-input="true"] {
-        all: revert !important;
-        color: #111827 !important;
-        -webkit-text-fill-color: #111827 !important;
-        background: #ffffff !important;
-        border: 1px solid #d4d4d8 !important;
-        border-radius: 12px !important;
-        height: 44px !important;
-        padding: 0 12px !important;
-        outline: none !important;
-      }
-      input[data-cep-input="true"]::placeholder {
-        color: #9ca3af !important;
-        opacity: 1 !important;
-      }
-      input[data-cep-input="true"]:-webkit-autofill {
-        -webkit-text-fill-color: #111827 !important;
-        -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-      }
-    `;
-    const style = document.createElement('style');
-    style.setAttribute('data-cep-fix', 'v4');
-    style.appendChild(document.createTextNode(css));
-    document.head.appendChild(style);
-    return () => { try { document.head.removeChild(style); } catch {} };
-  }, []);
-
+import { Truck, Clock } from 'lucide-react';
 
 type Frete = {
   tipo: 'expresso' | 'economico' | 'retira';
@@ -48,6 +18,12 @@ type EnderecoViaCep = {
   uf: string;
   ddd?: string;
 };
+
+// Helpers de apresentação
+const br = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const labelTipo = (t: Frete['tipo']) => t === 'economico' ? 'Econômico' : t === 'expresso' ? 'Expresso' : 'Retira';
+const fmtPrazo = (p: string) => p.replace(/\s+a\s+/i, '–').replace(/\s*\-\s*/g, '–');
+
 
 type Props = {
   open: boolean;
@@ -162,7 +138,7 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
                 setCep(digits.replace(/(\d{5})(\d{0,3})/, (_, a, b) => (b ? `${a}-${b}` : a)));
               }}
               className="flex-1 h-11 rounded-xl border border-zinc-300 px-3 outline-none focus:ring-2 focus:ring-emerald-500"
-             data-cep-input="true"  type="text"  style={{ color: "#111827" }} />
+            />
             <button
               onClick={queryCep}
               disabled={loading}
@@ -182,25 +158,38 @@ export default function CepModal({ open, onClose, onSelect }: Props) {
                 <div className="text-zinc-500">CEP {address.cep}</div>
               </div>
 
-              <div className="mt-3 grid gap-2">
-                {options.map((o) => (
-                  <button
-                    key={o.tipo}
-                    onClick={() => choose(o)}
-                    className="flex items-center justify-between rounded-xl border px-4 py-3 text-left hover:bg-zinc-50 active:scale-[0.99]"
-                  >
-                    <div>
-                      <div className="font-medium capitalize">{o.tipo}</div>
-                      <div className="text-sm text-zinc-500">{o.prazo}</div>
-                    </div>
-                    <div className="text-base font-semibold">
-                      {o.valor === 0 ? 'Grátis' : o.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              
+<div className="mt-3 grid gap-2">
+  {options.map((o) => (
+    <div key={o.tipo} className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 hover:bg-zinc-50">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 rounded-full bg-emerald-50 p-1.5">
+          <Truck className="h-4 w-4 text-emerald-600" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold leading-5">
+            {labelTipo(o.tipo)}
+          </div>
+          <div className="text-xs text-zinc-600 flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-zinc-500" />
+            <span>Entrega estimada • {fmtPrazo(o.prazo)}</span>
+          </div>
+        </div>
+      </div>
 
-              <p className="mt-3 text-xs text-zinc-500">
+      <div className="flex items-center gap-3">
+        <div className="text-base font-semibold tabular-nums">{br(o.valor)}</div>
+        <button
+          onClick={() => choose(o)}
+          className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1.5 text-white text-sm font-semibold hover:bg-emerald-700 active:scale-[0.99]"
+        >
+          Escolher
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
+<p className="mt-3 text-xs text-zinc-500">
                 Valores estimados. O valor final pode variar conforme sua região.
               </p>
             </div>
