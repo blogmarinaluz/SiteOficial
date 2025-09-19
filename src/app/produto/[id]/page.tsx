@@ -131,6 +131,8 @@ function CepModal({
   const [endereco, setEndereco] = useState<EnderecoViaCep | null>(null);
   const [opcoes, setOpcoes] = useState<Frete[] | null>(null);
 
+  useEffect(() => { if (!toastOpen) return; const t = setTimeout(() => setToastOpen(false), 2500); return () => clearTimeout(t); }, [toastOpen]);
+
   useEffect(() => {
     if (!open) return;
     const saved = localStorage.getItem("prostore:cep");
@@ -354,6 +356,8 @@ function ProductSEO({
     ],
   };
 
+  useEffect(() => { if (!toastOpen) return; const t = setTimeout(() => setToastOpen(false), 2500); return () => clearTimeout(t); }, [toastOpen]);
+
   useEffect(() => {
     try {
       document.title = title;
@@ -502,10 +506,7 @@ function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete 
     );
   
     setToastOpen(true);
-    setTimeout(() => setToastOpen(false), 2500);
   }
-  setToastOpen(true);
-  setTimeout(() => setToastOpen(false), 2500);
 
   return (
     <>
@@ -536,7 +537,12 @@ function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete 
         <div className="grid gap-6 lg:grid-cols-[minmax(320px,460px)_1fr]">
           {/* Imagem principal (desktop) + galeria (mobile) */}
           {/* Mobile gallery */}
-          <div className="lg:hidden"><ProductGalleryMobile images={[selectedImage]} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div></div>
+          <div className="lg:hidden"><ProductGalleryMobile images={( () => {
+            const byStorage = siblings.filter((s) => parseStorage(s) === selectedStorage);
+            const arr = (byStorage.length ? byStorage : siblings).map((s) => s.image).filter(Boolean) as string[];
+            const norm = (u: string) => (u?.startsWith("/") ? u : `/${u}`);
+            return Array.from(new Set(arr.map(norm)));
+          })()} alt={`${product.name} ${selectedStorage}GB ${selectedColor || ""}`.trim()} /></div>
 
           {/* Desktop image */}
           <div className="hidden lg:block rounded-2xl border bg-white p-3 max-w-[460px] w-full mx-auto">
@@ -760,13 +766,13 @@ function onFrete(payload: { cep: string; endereco: EnderecoViaCep; frete: Frete 
       {/* Barra de compra rápida (mobile) */}
       <MobileBuyBar product={{ id: product.id, name: product.name, price: selectedPrice }} />
 
-
+      
       {/* Toast de confirmação */}
       {toastOpen && (
         <div role="status" aria-live="polite" className="fixed bottom-4 right-4 z-[60] rounded-xl bg-emerald-600 text-white shadow-lg px-4 py-3">
           <div className="text-sm font-medium">Produto adicionado ao carrinho</div>
           <div className="mt-1 flex gap-3 text-xs">
-            <Link href="/carrinho" className="underline underline-offset-2">Ir para o carrinho</Link>
+            <a href="/carrinho" className="underline underline-offset-2">Ir para o carrinho</a>
             <button onClick={() => setToastOpen(false)} className="opacity-90 hover:opacity-100">Continuar comprando</button>
           </div>
         </div>
